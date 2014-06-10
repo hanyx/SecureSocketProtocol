@@ -1,20 +1,27 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace SecureSocketProtocol3
 {
-    public class ClientProperties
+    public abstract class ClientProperties
     {
-        public string HostIp { get; private set; }
-        public ushort Port { get; private set; }
-        public int ConnectingTimeout;
+        public abstract string HostIp { get; }
+        public abstract ushort Port { get;  }
+        public abstract int ConnectionTimeout { get; }
+        public abstract byte[] PrivateKey { get; }
 
-        public ClientProperties(string HostIp, ushort Port, int ConnectingTimeout = 30000)
+        public abstract string Username { get; }
+        public abstract string Password { get; }
+
+        public abstract Stream[] KeyFiles { get; }
+
+        public ClientProperties()
         {
-            this.HostIp = HostIp;
-            this.Port = Port;
-            this.ConnectingTimeout = ConnectingTimeout;
+
         }
+
+
     }
 }

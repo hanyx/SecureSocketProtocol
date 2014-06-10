@@ -45,13 +45,17 @@
   <ItemGroup>
     <Compile Include="ClientProperties.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
+    <Compile Include="Compressions\QuickLZ.cs" />
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
+    <Compile Include="Hashers\CRC32.cs" />
     <Compile Include="IClient.cs" />
+    <Compile Include="Misc\PayloadInfo.cs" />
     <Compile Include="Network\CertificateInfo.cs" />
-    <Compile Include="Network\ClientSocket.cs" />
     <Compile Include="Network\Connection.cs" />
+    <Compile Include="Network\Headers\Header.cs" />
+    <Compile Include="Network\Headers\SystemHeader.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
@@ -66,10 +70,7 @@
     <Compile Include="Utils\PayloadWriter.cs" />
     <Compile Include="Utils\SmartSerializer.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Hashers\" />
-    <Folder Include="Misc\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

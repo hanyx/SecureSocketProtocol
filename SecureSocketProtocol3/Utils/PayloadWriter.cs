@@ -129,6 +129,12 @@ namespace SecureSocketProtocol3.Utils
             get { return (int)vStream.Length; }
         }
 
+        public int Position
+        {
+            get { return (int)vStream.Position; }
+            set { vStream.Position = value; }
+        }
+
         public void Dispose()
         {
             vStream.Close();

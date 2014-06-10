@@ -1,4 +1,5 @@
-﻿using SecureSocketProtocol3.Utils;
+﻿using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,6 +18,7 @@ namespace SecureSocketProtocol3
 
     public delegate SSPClient[] GetClientsDelegate();
     internal delegate bool AuthenticationDelegate(SSPClient client, string Username, string Password);
+    public delegate void ReceiveDataCallback(byte[] Payload, Header header);
 
     public enum DisconnectReason
     {

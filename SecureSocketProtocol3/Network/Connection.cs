@@ -5,6 +5,8 @@ using System.Net.Sockets;
 using System.Diagnostics;
 using SecureSocketProtocol3.Utils;
 using System.IO;
+using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Network.Headers;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -15,8 +17,25 @@ namespace SecureSocketProtocol3.Network
             151, 221, 126, 222, 126, 142, 126, 208, 107, 209, 212, 218, 228, 167, 158, 252, 105, 147, 185, 178
         };
 
-        public const int HEADER_SIZE = 6; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(BYTE)
+        /// <summary>
+        /// The length contains always 2 bytes Unsigned Short
+        /// 
+        /// CurPacketId is only 1 byte and the number will increment everytime you send a packet
+        /// If you send the CurPacketId but the number does not match at the server side
+        /// The server will disconnect
+        /// 
+        /// The ConnectionId is being used for the OperationalSocket (Virtual Connection)
+        /// 
+        /// The HeaderId is just a number to know which header is being used for a packet
+        /// 
+        /// The Fragment Id is being used for if the packet is bigger then the MAX_PAYLOAD
+        /// If the Fragment Id contains the flag 0x80 (128), this means that it is the last fragment
+        /// If the FragmentId is bigger then 1 the Fragment is enabled
+        /// The fragment id should never exceed 128
+        /// </summary>
+        public const int HEADER_SIZE = 7; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(BYTE) + Fragment (BYTE)
         public const int MAX_PAYLOAD = 65529; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
+        private const int FRAGMENT_MULTIPLIER = 3; //Multiply the size of the buffer by x, higher might improve performance but uses more memory
 
         public bool Connected { get; private set; }
         public decimal ClientId { get; internal set; }
@@ -32,11 +51,26 @@ namespace SecureSocketProtocol3.Network
         private int WriteOffset = 0;
         private int ReadableDataLen = 0;
 
+        //fragment information
+        private byte[] FragmentBuffer = null;
+        private int FragmentOffset = 0;
+
+
         //header info
         private int PayloadLen = 0;
         private byte CurPacketId = 0;
         private ushort ConnectionId = 0;
         private byte HeaderId = 0;
+        private byte FragmentId = 0;
+
+        //Security
+        private WopEx HeaderEncryption;
+
+        //connection info
+        public ulong PacketsIn { get; private set; }
+        public ulong DataIn { get; private set; }
+        public ulong PacketsOut { get; private set; }
+        public ulong DataOut { get; private set; }
 
         Stopwatch sw = Stopwatch.StartNew();
         int recv = 0;
@@ -46,15 +80,40 @@ namespace SecureSocketProtocol3.Network
         public Connection(SSPClient client)
         {
             this.Client = client;
+            this.Connected = true;
+
+            //generate the header encryption
+            byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.PrivateKey : client.Properties.PrivateKey;
+            int seed = 0;
+            for (int i = 0; i < privKey.Length; i++)
+                seed += privKey[i];
+
+            byte[] SaltKey = new byte[privKey.Length];
+            Array.Copy(privKey, SaltKey, SaltKey.Length);
+
+            for (int i = 0; i < SaltKey.Length; i++)
+                SaltKey[i] += (byte)seed;
+            
+            byte[] encCode = new byte[0];
+            byte[] decCode = new byte[0];
+            WopEx.GenerateCryptoCode(seed, 25, ref encCode, ref decCode);
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, false);
+
             Handle.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
         }
 
         private void AynsReceive(IAsyncResult result)
         {
             int BytesTransferred = Handle.EndReceive(result);
+            if (BytesTransferred <= 0)
+            {
+                this.Connected = false;
+                return;
+            }
 
             this.LastPacketSW = Stopwatch.StartNew();
             ReadableDataLen += BytesTransferred;
+            DataIn += (ulong)BytesTransferred;
             bool Process = true;
 
             while (Process)
@@ -64,12 +123,16 @@ namespace SecureSocketProtocol3.Network
                     Process = ReadableDataLen >= HEADER_SIZE;
                     if (ReadableDataLen >= HEADER_SIZE)
                     {
+                        lock (HeaderEncryption)
+                        {
+                            HeaderEncryption.Decrypt(Buffer, ReadOffset, HEADER_SIZE);
+                        }
+
                         PayloadLen = BitConverter.ToUInt16(Buffer, ReadOffset);
                         CurPacketId = Buffer[ReadOffset + 2];
                         ConnectionId = BitConverter.ToUInt16(Buffer, ReadOffset + 3);
                         HeaderId = Buffer[ReadOffset + 5];
-
-
+                        FragmentId = Buffer[ReadOffset + 6];
 
                         ReadableDataLen -= HEADER_SIZE;
                         ReadOffset += HEADER_SIZE;
@@ -81,10 +144,48 @@ namespace SecureSocketProtocol3.Network
                     Process = ReadableDataLen >= PayloadLen;
                     if (ReadableDataLen >= PayloadLen)
                     {
-                        
+                        //check if Fragments are being used for big packets
+                        //we could improve the performance of Fragments by changing the buffer directly to the FragmentBuffer
+                        bool ProcessPacket = true;
+                        if (FragmentId > 0)
+                        {
+                            if (FragmentId == 1)
+                            {
+                                //first Fragment, let's initialize the buffer
+                                FragmentBuffer = new byte[MAX_PAYLOAD * FRAGMENT_MULTIPLIER];
+                                FragmentOffset = 0;
+                            }
 
-                        recvPackets++;
-                        recvPacketsTotal++;
+                            Array.Copy(Buffer, ReadOffset, FragmentBuffer, FragmentOffset, PayloadLen);
+                            FragmentOffset += PayloadLen;
+
+                            bool LastFragment = (FragmentId & 128) == 128;
+
+                            if (!LastFragment && FragmentOffset == FragmentBuffer.Length)
+                            {
+                                //here it will decrease performance
+                                Array.Resize(ref FragmentBuffer, FragmentBuffer.Length + (MAX_PAYLOAD * FRAGMENT_MULTIPLIER));
+                            }
+
+                            //Check LastFragment flag
+                            if (LastFragment)
+                            {
+
+                            }
+                            else
+                            {
+                                ProcessPacket = false;
+                            }
+                        }
+
+                        if (ProcessPacket)
+                        {
+
+                            //destroy FragmentBuffer if used
+                            FragmentBuffer = null;
+                        }
+
+                        PacketsIn++;
                         ReadOffset += PayloadLen;
                         ReadableDataLen -= PayloadLen;
                         ReceiveState = ReceiveType.Header;
@@ -95,7 +196,7 @@ namespace SecureSocketProtocol3.Network
             int len = ReceiveState == ReceiveType.Header ? HEADER_SIZE : PayloadLen;
             if (ReadOffset + len >= this.Buffer.Length)
             {
-                //no more room for this payload size, at the end of the buffer ?
+                //no more room for this data size, at the end of the buffer ?
 
                 //copy the buffer to the beginning
                 Array.Copy(this.Buffer, ReadOffset, this.Buffer, 0, ReadableDataLen);
@@ -113,23 +214,56 @@ namespace SecureSocketProtocol3.Network
             Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
         }
 
-        public void Send(byte[] data, int offset, int length)
+        /// <summary>
+        /// Send data to the established connection
+        /// </summary>
+        /// <param name="data">The data to send</param>
+        /// <param name="offset">The index where the data starts</param>
+        /// <param name="length">The length of the data to send</param>
+        /// <param name="header">The header to use for adding additional information</param>
+        public void Send(byte[] data, int offset, int length, Header header)
         {
-            byte[] tempBuffer = new byte[HEADER_SIZE + length];
-            using (PayloadWriter pw = new PayloadWriter(new MemoryStream(tempBuffer, 0, tempBuffer.Length)))
+            byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
+            bool UseFragments = fragment > 0;
+
+            //serialize the custom header
+
+            while(length > 0)
             {
-                //header
-                pw.WriteUShort((ushort)length);
-                pw.WriteByte(CurPacketId);
-                pw.WriteUShort(43221);
-                pw.WriteByte(131);
+                int packetLength = length > MAX_PAYLOAD ? MAX_PAYLOAD : length;
+                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength];
+                using (PayloadWriter pw = new PayloadWriter(new MemoryStream(tempBuffer, 0, tempBuffer.Length)))
+                {
+                    pw.Position = 0;
 
+                    //header
+                    pw.WriteUShort((ushort)packetLength); //length
+                    pw.WriteByte(CurPacketId); //cur packet id
+                    pw.WriteUShort(0); //Connection Id
+                    pw.WriteByte(header.GetHeaderId(header)); //Header Id
 
+                    length -= packetLength;
+                    if (UseFragments)
+                    {
+                        pw.WriteByte((byte)(length > 0 ? fragment : (fragment + 128))); //fragment id
+                        fragment++;
+                    }
+                    else
+                    {
+                        pw.WriteByte(0); //fragment id
+                    }
 
-                //write data
-                pw.WriteBytes(data, offset, length);
+                    //encrypt the header
+                    lock (HeaderEncryption)
+                    {
+                        HeaderEncryption.Encrypt(tempBuffer, 0, HEADER_SIZE);
+                    }
 
-                Handle.Send(tempBuffer, 0, tempBuffer.Length, SocketFlags.None);
+                    //write data
+                    pw.WriteBytes(data, offset, packetLength);
+                    Handle.Send(tempBuffer, 0, tempBuffer.Length, SocketFlags.None);
+                }
+                offset += packetLength;
             }
         }
     }

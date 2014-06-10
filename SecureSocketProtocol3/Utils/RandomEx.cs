@@ -62,13 +62,13 @@ namespace SecureSocketProtocol3.Utils
 
         public int GetNext()
         {
-            IntData = wopEx.Encrypt(IntData, 0, 4);
+            wopEx.Encrypt(IntData, 0, 4);
             return BitConverter.ToInt32(IntData, 0);
         }
 
         public uint GetUNext()
         {
-            IntData = wopEx.Encrypt(IntData, 0, 4);
+            wopEx.Encrypt(IntData, 0, 4);
             return BitConverter.ToUInt32(IntData, 0);
         }
     }

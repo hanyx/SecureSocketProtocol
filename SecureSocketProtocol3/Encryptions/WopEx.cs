@@ -24,6 +24,9 @@ namespace SecureSocketProtocol3.Encryptions
         private int DecSeed = 0;
         private bool shuffleInsts { get; set; }
 
+        private Random enc_random;
+        private Random dec_random;
+
         /// <summary>
         /// Initialize the WopEx Encryption
         /// </summary>
@@ -39,8 +42,14 @@ namespace SecureSocketProtocol3.Encryptions
             if (Key.Length < 4 || Salt.Length < 4)
                 throw new Exception("The Key and Salt must atleast have a size of 4");
 
+            this.Key = Key;
+            this.Salt = Salt;
+
             this.EncSeed = BitConverter.ToInt32(Key, 0);
             this.DecSeed = BitConverter.ToInt32(Key, 0);
+
+            this.enc_random = new Random(EncSeed);
+            this.dec_random = new Random(DecSeed);
 
             this.shuffleInsts = ShuffleInstructions;
             List<InstructionInfo> EncInstructions = new List<InstructionInfo>();
@@ -119,12 +128,23 @@ namespace SecureSocketProtocol3.Encryptions
             this.DecInstructions = DecInstructions.ToArray();
         }
 
-        public byte[] Encrypt(byte[] Data, int Offset, int Length)
+        /// <summary>
+        /// Encrypt the data
+        /// </summary>
+        /// <param name="Data">The data to encrypt</param>
+        /// <param name="Offset">The index where the data starts</param>
+        /// <param name="Length">The length to encrypt</param>
+        public void Encrypt(byte[] Data, int Offset, int Length)
         {
-            using (PayloadWriter pw = new PayloadWriter())
+            Length += Offset;
+
+            uint tempCrypt = 0;
+
+            using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
             {
                 for (int i = Offset; i < Length; )
                 {
+                    pw.vStream.Position = i;
                     int size = i + 4 < Length ? 4 : Length - i;
                     int usedsize = 0;
                     uint value = 0;
@@ -142,7 +162,9 @@ namespace SecureSocketProtocol3.Encryptions
 
                     bool isExecuted = false;
                     int InstructionsExecuted = 0;
+
                     this.EncSeed += (int)value;
+                    //value ^= (uint)(Key[(/*enc_random.Next(0, Key.Length)*/ + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
 
                     if (usedsize == 4)
                     {
@@ -178,16 +200,23 @@ namespace SecureSocketProtocol3.Encryptions
                 {
                     ShuffleInstructions(EncInstructions, EncSeed);
                 }
-                return pw.ToByteArray();
             }
         }
 
-        public byte[] Decrypt(byte[] Data, int Offset, int Length)
+        /// <summary>
+        /// Decrypt the data
+        /// </summary>
+        /// <param name="Data">The data to decrypt</param>
+        /// <param name="Offset">The index where the data starts</param>
+        /// <param name="Length">The length to decrypt</param>
+        public void Decrypt(byte[] Data, int Offset, int Length)
         {
-            using (PayloadWriter pw = new PayloadWriter())
+            Length += Offset;
+            using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
             {
                 for (int i = Offset; i < Length; )
                 {
+                    pw.vStream.Position = i;
                     int size = i + 4 < Length ? 4 : Length - i;
                     int usedsize = 0;
                     uint value = 0;
@@ -218,6 +247,8 @@ namespace SecureSocketProtocol3.Encryptions
                                 InstructionsExecuted++;
                             }
                         }
+
+                        //value ^= (uint)(Key[(/*dec_random.Next(0, Key.Length) +*/ i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         pw.WriteUInteger(value);
                     }
                     else
@@ -232,8 +263,11 @@ namespace SecureSocketProtocol3.Encryptions
                                 InstructionsExecuted++;
                             }
                         }
+
+                        //value ^= (uint)(Key[(/*dec_random.Next(0, Key.Length) +*/ i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         pw.WriteByte((byte)value);
                     }
+
                     this.DecSeed += (int)value;
                     i += usedsize;
                 }
@@ -242,7 +276,6 @@ namespace SecureSocketProtocol3.Encryptions
                 {
                     ShuffleInstructions(DecInstructions, DecSeed);
                 }
-                return pw.ToByteArray();
             }
         }
 
@@ -416,25 +449,31 @@ namespace SecureSocketProtocol3.Encryptions
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
             {
-                byte[] Encrypted = wop.Encrypt(RandData, 0, RandData.Length);
-                byte[] Decrypted = wop.Decrypt(Encrypted, 0, Encrypted.Length);
+                byte[] crypted = new byte[RandData.Length];
+                Array.Copy(RandData, crypted, RandData.Length);
+
+                wop.Encrypt(crypted, 0, crypted.Length);
+
+
                 double Equals = 0;
 
-                for (int i = 0; i < Encrypted.Length; i++)
+                for (int i = 0; i < crypted.Length; i++)
                 {
-                    if (RandData[i] == Encrypted[i])
+                    if (RandData[i] == crypted[i])
                     {
                         Equals++;
                     }
                 }
 
+                wop.Decrypt(crypted, 0, crypted.Length);
+
                 //check if decryption went successful
-                if (RandData.Length != Decrypted.Length)
+                if (RandData.Length != crypted.Length)
                     return true;
 
                 for (int i = 0; i < RandData.Length; i++)
                 {
-                    if (RandData[i] != Decrypted[i])
+                    if (RandData[i] != crypted[i])
                     {
                         return true;
                     }

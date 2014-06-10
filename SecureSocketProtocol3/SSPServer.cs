@@ -14,7 +14,7 @@ namespace SecureSocketProtocol3
         public abstract SSPClient GetNewClient();
 
         internal object AuthLock = new object();
-        internal Socket TcpServer;
+        internal Socket TcpServer { get; private set; }
         public ServerProperties serverProperties { get; private set; }
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
         private RandomDecimal randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
@@ -44,6 +44,7 @@ namespace SecureSocketProtocol3
                 Socket AcceptSocket = this.TcpServer.EndAccept(result); //<- can throw a error
                 SSPClient client = GetNewClient();
                 client.Handle = AcceptSocket;
+                client.Server = this;
                 client.Connection = new Network.Connection(client);
                 client.Connection.ClientId = randomDecimal.NextDecimal();
 

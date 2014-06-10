@@ -1,0 +1,30 @@
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+X:\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+X:\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+X:\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+X:\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+X:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+X:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+X:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+Y:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+Y:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\protobuf-net.dll
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+Y:\SecureSocketProtocol3\TestClient\bin\Debug\protobuf-net.pdb
+Y:\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb

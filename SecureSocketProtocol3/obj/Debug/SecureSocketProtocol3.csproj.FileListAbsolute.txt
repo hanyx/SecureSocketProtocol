@@ -1,0 +1,16 @@
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+C:\Users\DragonHunter\Documents\CloudStation\Main Projects\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+X:\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+X:\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+X:\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+X:\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+Y:\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+Y:\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+Y:\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+Y:\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb

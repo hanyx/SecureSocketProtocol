@@ -8,10 +8,10 @@ namespace SecureSocketProtocol3
     public abstract class IClient
     {
         internal Connection Connection { get; set; }
-        public abstract void onClientConnect();
-        public abstract void onDisconnect(DisconnectReason Reason);
-        public abstract void onException(Exception ex, ErrorType errorType);
-        public abstract void Disconnect();
+        protected abstract void onClientConnect();
+        protected abstract void onDisconnect(DisconnectReason Reason);
+        protected abstract void onException(Exception ex, ErrorType errorType);
+        protected abstract void Disconnect();
 
         public IClient()
         {

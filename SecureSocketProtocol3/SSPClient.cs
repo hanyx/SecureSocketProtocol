@@ -12,9 +12,12 @@ namespace SecureSocketProtocol3
     {
         public string RemoteIp { get; internal set; }
         public decimal ClientId { get { return Connection.ClientId; } }
+        public bool Connected { get { return Connection.Connected; } }
+
         internal ClientProperties Properties { get; private set; }
         internal Socket Handle { get; set; }
-        public Connection connection;
+        public Connection connection { get; private set; }
+        internal SSPServer Server;
 
         public SSPClient()
         {
@@ -51,6 +54,7 @@ namespace SecureSocketProtocol3
                 throw new Exception("Unable to resolve \"" + Properties.HostIp + "\" by using DNS");
             }
 
+            int ConTimeout = Properties.ConnectionTimeout;
             do
             {
                 this.Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -64,17 +68,22 @@ namespace SecureSocketProtocol3
                 }, null);
 
                 Stopwatch sw = Stopwatch.StartNew();
-                if (Properties.ConnectingTimeout > 0)
-                    result.AsyncWaitHandle.WaitOne(Properties.ConnectingTimeout);
+                if (ConTimeout > 0)
+                {
+                    result.AsyncWaitHandle.WaitOne(ConTimeout);
+                }
                 else
+                {
                     result.AsyncWaitHandle.WaitOne();
+                }
+
                 sw.Stop();
-                Properties.ConnectingTimeout -= (int)sw.ElapsedMilliseconds;
+                ConTimeout -= (int)sw.ElapsedMilliseconds;
 
                 if (!this.Handle.Connected)
                     this.Handle.Close();
 
-            } while (Properties.ConnectingTimeout > 0 && !this.Handle.Connected);
+            } while (ConTimeout > 0 && !this.Handle.Connected);
 
             if (!Handle.Connected)
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
@@ -82,22 +91,22 @@ namespace SecureSocketProtocol3
             connection = new Connection(this);
         }
 
-        public override void onClientConnect()
+        protected override void onClientConnect()
         {
 
         }
 
-        public override void onDisconnect(DisconnectReason Reason)
+        protected override void onDisconnect(DisconnectReason Reason)
         {
 
         }
 
-        public override void onException(Exception ex, ErrorType errorType)
+        protected override void onException(Exception ex, ErrorType errorType)
         {
 
         }
 
-        public override void Disconnect()
+        protected override void Disconnect()
         {
 
         }
