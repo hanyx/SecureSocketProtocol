@@ -14,3 +14,8 @@ C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketPro
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csprojResolveAssemblyReference.cache

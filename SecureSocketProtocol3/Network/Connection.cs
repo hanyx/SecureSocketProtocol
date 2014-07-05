@@ -33,8 +33,8 @@ namespace SecureSocketProtocol3.Network
         /// If the FragmentId is bigger then 1 the Fragment is enabled
         /// The fragment id should never exceed 128
         /// </summary>
-        public const int HEADER_SIZE = 7; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(BYTE) + Fragment (BYTE)
-        public const int MAX_PAYLOAD = 65529; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
+        public const int HEADER_SIZE = 8; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE)
+        public const int MAX_PAYLOAD = 65535 - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
         private const int FRAGMENT_MULTIPLIER = 3; //Multiply the size of the buffer by x, higher might improve performance but uses more memory
 
         public bool Connected { get; private set; }
@@ -43,6 +43,7 @@ namespace SecureSocketProtocol3.Network
         private Socket Handle { get { return Client.Handle; } }
         private Stopwatch LastPacketSW = new Stopwatch();
         private byte[] Buffer = new byte[HEADER_SIZE + MAX_PAYLOAD];
+        private SortedList<ushort, Type> Headers;
 
         private ReceiveType ReceiveState = ReceiveType.Header;
 
@@ -60,7 +61,7 @@ namespace SecureSocketProtocol3.Network
         private int PayloadLen = 0;
         private byte CurPacketId = 0;
         private ushort ConnectionId = 0;
-        private byte HeaderId = 0;
+        private ushort HeaderId = 0;
         private byte FragmentId = 0;
 
         //Security
@@ -81,6 +82,9 @@ namespace SecureSocketProtocol3.Network
         {
             this.Client = client;
             this.Connected = true;
+            this.Headers = new SortedList<ushort, Type>();
+            RegisterHeader(typeof(SystemHeader));
+            RegisterHeader(typeof(ConnectionHeader));
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.PrivateKey : client.Properties.PrivateKey;
@@ -131,8 +135,8 @@ namespace SecureSocketProtocol3.Network
                         PayloadLen = BitConverter.ToUInt16(Buffer, ReadOffset);
                         CurPacketId = Buffer[ReadOffset + 2];
                         ConnectionId = BitConverter.ToUInt16(Buffer, ReadOffset + 3);
-                        HeaderId = Buffer[ReadOffset + 5];
-                        FragmentId = Buffer[ReadOffset + 6];
+                        HeaderId = BitConverter.ToUInt16(Buffer, ReadOffset + 5);
+                        FragmentId = Buffer[ReadOffset + 7];
 
                         ReadableDataLen -= HEADER_SIZE;
                         ReadOffset += HEADER_SIZE;
@@ -149,14 +153,21 @@ namespace SecureSocketProtocol3.Network
                         bool ProcessPacket = true;
                         if (FragmentId > 0)
                         {
-                            if (FragmentId == 1)
+                            if (FragmentId != 1 && FragmentBuffer == null)
+                            {
+                                //strange client behavior
+                                Disconnect();
+                                return;
+                            }
+
+                            if (FragmentBuffer == null)
                             {
                                 //first Fragment, let's initialize the buffer
                                 FragmentBuffer = new byte[MAX_PAYLOAD * FRAGMENT_MULTIPLIER];
                                 FragmentOffset = 0;
                             }
 
-                            Array.Copy(Buffer, ReadOffset, FragmentBuffer, FragmentOffset, PayloadLen);
+                            Array.Copy(Buffer, ReadOffset, FragmentBuffer, FragmentOffset, PayloadLen); //here it will decrease performance
                             FragmentOffset += PayloadLen;
 
                             bool LastFragment = (FragmentId & 128) == 128;
@@ -180,6 +191,32 @@ namespace SecureSocketProtocol3.Network
 
                         if (ProcessPacket)
                         {
+                            using (PayloadReader pr = new PayloadReader(FragmentBuffer != null ? FragmentBuffer : this.Buffer))
+                            {
+                                if (FragmentBuffer == null)
+                                    pr.Offset = ReadOffset;
+
+                                Type type = null;
+                                if (Headers.TryGetValue(HeaderId, out type))
+                                {
+                                    Header header = Header.DeSerialize(type, pr);
+
+                                    if (header.GetType() == typeof(SystemHeader))
+                                    {
+
+                                    }
+                                    else if (header.GetType() == typeof(ConnectionHeader))
+                                    {
+
+                                    }
+                                }
+                                else
+                                {
+                                    Disconnect();
+                                    return;
+                                }
+                            }
+
 
                             //destroy FragmentBuffer if used
                             FragmentBuffer = null;
@@ -223,24 +260,29 @@ namespace SecureSocketProtocol3.Network
         /// <param name="header">The header to use for adding additional information</param>
         public void Send(byte[] data, int offset, int length, Header header)
         {
+            if (header == null)
+                throw new ArgumentException("Header cannot be null");
+
             byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
             bool UseFragments = fragment > 0;
 
             //serialize the custom header
+            byte[] SerializedHeader = Header.Serialize(header);
+            ushort HeaderId = header.GetHeaderId(header);
 
             while(length > 0)
             {
                 int packetLength = length > MAX_PAYLOAD ? MAX_PAYLOAD : length;
-                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength];
+                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength + SerializedHeader.Length];
                 using (PayloadWriter pw = new PayloadWriter(new MemoryStream(tempBuffer, 0, tempBuffer.Length)))
                 {
                     pw.Position = 0;
 
                     //header
-                    pw.WriteUShort((ushort)packetLength); //length
+                    pw.WriteUShort((ushort)(packetLength  + (SerializedHeader != null ? SerializedHeader.Length : 0))); //length
                     pw.WriteByte(CurPacketId); //cur packet id
                     pw.WriteUShort(0); //Connection Id
-                    pw.WriteByte(header.GetHeaderId(header)); //Header Id
+                    pw.WriteUShort(HeaderId); //Header Id
 
                     length -= packetLength;
                     if (UseFragments)
@@ -253,6 +295,11 @@ namespace SecureSocketProtocol3.Network
                         pw.WriteByte(0); //fragment id
                     }
 
+                    if (SerializedHeader != null)
+                    {
+                        pw.WriteBytes(SerializedHeader);
+                    }
+
                     //encrypt the header
                     lock (HeaderEncryption)
                     {
@@ -261,10 +308,30 @@ namespace SecureSocketProtocol3.Network
 
                     //write data
                     pw.WriteBytes(data, offset, packetLength);
-                    Handle.Send(tempBuffer, 0, tempBuffer.Length, SocketFlags.None);
+                    Handle.Send(tempBuffer, 0, pw.Position, SocketFlags.None);
                 }
                 offset += packetLength;
             }
+        }
+
+        private void RegisterHeader(Type HeaderType)
+        {
+            Header header = (Header)Activator.CreateInstance(HeaderType);
+            ushort headerId = header.GetHeaderId(header);
+
+            if (Headers.ContainsKey(headerId))
+                throw new Exception("Header already exists, Header Conflict!");
+
+            Headers.Add(headerId, HeaderType);
+        }
+
+        public void Disconnect()
+        {
+            try
+            {
+                Handle.Close();
+            }
+            catch { }
         }
     }
 }

@@ -28,3 +28,10 @@ C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\bin\
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb

@@ -1,9 +1,11 @@
-﻿using System;
+﻿using ProtoBuf;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace SecureSocketProtocol3.Network.Headers
 {
+    [ProtoContract]
     public class SystemHeader : Header
     {
         public override Version Version

@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Network.Headers;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

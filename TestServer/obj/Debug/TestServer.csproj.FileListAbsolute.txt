@@ -26,3 +26,10 @@ C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestServer\bin\
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.csprojResolveAssemblyReference.cache
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.exe
 C:\Users\Anguis\CloudStation\Github Backup\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.exe
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\TestServer.exe
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\TestServer.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.csprojResolveAssemblyReference.cache

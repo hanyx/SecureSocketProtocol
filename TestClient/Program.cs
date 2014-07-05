@@ -9,6 +9,7 @@ using SecureSocketProtocol3.Encryptions;
 using System.Threading;
 using SecureSocketProtocol3.Utils;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Network.MazingHandshake;
 
 namespace TestClient
 {
@@ -16,6 +17,10 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+            ClientMaze mazing = new ClientMaze();
+
+
+
             Client client = new Client();
             Random random = new Random();
 
@@ -30,7 +35,7 @@ namespace TestClient
 
             while (true)
             {
-                //temp = new byte[random.Next(60000)];
+                temp = new byte[random.Next(100000)];
                 client.connection.Send(temp, 0, temp.Length, new SystemHeader());
 
                 speed += temp.Length;
