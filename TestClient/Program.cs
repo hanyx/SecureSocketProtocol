@@ -29,7 +29,7 @@ namespace TestClient
             Stopwatch sw = Stopwatch.StartNew();
             Stopwatch RuntimeSW = Stopwatch.StartNew();
 
-            int count = 0;
+            /*int count = 0;
             int speed = 0;
             int packets = 0;
 
@@ -51,7 +51,7 @@ namespace TestClient
                     packets = 0;
                     sw = Stopwatch.StartNew();
                 }
-            }
+            }*/
             Process.GetCurrentProcess().WaitForExit();
         }
     }

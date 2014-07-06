@@ -215,6 +215,8 @@ namespace SecureSocketProtocol3.Network
                                 if (Headers.TryGetValue(HeaderId, out type))
                                 {
                                     Header header = Header.DeSerialize(type, pr);
+                                    uint MessageId = pr.ReadUInteger();
+                                    IMessage message = messageHandler.HandleMessage(pr, MessageId);
 
                                     if (header.GetType() == typeof(SystemHeader))
                                     {
@@ -231,7 +233,6 @@ namespace SecureSocketProtocol3.Network
                                     return;
                                 }
                             }
-
 
                             //destroy FragmentBuffer if used
                             FragmentBuffer = null;
@@ -268,8 +269,12 @@ namespace SecureSocketProtocol3.Network
 
         internal void SendMessage(IMessage message, Header header)
         {
-            byte[] data = IMessage.Serialize(message);
-            Send(data, 0, data.Length, header);
+            using (PayloadWriter pw = new PayloadWriter())
+            {
+                pw.WriteUInteger(messageHandler.GetMessageId(message.GetType()));
+                pw.WriteBytes(IMessage.Serialize(message));
+                Send(pw.ToByteArray(), 0, pw.Length, header);
+            }
         }
 
         /// <summary>

@@ -165,6 +165,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Attributes\" />
+    <Folder Include="Network\Messages\TCP\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ProtoBuf\Web\TODO.txt" />
