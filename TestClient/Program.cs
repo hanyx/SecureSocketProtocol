@@ -35,7 +35,7 @@ namespace TestClient
 
             while (true)
             {
-                temp = new byte[random.Next(100000)];
+                temp = new byte[random.Next(5000000)];
                 client.connection.Send(temp, 0, temp.Length, new SystemHeader());
 
                 speed += temp.Length;
@@ -46,7 +46,7 @@ namespace TestClient
                     Console.Title = "Runtime: " + RuntimeSW.Elapsed;
 
                     double SpeedPerSec = Math.Round(((speed / 1024F) / 1024F), 2);
-                    Console.WriteLine("Speed:" + SpeedPerSec + "MBps" + ", " + Math.Round(((SpeedPerSec / 1024F) * 8), 2) + "Gbps, Packets: " + packets);
+                    Console.WriteLine("Speed:" + SpeedPerSec + "MBps" + ", " + Math.Round(((SpeedPerSec / 1024F) * 8), 2) + "Gbps, Packets: " + packets + ", last size:" + temp.Length);
                     speed = 0;
                     packets = 0;
                     sw = Stopwatch.StartNew();

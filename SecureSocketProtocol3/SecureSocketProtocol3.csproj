@@ -60,6 +60,8 @@
     <Compile Include="Network\MazingHandshake\ClientMaze.cs" />
     <Compile Include="Network\MazingHandshake\Mazing.cs" />
     <Compile Include="Network\MazingHandshake\ServerMaze.cs" />
+    <Compile Include="Network\Messages\IMessage.cs" />
+    <Compile Include="Network\Messages\MessageHandler.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
     <Compile Include="ProtoBuf\BufferExtension.cs" />
