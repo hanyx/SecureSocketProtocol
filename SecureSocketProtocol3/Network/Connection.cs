@@ -8,6 +8,9 @@ using System.IO;
 using SecureSocketProtocol3.Encryptions;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.Messages;
+using SecureSocketProtocol3.Network.Messages.TCP;
+using SecureSocketProtocol3.Misc;
+using System.Threading;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -48,6 +51,7 @@ namespace SecureSocketProtocol3.Network
         private byte[] Buffer = new byte[HEADER_SIZE + MAX_PAYLOAD];
         private SortedList<ushort, Type> Headers;
         private MessageHandler messageHandler;
+        private Queue<SystemPacket> SystemPackets;
 
         private ReceiveType ReceiveState = ReceiveType.Header;
 
@@ -71,6 +75,7 @@ namespace SecureSocketProtocol3.Network
 
         //Security
         private WopEx HeaderEncryption;
+        private int PrivateSeed;
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -83,31 +88,38 @@ namespace SecureSocketProtocol3.Network
         int recvPackets = 0;
         int recvPacketsTotal = 0;
 
+
+
         public Connection(SSPClient client)
         {
             this.Client = client;
             this.Connected = true;
             this.Headers = new SortedList<ushort, Type>();
-            this.messageHandler = new MessageHandler(0x0FA453FB);
-            RegisterHeader(typeof(SystemHeader));
-            RegisterHeader(typeof(ConnectionHeader));
+            this.SystemPackets = new Queue<SystemPacket>();
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.PrivateKey : client.Properties.PrivateKey;
-            int seed = 0;
+            
             for (int i = 0; i < privKey.Length; i++)
-                seed += privKey[i];
+                PrivateSeed += privKey[i];
 
             byte[] SaltKey = new byte[privKey.Length];
             Array.Copy(privKey, SaltKey, SaltKey.Length);
 
             for (int i = 0; i < SaltKey.Length; i++)
-                SaltKey[i] += (byte)seed;
+                SaltKey[i] += (byte)PrivateSeed;
             
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
-            WopEx.GenerateCryptoCode(seed, 25, ref encCode, ref decCode);
+            WopEx.GenerateCryptoCode(PrivateSeed, 25, ref encCode, ref decCode);
             this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, false);
+
+
+            this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
+            this.messageHandler.AddMessage(typeof(MsgCreateConnection), "CREATE_CONNECTION");
+
+            RegisterHeader(typeof(SystemHeader));
+            RegisterHeader(typeof(ConnectionHeader));
 
             Handle.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
         }
@@ -153,7 +165,8 @@ namespace SecureSocketProtocol3.Network
                         ReChecksum += (byte)HeaderId;
                         ReChecksum += (byte)FragmentFullSize;
 
-                        if (ReChecksum != HeaderChecksum)
+                        if (ReChecksum != HeaderChecksum ||
+                            FragmentFullSize > MAX_FRAGMENT_SIZE)
                         {
                             Disconnect();
                             return;
@@ -218,13 +231,9 @@ namespace SecureSocketProtocol3.Network
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = messageHandler.HandleMessage(pr, MessageId);
 
-                                    if (header.GetType() == typeof(SystemHeader))
+                                    lock (SystemPackets)
                                     {
-
-                                    }
-                                    else if (header.GetType() == typeof(ConnectionHeader))
-                                    {
-
+                                        SystemPackets.Enqueue(new SystemPacket(header, message));
                                     }
                                 }
                                 else
@@ -267,13 +276,39 @@ namespace SecureSocketProtocol3.Network
             Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
         }
 
+        /// <summary>
+        /// This will give you the next system packet that is being received
+        /// </summary>
+        /// <param name="Timeout">The maximum time to wait for the next packet</param>
+        /// <returns>The packet</returns>
+        internal SystemPacket GetNextPacket(int Timeout)
+        {
+            if (Timeout <= 0)
+                throw new ArgumentException("Timeout must be >0");
+
+            int WaitTime = 250;
+            while(Timeout > 0 && Connected && SystemPackets.Count == 0)
+            {
+                Thread.Sleep(WaitTime > Timeout ? WaitTime : Timeout);
+                Timeout -= WaitTime;
+            }
+
+            lock (SystemPackets)
+            {
+                if (SystemPackets.Count == 0)
+                    return null;
+
+                return SystemPackets.Dequeue();
+            }
+        }
+
         internal void SendMessage(IMessage message, Header header)
         {
             using (PayloadWriter pw = new PayloadWriter())
             {
                 pw.WriteUInteger(messageHandler.GetMessageId(message.GetType()));
                 pw.WriteBytes(IMessage.Serialize(message));
-                Send(pw.ToByteArray(), 0, pw.Length, header);
+                _send(pw.ToByteArray(), 0, pw.Length, header);
             }
         }
 
@@ -284,7 +319,7 @@ namespace SecureSocketProtocol3.Network
         /// <param name="offset">The index where the data starts</param>
         /// <param name="length">The length of the data to send</param>
         /// <param name="header">The header to use for adding additional information</param>
-        public void Send(byte[] data, int offset, int length, Header header)
+        private void _send(byte[] data, int offset, int length, Header header)
         {
             if (header == null)
                 throw new ArgumentException("Header cannot be null");
@@ -361,7 +396,7 @@ namespace SecureSocketProtocol3.Network
         private void RegisterHeader(Type HeaderType)
         {
             Header header = (Header)Activator.CreateInstance(HeaderType);
-            ushort headerId = header.GetHeaderId(header);
+            ushort headerId = (ushort)(this.PrivateSeed + header.GetHeaderId(header));
 
             if (Headers.ContainsKey(headerId))
                 throw new Exception("Header already exists, Header Conflict!");

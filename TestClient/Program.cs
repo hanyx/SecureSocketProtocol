@@ -17,19 +17,18 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
-            ClientMaze mazing = new ClientMaze();
-
-
 
             Client client = new Client();
-            Random random = new Random();
+            /*Random random = new Random();
 
             byte[] temp = new byte[70000];
             
             Stopwatch sw = Stopwatch.StartNew();
             Stopwatch RuntimeSW = Stopwatch.StartNew();
 
-            /*int count = 0;
+            client.CreateConnection();
+
+            int count = 0;
             int speed = 0;
             int packets = 0;
 

@@ -35,3 +35,10 @@ C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\Test
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.exe
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\TestClient.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache

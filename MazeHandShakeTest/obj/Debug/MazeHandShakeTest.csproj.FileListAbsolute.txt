@@ -1,0 +1,7 @@
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.csprojResolveAssemblyReference.cache
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.exe
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.pdb

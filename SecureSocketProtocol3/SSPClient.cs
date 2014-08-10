@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Network.Messages.TCP;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,8 @@ namespace SecureSocketProtocol3
         internal Socket Handle { get; set; }
         public Connection connection { get; private set; }
         internal SSPServer Server;
+
+        private object Locky = new object();
 
         public SSPClient()
         {
@@ -110,6 +113,16 @@ namespace SecureSocketProtocol3
         protected override void Disconnect()
         {
 
+        }
+
+        public void CreateConnection()
+        {
+            lock (Locky)
+            {
+                connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
+
+
+            }
         }
     }
 }

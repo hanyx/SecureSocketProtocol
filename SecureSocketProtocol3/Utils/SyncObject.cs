@@ -8,8 +8,7 @@ namespace SecureSocketProtocol3.Utils
 {
     public sealed class SyncObject
     {
-        /// <summary> Is the object being pulsed by a other thread </summary>
-        public bool Pulsed { get; internal set; }
+        public bool IsPulsed { get; internal set; }
         private Object LockedObject = new Object();
 
         /// <summary> The main object </summary>
@@ -35,15 +34,14 @@ namespace SecureSocketProtocol3.Utils
         /// <param name="TimeOut">The time to wait for the object being pulsed</param>
         public T Wait<T>(T TimeOutValue, uint TimeOut = 0)
         {
-            if (Pulsed)
+            if (IsPulsed)
                 return (T)Value;
 
-            //Stopwatch waitTime = Stopwatch.StartNew();
             int waitTime = 0;
 
             lock (LockedObject)
             {
-                while (!Pulsed && connection.Connected)
+                while (!IsPulsed && connection.Connected)
                 {
                     if (TimeOut == 0)
                     {
@@ -61,7 +59,7 @@ namespace SecureSocketProtocol3.Utils
                     }
                 }
 
-                if (!Pulsed)
+                if (!IsPulsed)
                     return TimeOutValue;
             }
             return (T)Value;
@@ -73,7 +71,7 @@ namespace SecureSocketProtocol3.Utils
             {
                 Monitor.Pulse(LockedObject);
             }
-            Pulsed = true;
+            IsPulsed = true;
         }
     }
 }

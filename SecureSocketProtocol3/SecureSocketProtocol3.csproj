@@ -52,16 +52,21 @@
     <Compile Include="Hashers\CRC32.cs" />
     <Compile Include="IClient.cs" />
     <Compile Include="Misc\PayloadInfo.cs" />
+    <Compile Include="Misc\SystemPacket.cs" />
     <Compile Include="Network\CertificateInfo.cs" />
     <Compile Include="Network\Connection.cs" />
     <Compile Include="Network\Headers\ConnectionHeader.cs" />
     <Compile Include="Network\Headers\Header.cs" />
     <Compile Include="Network\Headers\SystemHeader.cs" />
     <Compile Include="Network\MazingHandshake\ClientMaze.cs" />
+    <Compile Include="Network\MazingHandshake\Maze\Maze.cs" />
+    <Compile Include="Network\MazingHandshake\Maze\Stack.cs" />
+    <Compile Include="Network\MazingHandshake\Maze\Varia.cs" />
     <Compile Include="Network\MazingHandshake\Mazing.cs" />
     <Compile Include="Network\MazingHandshake\ServerMaze.cs" />
     <Compile Include="Network\Messages\IMessage.cs" />
     <Compile Include="Network\Messages\MessageHandler.cs" />
+    <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
     <Compile Include="ProtoBuf\BufferExtension.cs" />
@@ -165,7 +170,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Attributes\" />
-    <Folder Include="Network\Messages\TCP\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="ProtoBuf\Web\TODO.txt" />

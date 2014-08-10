@@ -164,10 +164,10 @@ namespace SecureSocketProtocol3.Encryptions
                     int InstructionsExecuted = 0;
 
                     this.EncSeed += (int)value;
-                    //value ^= (uint)(Key[(/*enc_random.Next(0, Key.Length)*/ + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
 
                     if (usedsize == 4)
                     {
+                        value ^= (uint)(Key[(enc_random.Next(0, Key.Length) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         for (int j = 0; j < EncInstructions.Length; j++)
                         {
                             InstructionInfo inf = EncInstructions[j];
@@ -182,6 +182,7 @@ namespace SecureSocketProtocol3.Encryptions
                     }
                     else
                     {
+                        value ^= (byte)(Key[(enc_random.Next(0, Key.Length) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         for (int j = 0; j < EncInstructions.Length; j++)
                         {
                             InstructionInfo inf = EncInstructions[j];
@@ -248,7 +249,7 @@ namespace SecureSocketProtocol3.Encryptions
                             }
                         }
 
-                        //value ^= (uint)(Key[(/*dec_random.Next(0, Key.Length) +*/ i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (uint)(Key[(dec_random.Next(0, Key.Length) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         pw.WriteUInteger(value);
                     }
                     else
@@ -264,7 +265,7 @@ namespace SecureSocketProtocol3.Encryptions
                             }
                         }
 
-                        //value ^= (uint)(Key[(/*dec_random.Next(0, Key.Length) +*/ i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (byte)(Key[(dec_random.Next(0, Key.Length) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
                         pw.WriteByte((byte)value);
                     }
 
@@ -438,13 +439,13 @@ namespace SecureSocketProtocol3.Encryptions
         private static bool IsAlgorithmWeak(byte[] EncryptCode, byte[] DecryptCode)
         {
             Random rnd = new Random();
-            byte[] RandData = new byte[512];
+            byte[] RandData = new byte[513];
             rnd.NextBytes(RandData);
 
             byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
-            byte[] Salt = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
+            byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1  };
 
-            WopEx wop = new WopEx(Key, Salt, EncryptCode, DecryptCode, false);
+            WopEx wop = new WopEx(Key, Salt, EncryptCode, DecryptCode, true);
 
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
@@ -453,7 +454,6 @@ namespace SecureSocketProtocol3.Encryptions
                 Array.Copy(RandData, crypted, RandData.Length);
 
                 wop.Encrypt(crypted, 0, crypted.Length);
-
 
                 double Equals = 0;
 
@@ -475,6 +475,7 @@ namespace SecureSocketProtocol3.Encryptions
                 {
                     if (RandData[i] != crypted[i])
                     {
+                        //the decryption-routine failed
                         return true;
                     }
                 }
@@ -482,7 +483,8 @@ namespace SecureSocketProtocol3.Encryptions
                 double Pertentage = (Equals / (double)RandData.Length) * 100D;
                 bool isWeak = Pertentage > 5; //if >5 % is the same as original it's a weak algorithm
 
-                return isWeak;
+                if (isWeak)
+                    return true;
             }
             return false;
         }
