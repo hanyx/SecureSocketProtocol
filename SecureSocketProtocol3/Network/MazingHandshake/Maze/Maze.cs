@@ -239,7 +239,7 @@ namespace vicMazeGen
 		/// Znajduje przejcie labiryntu midzy zadanymi punktami
 		/// </summary>
 		/// <returns>Lista kolejnych cCellPosition, ktre stanowi rozwizanie</returns>
-		public ArrayList Solve(int xSource, int ySource, int xDest, int yDest)
+		public ArrayList Solve(int xSource, int ySource, int xDest, int yDest, int maxSteps)
 		{
 			int[,] tMazePath   = new int[MSIZEX, MSIZEY];
 			bool   destReached = false;
@@ -375,7 +375,10 @@ namespace vicMazeGen
 							pPath.Add ( new cCellPosition ( tx, ty ) );
 						}
 					
-					if ( stepExists == false ) return null;
+					if ( stepExists == false )
+                        return null;
+                    if (pPath.Count > maxSteps)
+                        break;
 				}
 
 				return pPath;

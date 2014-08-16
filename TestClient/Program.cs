@@ -91,7 +91,42 @@ namespace TestClient
                 get { return 30000; }
             }
 
-            public override byte[] PrivateKey
+            public override string Username
+            {
+                get { return "UserTest"; }
+            }
+
+            public override string Password
+            {
+                get { return "PassTest"; }
+            }
+
+            public override Stream[] PrivateKeyFiles
+            {
+                get
+                {
+                    List<MemoryStream> keys = new List<MemoryStream>();
+                    foreach (string file in Directory.GetFiles(@"F:\", "*.*"))
+                    {
+                        if (new FileInfo(file).Length < 5000)
+                            continue;
+                        if (keys.Count == 3)
+                            break;
+                        keys.Add(new MemoryStream(File.ReadAllBytes(file)));
+                    }
+                    return keys.ToArray();
+                }
+            }
+
+            public override Stream PublicKeyFile
+            {
+                get
+                {
+                    return new MemoryStream(File.ReadAllBytes(@"F:\Untitled.png"));
+                }
+            }
+
+            public override byte[] NetworkKey
             {
                 get
                 {
@@ -103,21 +138,6 @@ namespace TestClient
                         218, 155
                     };
                 }
-            }
-
-            public override string Username
-            {
-                get { return ""; }
-            }
-
-            public override string Password
-            {
-                get { return ""; }
-            }
-
-            public override Stream[] KeyFiles
-            {
-                get { return new Stream[0]; }
             }
         }
     }

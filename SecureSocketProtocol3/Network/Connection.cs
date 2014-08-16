@@ -98,7 +98,7 @@ namespace SecureSocketProtocol3.Network
             this.SystemPackets = new Queue<SystemPacket>();
 
             //generate the header encryption
-            byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.PrivateKey : client.Properties.PrivateKey;
+            byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
             
             for (int i = 0; i < privKey.Length; i++)
                 PrivateSeed += privKey[i];
@@ -112,10 +112,10 @@ namespace SecureSocketProtocol3.Network
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(PrivateSeed, 25, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, false);
-
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, false, false);
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
+            this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
             this.messageHandler.AddMessage(typeof(MsgCreateConnection), "CREATE_CONNECTION");
 
             RegisterHeader(typeof(SystemHeader));
@@ -328,7 +328,7 @@ namespace SecureSocketProtocol3.Network
 
             //serialize the custom header
             byte[] SerializedHeader = Header.Serialize(header);
-            ushort HeaderId = header.GetHeaderId(header);
+            ushort HeaderId = (ushort)(this.PrivateSeed + header.GetHeaderId(header));
 
             byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
             bool UseFragments = fragment > 0;

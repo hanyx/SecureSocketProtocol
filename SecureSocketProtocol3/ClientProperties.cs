@@ -10,12 +10,14 @@ namespace SecureSocketProtocol3
         public abstract string HostIp { get; }
         public abstract ushort Port { get;  }
         public abstract int ConnectionTimeout { get; }
-        public abstract byte[] PrivateKey { get; }
 
         public abstract string Username { get; }
         public abstract string Password { get; }
 
-        public abstract Stream[] KeyFiles { get; }
+        public abstract Stream[] PrivateKeyFiles { get; }
+        public abstract Stream PublicKeyFile { get; }
+
+        public abstract byte[] NetworkKey { get; }
 
         public ClientProperties()
         {

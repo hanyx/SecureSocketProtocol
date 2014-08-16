@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Network.Messages.TCP;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,7 @@ namespace SecureSocketProtocol3
         internal Socket Handle { get; set; }
         public Connection connection { get; private set; }
         internal SSPServer Server;
+        internal ClientMaze clientHS { get; private set; }
 
         private object Locky = new object();
 
@@ -36,6 +38,20 @@ namespace SecureSocketProtocol3
             : this()
         {
             this.Properties = Properties;
+
+            if (String.IsNullOrEmpty(Properties.Username))
+                throw new ArgumentException("Username");
+            if (String.IsNullOrEmpty(Properties.Password))
+                throw new ArgumentException("Password");
+            if (Properties.PublicKeyFile == null)
+                throw new ArgumentException("PublicKeyFile");
+            if (Properties.PublicKeyFile.Length < 128)
+                throw new ArgumentException("PublicKeyFile must be >=128 in length");
+            if (Properties.PrivateKeyFiles == null)
+                throw new ArgumentException("PrivateKeyFiles");
+            if (Properties.PrivateKeyFiles.Length == 0)
+                throw new ArgumentException("There must be atleast 1 private key file");
+
             Connect(ConnectionState.Open);
         }
 
@@ -93,6 +109,11 @@ namespace SecureSocketProtocol3
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
 
             connection = new Connection(this);
+
+            //let's begin the handshake
+            this.clientHS = new ClientMaze();
+            byte[] byteCode = clientHS.GetByteCode();
+            connection.SendMessage(new MsgHandshake(byteCode), new SystemHeader());
         }
 
         protected override void onClientConnect()

@@ -1,4 +1,5 @@
-﻿using SecureSocketProtocol3.Utils;
+﻿using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -32,14 +33,22 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         }
 
         public int Step { get; protected set; }
-        public abstract bool onReceiveData(byte[] Data);
+        public abstract MazeErrorCode onReceiveData(byte[] Data, ref byte[] ResponseData);
         public Size MazeSize { get; private set; }
         public int MazeCount { get; private set; }
         public int MazeSteps { get; private set; }
+        public byte[] PublicKeyData { get; private set; }
 
-        private BigInteger PrivateSalt = new BigInteger();
-        private BigInteger Username = new BigInteger();
-        private BigInteger Password = new BigInteger();
+        public BigInteger PrivateSalt { get; private set; }
+        public BigInteger Username { get; private set; }
+        public BigInteger Password { get; private set; }
+
+        private BigInteger _mazeKey;
+        public BigInteger MazeKey
+        {
+            get { return _mazeKey; }
+            private set { _mazeKey = value; }
+        }
 
         /// <summary>
         /// Initialize the mazing handshake
@@ -60,6 +69,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             this.MazeCount = MazeCount;
             this.MazeSteps = MazeSteps;
             this.Step = 1;
+            this.PrivateSalt = new BigInteger();
+            this.Username = new BigInteger();
+            this.Password = new BigInteger();
+            this.MazeKey = new BigInteger();
         }
 
         public BigInteger PrivateKeyToSalt(byte[] PrivateData)
@@ -87,12 +100,17 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
         public void SetLoginData(string Username, string Password, List<byte[]> PrivateKeyData, byte[] PublicKeyData)
         {
+            //step 3
+            if (PublicKeyData.Length < 128)
+                throw new ArgumentException("The PublicKeyData must contain atleast 128 bytes");
+
             SHA512 hasher = SHA512Managed.Create();
+            this.PublicKeyData = PublicKeyData;
 
             for (int i = 0; i < PrivateKeyData.Count; i++)
             {
                 if (PrivateKeyData[i].Length < 128)
-                    throw new Exception("The Private Key must contain atleast 128 bytes");
+                    throw new ArgumentException("The Private Key must contain atleast 128 bytes");
 
                 byte[] privHash = hasher.ComputeHash(PrivateKeyData[i], 0, 100);
                 int privHashNr_1 = BitConverter.ToInt32(privHash, 26);
@@ -121,35 +139,128 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             return ((a * (x * x * x)) + (b * (x * x)) + (c * x) + d) + o;
         }
 
-        public BigInteger GetMazeKey()
+        /// <summary>
+        /// Set the Maze Key and get the Maze Key to apply it to the encryption algorithm
+        /// </summary>
+        /// <returns></returns>
+        public BigInteger SetMazeKey()
         {
+            //Step 5/6 - Walking the Maze
+            int beginPosX = equK(Username, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Width / 2);
+            int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() & (this.MazeSize.Height / 2);
             bool Back = false;
-            int beginPosX = equK(Username, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % 50;
-            int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() & 70;
 
-            BigInteger Key = new BigInteger();
+            this.MazeKey = new BigInteger();
 
             for (int i = 0, j = 1, k = 3, p = 7; i < MazeCount; i++, j++, k += 2, p += 5)
             {
                 Maze maze = new Maze();
-                maze.GenerateMaze(MazeSize.Width, MazeSize.Height, (int)((Username.data[j % (Username.dataLength - 1)] + Password.data[k % (Password.dataLength - 1)]) ^ PrivateSalt.data[p % (PrivateSalt.dataLength - 1)]), 0);
+                maze.GenerateMaze(MazeSize.Width, MazeSize.Height, (int)((Username.data[j % (Username.dataLength - 1)] + 
+                                                                            Password.data[k % (Password.dataLength - 1)]) ^ 
+                                                                            PrivateSalt.data[p % (PrivateSalt.dataLength - 1)]), 0);
 
-                ArrayList list = maze.Solve(Math.Abs(beginPosX), Math.Abs(beginPosY), Math.Abs(beginPosX + (Back ? -p : p)), Math.Abs(beginPosY + (Back ? -k : k)));
+                beginPosX = Math.Abs(beginPosX);
+                beginPosY = Math.Abs(beginPosY);
+                int endPosX = Math.Abs(beginPosX + (Back ? -p : p));
+                int endPosY = Math.Abs(beginPosY + (Back ? -k : k));
+
+                ArrayList list = maze.Solve(beginPosX, beginPosY, endPosX, endPosY, MazeSteps * 2);
+
+                if (list.Count < 10)
+                    throw new Exception("The Maze is too small");
 
                 BigInteger tempCalc = new BigInteger();
                 for (int s = 0; s < MazeSteps; s++)
                 {
-                    cCellPosition cell = list[(beginPosX + beginPosY + s) % list.Count] as cCellPosition;
+                    cCellPosition cell = list[s % list.Count] as cCellPosition;
 
                     int temp2 = cell.x * cell.y;
                     tempCalc = equK(Username, temp2, s) ^ PrivateSalt.IntValue() ^ tempCalc;
-                    Key += tempCalc;
+                    this.MazeKey += tempCalc;
+                    beginPosX = cell.x;
+                    beginPosY = cell.y;
                 }
-                beginPosX += MazeSteps;
-                beginPosY += MazeSteps;
+                Back = !Back;
             }
 
-            return Key;
+            PatchKey(ref this._mazeKey);
+
+            return this.MazeKey;
         }
+
+        /// <summary>
+        /// Patches the key by removing the 255 in the beginning of the key
+        /// </summary>
+        /// <param name="key"></param>
+        private void PatchKey(ref BigInteger key)
+        {
+            byte[] _key = key.getBytes();
+            int count = 0;
+            for (int i = 0; i < _key.Length; i++, count++)
+            {
+                if (_key[i] != 255)
+                    break;
+            }
+
+            if (count > 0)
+            {
+                byte[] tempKey = new byte[count];
+                new Random(PrivateSalt.IntValue()).NextBytes(tempKey);
+                Array.Copy(tempKey, _key, tempKey.Length);
+                this.MazeKey = new BigInteger(_key);
+            }
+        }
+
+        public WopEx GetWopEncryption()
+        {
+            byte[] key = MazeKey.getBytes();
+            byte[] salt = PrivateSalt.getBytes();
+            byte[] CryptCode = new byte[0];
+            byte[] DecryptCode = new byte[0];
+            WopEx.GenerateCryptoCode(BitConverter.ToInt32(key, 0) + BitConverter.ToInt32(salt, 0), 15, ref CryptCode, ref DecryptCode);
+            return new WopEx(key, salt, CryptCode, DecryptCode, false, true);
+        }
+
+        public byte[] GetEncryptedPublicKey()
+        {
+            byte[] key = MazeKey.getBytes();
+            byte[] salt = PrivateSalt.getBytes();
+
+            //also step 7 but here we encrypt it
+            byte[] publicData = new byte[this.PublicKeyData.Length];
+            Array.Copy(this.PublicKeyData, publicData, publicData.Length); //copy the public key data so the original will be still in memory
+
+            GetWopEncryption().Encrypt(publicData, 0, publicData.Length);
+            return publicData;
+        }
+
+        protected void ApplyKey(WopEx wopEx, BigInteger prime)
+        {
+            byte[] primeKey = prime.getBytes();
+            for (int i = 0; i < wopEx.Key.Length + (primeKey.Length * 3); i++)
+            {
+                wopEx.Key[i % wopEx.Key.Length] += primeKey[i % primeKey.Length];
+                wopEx.Salt[i % wopEx.Salt.Length] += primeKey[(i + 2) % primeKey.Length];
+            }
+        }
+        protected BigInteger ModKey(BigInteger Key1, BigInteger Key2)
+        {
+            BigInteger orgKey1 = Key1;
+            Key1 += Key2;
+            Key1 = equK(Key2, orgKey1, Key1.IntValue());
+            return Key1 + Key2;
+        }
+    }
+
+    public enum MazeErrorCode
+    {
+        Success = 0,
+        WrongByteCode = 1,
+        Error = 2,
+        UserKeyNotFound = 3,
+        /// <summary>
+        /// The handshake has ended successfully
+        /// </summary>
+        Finished = 4
     }
 }

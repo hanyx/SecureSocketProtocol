@@ -25,7 +25,7 @@ namespace SecureSocketProtocol3.Network
         public string HandshakeMethod { get; internal set; }
         public abstract bool ShowProtectionMethods { get; }
         public abstract ChecksumHash Checksum { get; }
-        public abstract byte[] PrivateKey { get; }
+        public abstract byte[] NetworkKey { get; }
 
         /// <summary>
         /// Initialize a new Certificate

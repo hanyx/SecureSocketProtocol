@@ -6,8 +6,14 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Headers
 {
     [ProtoContract]
-    public class SystemHeader : Header
+    internal sealed class SystemHeader : Header
     {
+        public SystemHeader()
+            : base()
+        {
+
+        }
+
         public override Version Version
         {
             get { return new Version(1, 0, 0, 0); }

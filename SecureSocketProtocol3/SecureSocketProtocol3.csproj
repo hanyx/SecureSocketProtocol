@@ -67,6 +67,7 @@
     <Compile Include="Network\Messages\IMessage.cs" />
     <Compile Include="Network\Messages\MessageHandler.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
+    <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
     <Compile Include="ProtoBuf\BufferExtension.cs" />

@@ -20,10 +20,7 @@ namespace SecureSocketProtocol3.Network.Messages
 
         }
 
-        public virtual void ProcessPayload(IClient client)
-        {
-
-        }
+        public abstract void ProcessPayload(IClient client);
 
         public static byte[] Serialize(IMessage message)
         {

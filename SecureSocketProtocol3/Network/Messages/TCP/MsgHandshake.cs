@@ -6,9 +6,17 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
-    internal class MsgCreateConnection : IMessage
+    internal class MsgHandshake : IMessage
     {
-        public MsgCreateConnection()
+        [ProtoMember(1)]
+        public byte[] Data { get; set; }
+
+        public MsgHandshake(byte[] Data)
+            : base()
+        {
+            this.Data = Data;
+        }
+        public MsgHandshake()
             : base()
         {
 

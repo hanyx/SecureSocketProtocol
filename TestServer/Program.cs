@@ -136,7 +136,7 @@ namespace TestServer
                 get { return ChecksumHash.SHA512; }
             }
 
-            public override byte[] PrivateKey
+            public override byte[] NetworkKey
             {
                 get
                 {

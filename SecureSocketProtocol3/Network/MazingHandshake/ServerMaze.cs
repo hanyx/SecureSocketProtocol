@@ -1,12 +1,24 @@
-﻿using System;
+﻿using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Utils;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace SecureSocketProtocol3.Network.MazingHandshake
 {
     public class ServerMaze : Mazing
     {
+        private MazeErrorCode LastErrorCode = MazeErrorCode.Success;
+        private byte[] _publicKeyResponse = null;
+
+        public delegate bool FindKeyInDatabaseCallback(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey);
+        public event FindKeyInDatabaseCallback onFindKeyInDatabase;
+
+        public WopEx wopEx;
+        private BigInteger server_Prime;
+        private BigInteger client_Prime;
 
         public ServerMaze()
             : base(new Size(512, 512), 10, 30)
@@ -14,31 +26,123 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
         }
 
-        public override bool onReceiveData(byte[] Data)
+        public override MazeErrorCode onReceiveData(byte[] Data, ref byte[] ResponseData)
         {
+            ResponseData = new byte[0];
+
+            if (LastErrorCode != MazeErrorCode.Success)
+            {
+                //don't continue if the client/server messed something up
+                return LastErrorCode;
+            }
+
             switch (base.Step)
             {
                 case 1:
                 {
+                    //step 2
                     if (Data.Length != Mazing.ByteCode.Length)
-                        return false;
+                        return MazeErrorCode.WrongByteCode;
 
                     for (int i = 0; i < Mazing.ByteCode.Length; i++)
                     {
                         if (Mazing.ByteCode[i] != Data[i])
-                            return false;
+                            return MazeErrorCode.WrongByteCode;
                     }
                     Step++;
                     break;
                 }
                 case 2:
                 {
+                    if (onFindKeyInDatabase == null) //programmer error
+                    {
+                        ResponseData = GetFailResponseData(); //not encrypted, client knows this will fail
+                        return MazeErrorCode.Error;
+                    }
 
+                    string EncHashedMsg = BitConverter.ToString(SHA512Managed.Create().ComputeHash(Data, 0, Data.Length)).Replace("-", "");
+                    byte[] _key = new byte[0];
+                    byte[] _salt = new byte[0];
+                    byte[] _publicKey = new byte[0];
+
+                    if (onFindKeyInDatabase(EncHashedMsg, ref _key, ref _salt, ref _publicKey))
+                    {
+                        byte[] CryptCode = new byte[0];
+                        byte[] DecryptCode = new byte[0];
+                        WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);
+                        this.wopEx = new WopEx(_key, _salt, CryptCode, DecryptCode, false, true);
+
+                        //let's try to decrypt the data, should go successful
+                        wopEx.Decrypt(Data, 0, Data.Length);
+
+                        if (Data.Length != _publicKey.Length)
+                        {
+                            //key size not the same... strange
+                            ResponseData = GetFailResponseData();
+                            return MazeErrorCode.Error;
+                        }
+
+                        for (int i = 0; i < _publicKey.Length; i++)
+                        {
+                            if (Data[i] != _publicKey[i])
+                            {
+                                //public key did not match... strange
+                                ResponseData = GetFailResponseData();
+                                return MazeErrorCode.Error;
+                            }
+                        }
+
+                        //encryption / public key went successful for now
+                        this.server_Prime = BigInteger.genPseudoPrime(256, 50, new Random(BitConverter.ToInt32(_key, 0)));
+                        byte[] primeData = server_Prime.getBytes();
+                        wopEx.Encrypt(primeData, 0, primeData.Length);
+                        ResponseData = primeData;
+
+                        Step++;
+                    }
+                    else
+                    {
+                        return MazeErrorCode.UserKeyNotFound;
+                    }
+                    break;
+                }
+                case 3:
+                {
+                    //response back from client with his prime number
+                    wopEx.Decrypt(Data, 0, Data.Length);
+
+                    this.client_Prime = new BigInteger(Data);
+                    if (this.client_Prime.isProbablePrime())
+                    {
+                        //verify the prime from the client
+                        BigInteger client_Prime_test = BigInteger.genPseudoPrime(256, 50, new Random(this.server_Prime.IntValue()));
+
+                        if (this.client_Prime != client_Prime_test)
+                        {
+                            //Attacker detected ?
+                            return MazeErrorCode.Error;
+                        }
+
+                        BigInteger key = base.ModKey(server_Prime, client_Prime);
+                        //apply key to encryption
+                        ApplyKey(wopEx, key);
+                        return MazeErrorCode.Finished;
+                    }
                     break;
                 }
             }
+            return MazeErrorCode.Success;
+        }
 
-            return true;
+        private byte[] GetFailResponseData()
+        {
+            Random rnd = new Random();
+            BigInteger retPrime = BigInteger.genPseudoPrime(64, 30, rnd);
+            do
+            {
+                retPrime++;
+            } while (retPrime.isProbablePrime());
+            return retPrime.getBytes(); //not encrypted, client knows this will fail
         }
     }
 }
