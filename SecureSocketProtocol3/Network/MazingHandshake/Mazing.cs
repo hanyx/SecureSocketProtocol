@@ -15,7 +15,6 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
     /// </summary>
     public abstract class Mazing
     {
-
         /// <summary>
         /// A constant byte code for the handshake
         /// </summary>
@@ -37,7 +36,14 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         public Size MazeSize { get; private set; }
         public int MazeCount { get; private set; }
         public int MazeSteps { get; private set; }
-        public byte[] PublicKeyData { get; private set; }
+
+
+        private byte[] _publicKeyData;
+        public byte[] PublicKeyData
+        {
+            get { return _publicKeyData; }
+            private set { _publicKeyData = value; }
+        }
 
         public BigInteger PrivateSalt { get; private set; }
         public BigInteger Username { get; private set; }
@@ -49,6 +55,9 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             get { return _mazeKey; }
             private set { _mazeKey = value; }
         }
+
+        public byte[] FinalKey { get; protected set; }
+        public byte[] FinalSalt { get; protected set; }
 
         /// <summary>
         /// Initialize the mazing handshake
@@ -105,7 +114,18 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 throw new ArgumentException("The PublicKeyData must contain atleast 128 bytes");
 
             SHA512 hasher = SHA512Managed.Create();
-            this.PublicKeyData = PublicKeyData;
+            this._publicKeyData = PublicKeyData;
+
+            //trim down tne public key if bigger then 8192
+            //keep the public key as a max size of 8192bytes
+            if (this._publicKeyData.Length > 8192)
+            {
+                for (int i = 0, j = 8192; j < this._publicKeyData.Length; i++, j++)
+                {
+                    this._publicKeyData[i % 8192] += this._publicKeyData[j];
+                }
+                Array.Resize(ref this._publicKeyData, 8192);
+            }
 
             for (int i = 0; i < PrivateKeyData.Count; i++)
             {
@@ -146,11 +166,14 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         public BigInteger SetMazeKey()
         {
             //Step 5/6 - Walking the Maze
-            int beginPosX = equK(Username, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Width / 2);
-            int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() & (this.MazeSize.Height / 2);
+            int beginPosX = equK(Username, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Width / 2) + 3;
+            int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Height / 2) + 3;
             bool Back = false;
 
+            int WalkSize = this.MazeSize.Height / 2;
+
             this.MazeKey = new BigInteger();
+            Random rnd = new Random(Username.IntValue() + Password.IntValue());
 
             for (int i = 0, j = 1, k = 3, p = 7; i < MazeCount; i++, j++, k += 2, p += 5)
             {
@@ -161,8 +184,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
                 beginPosX = Math.Abs(beginPosX);
                 beginPosY = Math.Abs(beginPosY);
-                int endPosX = Math.Abs(beginPosX + (Back ? -p : p));
-                int endPosY = Math.Abs(beginPosY + (Back ? -k : k));
+                int endPosX = Math.Abs(beginPosX + (Back ? -rnd.Next(WalkSize) : rnd.Next(WalkSize)));
+                int endPosY = Math.Abs(beginPosY + (Back ? -rnd.Next(WalkSize) : rnd.Next(WalkSize)));
 
                 ArrayList list = maze.Solve(beginPosX, beginPosY, endPosX, endPosY, MazeSteps * 2);
 
@@ -175,6 +198,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     cCellPosition cell = list[s % list.Count] as cCellPosition;
 
                     int temp2 = cell.x * cell.y;
+                    if (temp2 == 0)
+                        continue;
                     tempCalc = equK(Username, temp2, s) ^ PrivateSalt.IntValue() ^ tempCalc;
                     this.MazeKey += tempCalc;
                     beginPosX = cell.x;
@@ -218,7 +243,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             byte[] CryptCode = new byte[0];
             byte[] DecryptCode = new byte[0];
             WopEx.GenerateCryptoCode(BitConverter.ToInt32(key, 0) + BitConverter.ToInt32(salt, 0), 15, ref CryptCode, ref DecryptCode);
-            return new WopEx(key, salt, CryptCode, DecryptCode, false, true);
+            WopEx wop = new WopEx(key, salt, CryptCode, DecryptCode, false, true);
+            return wop;
         }
 
         public byte[] GetEncryptedPublicKey()
@@ -234,21 +260,34 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             return publicData;
         }
 
-        protected void ApplyKey(WopEx wopEx, BigInteger prime)
+        internal void ApplyKey(WopEx wopEx, byte[] key)
         {
-            byte[] primeKey = prime.getBytes();
-            for (int i = 0; i < wopEx.Key.Length + (primeKey.Length * 3); i++)
+            for (int i = 0; i < wopEx.Key.Length + (key.Length * 3); i++)
             {
-                wopEx.Key[i % wopEx.Key.Length] += primeKey[i % primeKey.Length];
-                wopEx.Salt[i % wopEx.Salt.Length] += primeKey[(i + 2) % primeKey.Length];
+                wopEx.Key[i % wopEx.Key.Length] += key[i % key.Length];
+                wopEx.Salt[i % wopEx.Salt.Length] += key[(i + 2) % key.Length];
             }
         }
+
+        internal void ApplyKey(WopEx wopEx, BigInteger prime)
+        {
+            PatchKey(ref prime);
+            byte[] primeKey = prime.getBytes();
+            ApplyKey(wopEx, primeKey);
+        }
+
         protected BigInteger ModKey(BigInteger Key1, BigInteger Key2)
         {
             BigInteger orgKey1 = Key1;
             Key1 += Key2;
             Key1 = equK(Key2, orgKey1, Key1.IntValue());
             return Key1 + Key2;
+        }
+
+        public byte[] GetByteCode()
+        {
+            //Step 1
+            return Mazing.ByteCode;
         }
     }
 

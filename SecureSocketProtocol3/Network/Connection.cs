@@ -11,6 +11,7 @@ using SecureSocketProtocol3.Network.Messages;
 using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Misc;
 using System.Threading;
+using SecureSocketProtocol3.Network.MazingHandshake;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -51,9 +52,10 @@ namespace SecureSocketProtocol3.Network
         private byte[] Buffer = new byte[HEADER_SIZE + MAX_PAYLOAD];
         private SortedList<ushort, Type> Headers;
         private MessageHandler messageHandler;
-        private Queue<SystemPacket> SystemPackets;
+        private TaskQueue<SystemPacket> SystemPackets;
 
         private ReceiveType ReceiveState = ReceiveType.Header;
+        internal SyncObject HandshakeSync { get; private set; }
 
         //receive info
         private int ReadOffset = 0;
@@ -88,14 +90,15 @@ namespace SecureSocketProtocol3.Network
         int recvPackets = 0;
         int recvPacketsTotal = 0;
 
-
+        internal bool HandShakeCompleted { get; set; }
 
         public Connection(SSPClient client)
         {
             this.Client = client;
             this.Connected = true;
             this.Headers = new SortedList<ushort, Type>();
-            this.SystemPackets = new Queue<SystemPacket>();
+            this.SystemPackets = new TaskQueue<SystemPacket>(onSystemPacket, 50);
+            this.HandshakeSync = new SyncObject(this);
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
@@ -120,7 +123,10 @@ namespace SecureSocketProtocol3.Network
 
             RegisterHeader(typeof(SystemHeader));
             RegisterHeader(typeof(ConnectionHeader));
+        }
 
+        internal void StartReceiver()
+        {
             Handle.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
         }
 
@@ -230,10 +236,23 @@ namespace SecureSocketProtocol3.Network
                                     Header header = Header.DeSerialize(type, pr);
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = messageHandler.HandleMessage(pr, MessageId);
+                                    message.RawSize = PayloadLen + HEADER_SIZE;
 
-                                    lock (SystemPackets)
+                                    if (type == typeof(SystemHeader))
                                     {
-                                        SystemPackets.Enqueue(new SystemPacket(header, message));
+                                        if (message.GetType() == typeof(MsgHandshake))
+                                        {
+                                            //we must directly process this message because if the handshake ends the keys will change
+                                            //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                            message.ProcessPayload(Client);
+                                        }
+                                        else
+                                        {
+                                            lock (SystemPackets)
+                                            {
+                                                SystemPackets.Enqueue(new SystemPacket(header, message));
+                                            }
+                                        }
                                     }
                                 }
                                 else
@@ -274,42 +293,6 @@ namespace SecureSocketProtocol3.Network
                 WriteOffset += BytesTransferred;
             }
             Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
-        }
-
-        /// <summary>
-        /// This will give you the next system packet that is being received
-        /// </summary>
-        /// <param name="Timeout">The maximum time to wait for the next packet</param>
-        /// <returns>The packet</returns>
-        internal SystemPacket GetNextPacket(int Timeout)
-        {
-            if (Timeout <= 0)
-                throw new ArgumentException("Timeout must be >0");
-
-            int WaitTime = 250;
-            while(Timeout > 0 && Connected && SystemPackets.Count == 0)
-            {
-                Thread.Sleep(WaitTime > Timeout ? WaitTime : Timeout);
-                Timeout -= WaitTime;
-            }
-
-            lock (SystemPackets)
-            {
-                if (SystemPackets.Count == 0)
-                    return null;
-
-                return SystemPackets.Dequeue();
-            }
-        }
-
-        internal void SendMessage(IMessage message, Header header)
-        {
-            using (PayloadWriter pw = new PayloadWriter())
-            {
-                pw.WriteUInteger(messageHandler.GetMessageId(message.GetType()));
-                pw.WriteBytes(IMessage.Serialize(message));
-                _send(pw.ToByteArray(), 0, pw.Length, header);
-            }
         }
 
         /// <summary>
@@ -393,6 +376,11 @@ namespace SecureSocketProtocol3.Network
             }
         }
 
+        private void onSystemPacket(SystemPacket systemPacket)
+        {
+            systemPacket.Message.ProcessPayload(Client);
+        }
+
         private void RegisterHeader(Type HeaderType)
         {
             Header header = (Header)Activator.CreateInstance(HeaderType);
@@ -402,6 +390,22 @@ namespace SecureSocketProtocol3.Network
                 throw new Exception("Header already exists, Header Conflict!");
 
             Headers.Add(headerId, HeaderType);
+        }
+
+        internal void SendMessage(IMessage message, Header header)
+        {
+            using (PayloadWriter pw = new PayloadWriter())
+            {
+                pw.WriteUInteger(messageHandler.GetMessageId(message.GetType()));
+                pw.WriteBytes(IMessage.Serialize(message));
+                _send(pw.ToByteArray(), 0, pw.Length, header);
+            }
+        }
+
+        internal void ApplyNewKey(Mazing mazeHandshake, byte[] key, byte[] salt)
+        {
+            mazeHandshake.ApplyKey(this.HeaderEncryption, key);
+            mazeHandshake.ApplyKey(this.HeaderEncryption, salt);
         }
 
         public void Disconnect()

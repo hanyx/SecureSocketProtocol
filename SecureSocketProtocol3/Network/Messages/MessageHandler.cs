@@ -69,7 +69,6 @@ namespace SecureSocketProtocol3.Network.Messages
                     return null;
 
                 IMessage message = IMessage.DeSerialize(type, reader);
-                message.RawSize = reader.Length;
                 return message;
             }
         }

@@ -69,6 +69,7 @@
     <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
+    <Compile Include="Network\User.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
     <Compile Include="ProtoBuf\BufferExtension.cs" />
     <Compile Include="ProtoBuf\BufferPool.cs" />

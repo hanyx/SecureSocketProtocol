@@ -2,9 +2,11 @@
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Network.Messages.TCP;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -19,15 +21,16 @@ namespace SecureSocketProtocol3
 
         internal ClientProperties Properties { get; private set; }
         internal Socket Handle { get; set; }
-        public Connection connection { get; private set; }
         internal SSPServer Server;
-        internal ClientMaze clientHS { get; private set; }
+        internal Mazing clientHS { get; private set; }
+        internal ServerMaze serverHS { get; private set; }
 
         private object Locky = new object();
+        internal bool IsServerSided { get { return Server != null; } }
 
         public SSPClient()
         {
-
+            serverHS = new ServerMaze();
         }
 
         /// <summary>
@@ -108,12 +111,30 @@ namespace SecureSocketProtocol3
             if (!Handle.Connected)
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
 
-            connection = new Connection(this);
+            Connection = new Connection(this);
+            Connection.StartReceiver();
 
             //let's begin the handshake
-            this.clientHS = new ClientMaze();
+            User user = new User(Properties.Username, Properties.Password, new List<Stream>(Properties.PrivateKeyFiles), Properties.PublicKeyFile);
+            user.GenKey(SessionSide.Client);
+
+            this.clientHS = user.MazeHandshake;
+            byte[] encryptedPublicKey = clientHS.GetEncryptedPublicKey();
+
+
             byte[] byteCode = clientHS.GetByteCode();
-            connection.SendMessage(new MsgHandshake(byteCode), new SystemHeader());
+            Connection.SendMessage(new MsgHandshake(byteCode), new SystemHeader());
+
+            //send our encrypted public key
+            Connection.SendMessage(new MsgHandshake(encryptedPublicKey), new SystemHeader());
+
+            //and now just wait for the handshake to finish...
+            MazeErrorCode errorCode = Connection.HandshakeSync.Wait<MazeErrorCode>(MazeErrorCode.Error, 30000);
+
+            if (errorCode != MazeErrorCode.Finished)
+            {
+                throw new Exception("Username or Password is incorrect.");
+            }
         }
 
         protected override void onClientConnect()
@@ -140,9 +161,7 @@ namespace SecureSocketProtocol3
         {
             lock (Locky)
             {
-                connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
-
-
+                Connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
             }
         }
     }

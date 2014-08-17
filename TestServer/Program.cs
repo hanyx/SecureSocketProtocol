@@ -10,11 +10,15 @@ namespace TestServer
 {
     class Program
     {
+        public static SortedList<string, User.UserDbInfo> Users;
+
         static void Main(string[] args)
         {
+            Users = new SortedList<string, User.UserDbInfo>();
+
+
+
             Server server = new Server();
-
-
 
             Process.GetCurrentProcess().WaitForExit();
         }
@@ -30,7 +34,30 @@ namespace TestServer
 
         public override SSPClient GetNewClient()
         {
+            ///register users if there aren't any, please use a datbase and not this way
+            if (Program.Users.Count == 0)
+            {
+                List<Stream> keys = new List<Stream>();
+                foreach (string file in Directory.GetFiles(@"F:\", "*.*"))
+                {
+                    if (new FileInfo(file).Length < 5000)
+                        continue;
+                    if (keys.Count == 3)
+                        break;
+                    keys.Add(new MemoryStream(File.ReadAllBytes(file)));
+                }
+                User user = base.RegisterUser("UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes(@"F:\Untitled.png")));
+
+                Program.Users.Add(user.EncryptedHash, user.GetUserDbInfo());
+            }
             return new Client();
+        }
+
+        public override User.UserDbInfo onFindUser(string EncryptedPublicKeyHash)
+        {
+            if (Program.Users.ContainsKey(EncryptedPublicKeyHash))
+                return Program.Users[EncryptedPublicKeyHash];
+            return null;
         }
 
         private class ServerProps : ServerProperties

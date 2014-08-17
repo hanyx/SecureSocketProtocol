@@ -63,4 +63,10 @@ namespace SecureSocketProtocol3
         SHA512 = 4,
         SHA1 = 8
     }
+
+    public enum SessionSide
+    {
+        Server,
+        Client
+    }
 }

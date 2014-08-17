@@ -17,8 +17,8 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
-
             Client client = new Client();
+            client.CreateConnection();
             /*Random random = new Random();
 
             byte[] temp = new byte[70000];

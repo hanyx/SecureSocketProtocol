@@ -72,6 +72,9 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);
                         this.wopEx = new WopEx(_key, _salt, CryptCode, DecryptCode, false, true);
 
+                        base.FinalKey = _key;
+                        base.FinalSalt = _salt;
+
                         //let's try to decrypt the data, should go successful
                         wopEx.Decrypt(Data, 0, Data.Length);
 
@@ -102,6 +105,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     }
                     else
                     {
+                        ResponseData = GetFailResponseData();
                         return MazeErrorCode.UserKeyNotFound;
                     }
                     break;

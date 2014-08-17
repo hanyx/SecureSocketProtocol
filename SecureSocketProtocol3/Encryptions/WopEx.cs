@@ -140,13 +140,14 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Length">The length to encrypt</param>
         public void Encrypt(byte[] Data, int Offset, int Length)
         {
+            int OrgLen = Length;
             Length += Offset;
 
             uint tempCrypt = 0;
 
             using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
             {
-                for (int i = Offset; i < Length; )
+                for (int i = Offset, k = 0; i < Length; k++)
                 {
                     pw.vStream.Position = i;
                     int size = i + 4 < Length ? 4 : Length - i;
@@ -171,7 +172,7 @@ namespace SecureSocketProtocol3.Encryptions
 
                     if (usedsize == 4)
                     {
-                        value ^= (uint)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (uint)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
                         
                         for (int j = 0; j < EncInstructions.Length; j++)
                         {
@@ -187,7 +188,7 @@ namespace SecureSocketProtocol3.Encryptions
                     }
                     else
                     {
-                        value ^= (byte)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (byte)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
                         for (int j = 0; j < EncInstructions.Length; j++)
                         {
                             InstructionInfo inf = EncInstructions[j];
@@ -217,10 +218,11 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Length">The length to decrypt</param>
         public void Decrypt(byte[] Data, int Offset, int Length)
         {
+            int OrgLen = Length;
             Length += Offset;
             using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
             {
-                for (int i = Offset; i < Length; )
+                for (int i = Offset, k = 0; i < Length; k++)
                 {
                     pw.vStream.Position = i;
                     int size = i + 4 < Length ? 4 : Length - i;
@@ -254,7 +256,7 @@ namespace SecureSocketProtocol3.Encryptions
                             }
                         }
 
-                        value ^= (uint)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (uint)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
                         pw.WriteUInteger(value);
                     }
                     else
@@ -270,7 +272,7 @@ namespace SecureSocketProtocol3.Encryptions
                             }
                         }
 
-                        value ^= (byte)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + i) % Key.Length] * Salt[(Length + i) % Salt.Length]);
+                        value ^= (byte)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
                         pw.WriteByte((byte)value);
                     }
 

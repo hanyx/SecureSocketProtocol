@@ -26,7 +26,7 @@ namespace MazeHandShakeTest
 
             User user = new User();
             user.Username = "UserTest";
-            user.Password = "UserPasS";
+            user.Password = "UserPass";
             user.PublicKey = File.ReadAllBytes(@"F:\Untitled.png");
 
             foreach (string file in Directory.GetFiles(@"F:\", "*.dll"))
@@ -172,9 +172,7 @@ namespace MazeHandShakeTest
                 ServerHandshake.SetMazeKey();
 
                 //encrypt the public key with WopEx
-                EncryptedPublicKey = new byte[PublicKey.Length];
-                Array.Copy(PublicKey, EncryptedPublicKey, PublicKey.Length);
-                ServerHandshake.GetWopEncryption().Encrypt(EncryptedPublicKey, 0, EncryptedPublicKey.Length); //encrypt the public key
+                EncryptedPublicKey = ServerHandshake.GetEncryptedPublicKey(); //encrypt the public key
                 EncryptedHash = BitConverter.ToString(SHA512Managed.Create().ComputeHash(EncryptedPublicKey, 0, EncryptedPublicKey.Length)).Replace("-", "");
             }
         }

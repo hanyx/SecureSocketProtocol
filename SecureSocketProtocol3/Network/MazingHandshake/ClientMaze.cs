@@ -56,6 +56,9 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         //apply key to encryption
                         ApplyKey(wopEx, key);
 
+                        base.FinalKey = wopEx.Key;
+                        base.FinalSalt = wopEx.Salt;
+
                         Step++;
                         return MazeErrorCode.Finished;
                     }
@@ -64,18 +67,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         //connection failed, using old keys ?
                         return MazeErrorCode.Error;
                     }
-                    break;
                 }
             }
 
             return MazeErrorCode.Success;
         }
-
-        public byte[] GetByteCode()
-        {
-            //Step 1
-            return Mazing.ByteCode;
-        }
-
     }
 }
