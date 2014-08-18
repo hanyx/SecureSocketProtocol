@@ -13,8 +13,9 @@ using System.Text;
 
 namespace SecureSocketProtocol3
 {
-    public abstract class SSPClient : IClient
+    public abstract class SSPClient
     {
+        internal Connection Connection { get; set; }
         public string RemoteIp { get; internal set; }
         public decimal ClientId { get { return Connection.ClientId; } }
         public bool Connected { get { return Connection.Connected; } }
@@ -135,24 +136,14 @@ namespace SecureSocketProtocol3
             {
                 throw new Exception("Username or Password is incorrect.");
             }
+            onClientConnect();
         }
 
-        protected override void onClientConnect()
-        {
+        public abstract void onClientConnect();
+        public abstract void onDisconnect(DisconnectReason Reason);
+        public abstract void onException(Exception ex, ErrorType errorType);
 
-        }
-
-        protected override void onDisconnect(DisconnectReason Reason)
-        {
-
-        }
-
-        protected override void onException(Exception ex, ErrorType errorType)
-        {
-
-        }
-
-        protected override void Disconnect()
+        public void Disconnect()
         {
 
         }
@@ -161,7 +152,7 @@ namespace SecureSocketProtocol3
         {
             lock (Locky)
             {
-                Connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
+                //Connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
             }
         }
     }

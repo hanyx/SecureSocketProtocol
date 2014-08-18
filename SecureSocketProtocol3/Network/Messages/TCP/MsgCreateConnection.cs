@@ -14,7 +14,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         }
 
-        public override void ProcessPayload(IClient client)
+        public override void ProcessPayload(SSPClient client)
         {
 
         }

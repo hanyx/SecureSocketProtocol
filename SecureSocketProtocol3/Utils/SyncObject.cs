@@ -22,7 +22,7 @@ namespace SecureSocketProtocol3.Utils
                 throw new ArgumentNullException("connection");
             this.connection = connection;
         }
-        public SyncObject(IClient connection)
+        public SyncObject(SSPClient connection)
         {
             if (connection == null)
                 throw new ArgumentNullException("connection");

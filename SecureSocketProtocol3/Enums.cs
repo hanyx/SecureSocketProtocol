@@ -69,4 +69,10 @@ namespace SecureSocketProtocol3
         Server,
         Client
     }
+
+    internal enum PayloadType
+    {
+        Data = 1,
+        Message = 2,
+    }
 }

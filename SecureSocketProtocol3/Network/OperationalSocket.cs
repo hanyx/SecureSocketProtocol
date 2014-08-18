@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3.Misc;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Network.Messages;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -45,7 +46,17 @@ namespace SecureSocketProtocol3.Network
         /// <param name="Header">The header that is being used for this packet</param>
         protected void SendData(byte[] Data, int Offset, int Length, Header Header)
         {
-            
+
+        }
+
+        /// <summary>
+        /// Send a message to the other side
+        /// </summary>
+        /// <param name="Message">The message to send</param>
+        /// <param name="Header">The header that is being used for this packet</param>
+        protected void SendData(IMessage Message, Header Header)
+        {
+
         }
 
         private void onPacketQueue(PayloadInfo inf)
@@ -55,7 +66,7 @@ namespace SecureSocketProtocol3.Network
 
         /// <summary>
         /// Establish a virtual connection
-        /// 
+        /// </summary>
         public void Connect()
         {
 

@@ -10,6 +10,7 @@ using System.Threading;
 using SecureSocketProtocol3.Utils;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
+using TestClient.Sockets;
 
 namespace TestClient
 {
@@ -63,22 +64,12 @@ namespace TestClient
 
         }
 
-        protected override void onClientConnect()
-        {
-
-        }
-
-        protected override void onDisconnect(DisconnectReason Reason)
-        {
-
-        }
-
         private class ClientProps : ClientProperties
         {
 
             public override string HostIp
             {
-                get { return "127.0.0.1"; }
+                get { return "192.168.2.10"; }
             }
 
             public override ushort Port
@@ -106,14 +97,8 @@ namespace TestClient
                 get
                 {
                     List<MemoryStream> keys = new List<MemoryStream>();
-                    foreach (string file in Directory.GetFiles(@"F:\", "*.*"))
-                    {
-                        if (new FileInfo(file).Length < 5000)
-                            continue;
-                        if (keys.Count == 3)
-                            break;
-                        keys.Add(new MemoryStream(File.ReadAllBytes(file)));
-                    }
+                    keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey1.dat")));
+                    keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey2.dat")));
                     return keys.ToArray();
                 }
             }
@@ -122,7 +107,7 @@ namespace TestClient
             {
                 get
                 {
-                    return new MemoryStream(File.ReadAllBytes(@"F:\Untitled.png"));
+                    return new MemoryStream(File.ReadAllBytes("./Data/PublicKey1.dat"));
                 }
             }
 
@@ -139,6 +124,23 @@ namespace TestClient
                     };
                 }
             }
+        }
+
+        public override void onClientConnect()
+        {
+            Console.WriteLine("Client successfully connected");
+            TestSocket testSock = new TestSocket(this);
+            
+        }
+
+        public override void onDisconnect(DisconnectReason Reason)
+        {
+
+        }
+
+        public override void onException(Exception ex, ErrorType errorType)
+        {
+
         }
     }
 }

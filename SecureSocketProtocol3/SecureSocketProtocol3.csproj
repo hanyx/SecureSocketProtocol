@@ -50,7 +50,6 @@
     <Compile Include="Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Hashers\CRC32.cs" />
-    <Compile Include="IClient.cs" />
     <Compile Include="Misc\PayloadInfo.cs" />
     <Compile Include="Misc\SystemPacket.cs" />
     <Compile Include="Network\CertificateInfo.cs" />

@@ -132,8 +132,17 @@ namespace SecureSocketProtocol3.Network
 
         private void AynsReceive(IAsyncResult result)
         {
-            int BytesTransferred = Handle.EndReceive(result);
-            if (BytesTransferred <= 0)
+            int BytesTransferred = -1;
+            try
+            {
+                BytesTransferred = Handle.EndReceive(result);
+                if (BytesTransferred <= 0)
+                {
+                    this.Connected = false;
+                    return;
+                }
+            }
+            catch
             {
                 this.Connected = false;
                 return;

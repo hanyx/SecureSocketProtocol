@@ -67,6 +67,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
                     if (onFindKeyInDatabase(EncHashedMsg, ref _key, ref _salt, ref _publicKey))
                     {
+                        _publicKey = TrimArray(_publicKey, Mazing.MAX_KEY_SIZE);
+
                         byte[] CryptCode = new byte[0];
                         byte[] DecryptCode = new byte[0];
                         WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);

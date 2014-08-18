@@ -21,6 +21,5 @@ C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csprojResolveAssemblyReference.cache
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
-C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csprojResolveAssemblyReference.cache
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb

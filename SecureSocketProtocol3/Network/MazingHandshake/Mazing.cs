@@ -31,6 +31,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             }
         }
 
+        public const int MAX_KEY_SIZE = 32768;
         public int Step { get; protected set; }
         public abstract MazeErrorCode onReceiveData(byte[] Data, ref byte[] ResponseData);
         public Size MazeSize { get; private set; }
@@ -97,10 +98,13 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             bigInt.genRandomBits(128, new Random(seed));
 
             BigInteger temp = seed;
-            for (int i = 0; i < PrivateData.Length; i++)
+            for (int i = 0; i < PrivateData.Length / 8; i++)
             {
+                if ((i * 8) + 8 > PrivateData.Length)
+                    break;
+
                 bigInt += temp >> 8;
-                temp += equK(bigInt, temp + (int)PrivateData[i], seed);
+                temp += equK(bigInt, temp + BitConverter.ToUInt64(PrivateData, i * 8), seed);
                 bigInt += temp;
             }
 
@@ -114,28 +118,20 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 throw new ArgumentException("The PublicKeyData must contain atleast 128 bytes");
 
             SHA512 hasher = SHA512Managed.Create();
-            this._publicKeyData = PublicKeyData;
 
-            //trim down tne public key if bigger then 8192
-            //keep the public key as a max size of 8192bytes
-            if (this._publicKeyData.Length > 8192)
-            {
-                for (int i = 0, j = 8192; j < this._publicKeyData.Length; i++, j++)
-                {
-                    this._publicKeyData[i % 8192] += this._publicKeyData[j];
-                }
-                Array.Resize(ref this._publicKeyData, 8192);
-            }
+            //trim down the public key if bigger then 32768
+            this._publicKeyData = TrimArray(PublicKeyData, MAX_KEY_SIZE);
 
             for (int i = 0; i < PrivateKeyData.Count; i++)
             {
                 if (PrivateKeyData[i].Length < 128)
                     throw new ArgumentException("The Private Key must contain atleast 128 bytes");
 
-                byte[] privHash = hasher.ComputeHash(PrivateKeyData[i], 0, 100);
+                byte[] tempPrivKey = CloneByteArray(PrivateKeyData[i]);
+                byte[] privHash = hasher.ComputeHash(tempPrivKey, 0, 100);
                 int privHashNr_1 = BitConverter.ToInt32(privHash, 26);
                 int privHashNr_2 = BitConverter.ToInt32(privHash, 32);
-                PrivateSalt = cubicEqu(PrivateKeyData.Count, PrivateKeyToSalt(PrivateKeyData[i]), privHashNr_1, privHashNr_1, privHashNr_2, PrivateSalt);
+                PrivateSalt = cubicEqu(PrivateKeyData.Count, PrivateKeyToSalt(tempPrivKey), privHashNr_1, privHashNr_1, privHashNr_2, PrivateSalt);
             }
 
             this.Username = new BigInteger(hasher.ComputeHash(UnicodeEncoding.Unicode.GetBytes(Username))) ^ PrivateSalt;
@@ -170,22 +166,21 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Height / 2) + 3;
             bool Back = false;
 
-            int WalkSize = this.MazeSize.Height / 2;
+            int WalkSize = 30;
 
             this.MazeKey = new BigInteger();
-            Random rnd = new Random(Username.IntValue() + Password.IntValue());
 
             for (int i = 0, j = 1, k = 3, p = 7; i < MazeCount; i++, j++, k += 2, p += 5)
             {
                 Maze maze = new Maze();
                 maze.GenerateMaze(MazeSize.Width, MazeSize.Height, (int)((Username.data[j % (Username.dataLength - 1)] + 
                                                                             Password.data[k % (Password.dataLength - 1)]) ^ 
-                                                                            PrivateSalt.data[p % (PrivateSalt.dataLength - 1)]), 0);
+                                                                            PrivateSalt.data[i % (PrivateSalt.dataLength - 1)]), 0);
 
                 beginPosX = Math.Abs(beginPosX);
                 beginPosY = Math.Abs(beginPosY);
-                int endPosX = Math.Abs(beginPosX + (Back ? -rnd.Next(WalkSize) : rnd.Next(WalkSize)));
-                int endPosY = Math.Abs(beginPosY + (Back ? -rnd.Next(WalkSize) : rnd.Next(WalkSize)));
+                int endPosX = Math.Abs(beginPosX + (Back ? -WalkSize : WalkSize));
+                int endPosY = Math.Abs(beginPosY + (Back ? -WalkSize : WalkSize));
 
                 ArrayList list = maze.Solve(beginPosX, beginPosY, endPosX, endPosY, MazeSteps * 2);
 
@@ -234,6 +229,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 Array.Copy(tempKey, _key, tempKey.Length);
                 this.MazeKey = new BigInteger(_key);
             }
+
         }
 
         public WopEx GetWopEncryption()
@@ -282,6 +278,32 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             Key1 += Key2;
             Key1 = equK(Key2, orgKey1, Key1.IntValue());
             return Key1 + Key2;
+        }
+
+        protected byte[] CloneByteArray(byte[] Input)
+        {
+            byte[] newArray = new byte[Input.Length];
+            Array.Copy(Input, newArray, newArray.Length);
+            return newArray;
+        }
+
+        protected byte[] TrimArray(byte[] Input, int newLength)
+        {
+            if (Input.Length < newLength)
+                return Input;
+
+            byte[] newArray = new byte[Input.Length];
+            Array.Copy(Input, newArray, newLength);
+
+            if (newArray.Length > newLength)
+            {
+                for (int i = 0, j = newLength; j < Input.Length; i++, j++)
+                {
+                    newArray[i % newLength] += Input[j];
+                }
+            }
+            Array.Resize(ref newArray, newLength);
+            return newArray;
         }
 
         public byte[] GetByteCode()

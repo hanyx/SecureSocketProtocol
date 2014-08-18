@@ -1,3 +1,7 @@
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\ReadMe.txt
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PrivateKey1.dat
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PrivateKey2.dat
+C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PublicKey1.dat
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.pdb
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.dll
