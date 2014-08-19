@@ -16,12 +16,12 @@ namespace SecureSocketProtocol3.Network.Headers
 
         public override Version Version
         {
-            get { return new Version(1, 0, 0, 0); }
+            get { return new Version(0, 0, 0, 2); }
         }
 
         public override string HeaderName
         {
-            get { return "Secure Socket Protocol Header"; }
+            get { return "System Header"; }
         }
     }
 }

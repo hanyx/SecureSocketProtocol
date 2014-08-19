@@ -50,9 +50,24 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                     //let's tell it's completed and apply the new key
                     client.Connection.ApplyNewKey(mazeHandshake, mazeHandshake.FinalKey, mazeHandshake.FinalSalt);
 
-                    client.Connection.HandShakeCompleted = true;
-                    client.Connection.HandshakeSync.Pulse();
-
+                    if (_client.IsServerSided)
+                    {
+                        try
+                        {
+                            client.onBeforeConnect();
+                        }
+                        catch (Exception ex)
+                        {
+                            client.onException(ex, ErrorType.UserLand);
+                            return; //don't send that we're ready since we're clearly not at this point
+                        }
+                        client.Connection.SendMessage(new MsgInitOk(), new SystemHeader());
+                    }
+                    else
+                    {
+                        client.Connection.HandShakeCompleted = true;
+                        client.Connection.HandshakeSync.Pulse();
+                    }
                 }
             }
         }

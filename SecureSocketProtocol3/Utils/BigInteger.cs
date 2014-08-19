@@ -2700,19 +2700,22 @@ namespace SecureSocketProtocol3.Utils
 
             byte[] result = new byte[numBytes];
 
-            //Console.WriteLine(result.Length);
+            //START AT A NEGATIVE OFFSET 
+            int pos = numBytes % 4; if (pos != 0) pos = pos - 4;
 
-            int pos = 0;
-            uint tempVal, val = data[dataLength - 1];
+            uint val = data[dataLength - 1];
+            {//DO NOT WRITE ZEROS
+                byte tempValue;
 
-            if ((tempVal = (val >> 24 & 0xFF)) != 0)
-                result[pos++] = (byte)tempVal;
-            if ((tempVal = (val >> 16 & 0xFF)) != 0)
-                result[pos++] = (byte)tempVal;
-            if ((tempVal = (val >> 8 & 0xFF)) != 0)
-                result[pos++] = (byte)tempVal;
-            if ((tempVal = (val & 0xFF)) != 0)
-                result[pos++] = (byte)tempVal;
+                tempValue = (byte)(val & 0xFF); if (tempValue != 0) result[pos + 3] = tempValue;
+                val >>= 8;
+                tempValue = (byte)(val & 0xFF); if (tempValue != 0) result[pos + 2] = tempValue;
+                val >>= 8;
+                tempValue = (byte)(val & 0xFF); if (tempValue != 0) result[pos + 1] = tempValue;
+                val >>= 8;
+                tempValue = (byte)(val & 0xFF); if (tempValue != 0) result[pos + 0] = tempValue;
+                pos += 4;
+            }//block
 
             for (int i = dataLength - 2; i >= 0; i--, pos += 4)
             {
@@ -2723,7 +2726,7 @@ namespace SecureSocketProtocol3.Utils
                 val >>= 8;
                 result[pos + 1] = (byte)(val & 0xFF);
                 val >>= 8;
-                result[pos] = (byte)(val & 0xFF);
+                result[pos + 0] = (byte)(val & 0xFF);
             }
 
             return result;

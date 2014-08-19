@@ -53,9 +53,15 @@ namespace SecureSocketProtocol3.Network
         private SortedList<ushort, Type> Headers;
         private MessageHandler messageHandler;
         private TaskQueue<SystemPacket> SystemPackets;
+        internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
+        internal SortedList<int, SyncObject> Requests { get; private set; }
 
         private ReceiveType ReceiveState = ReceiveType.Header;
         internal SyncObject HandshakeSync { get; private set; }
+        internal SyncObject InitSync { get; private set; }
+        
+        //locks
+        private object NextRandomIdLock = new object();
 
         //receive info
         private int ReadOffset = 0;
@@ -99,6 +105,9 @@ namespace SecureSocketProtocol3.Network
             this.Headers = new SortedList<ushort, Type>();
             this.SystemPackets = new TaskQueue<SystemPacket>(onSystemPacket, 50);
             this.HandshakeSync = new SyncObject(this);
+            this.InitSync = new SyncObject(this);
+            this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
+            this.Requests = new SortedList<int, SyncObject>();
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
@@ -120,9 +129,15 @@ namespace SecureSocketProtocol3.Network
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
             this.messageHandler.AddMessage(typeof(MsgCreateConnection), "CREATE_CONNECTION");
+            this.messageHandler.AddMessage(typeof(MsgCreateConnectionResponse), "CREATE_CONNECTION_RESPONSE");
+
+            this.messageHandler.AddMessage(typeof(MsgInitOk), "INIT_OK");
+            this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
+            this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
 
             RegisterHeader(typeof(SystemHeader));
             RegisterHeader(typeof(ConnectionHeader));
+            RegisterHeader(typeof(RequestHeader));
         }
 
         internal void StartReceiver()
@@ -246,21 +261,19 @@ namespace SecureSocketProtocol3.Network
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = messageHandler.HandleMessage(pr, MessageId);
                                     message.RawSize = PayloadLen + HEADER_SIZE;
+                                    message.Header = header;
 
-                                    if (type == typeof(SystemHeader))
+                                    if (message.GetType() == typeof(MsgHandshake))
                                     {
-                                        if (message.GetType() == typeof(MsgHandshake))
+                                        //we must directly process this message because if the handshake ends the keys will change
+                                        //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                        message.ProcessPayload(Client);
+                                    }
+                                    else
+                                    {
+                                        lock (SystemPackets)
                                         {
-                                            //we must directly process this message because if the handshake ends the keys will change
-                                            //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
-                                            message.ProcessPayload(Client);
-                                        }
-                                        else
-                                        {
-                                            lock (SystemPackets)
-                                            {
-                                                SystemPackets.Enqueue(new SystemPacket(header, message));
-                                            }
+                                            SystemPackets.Enqueue(new SystemPacket(header, message));
                                         }
                                     }
                                 }
@@ -415,6 +428,74 @@ namespace SecureSocketProtocol3.Network
         {
             mazeHandshake.ApplyKey(this.HeaderEncryption, key);
             mazeHandshake.ApplyKey(this.HeaderEncryption, salt);
+        }
+
+        internal SyncObject RegisterRequest(ref int RequestId)
+        {
+            lock (Requests)
+            {
+                SyncObject syncObj = new SyncObject(this);
+                Random rnd = new Random();
+
+                do 
+                {
+                    RequestId = rnd.Next();
+                }
+                while (Requests.ContainsKey(RequestId));
+
+                Requests.Add(RequestId, syncObj);
+
+                return syncObj;
+            }
+        }
+
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public long GetNextRandomLong()
+        {
+            decimal number = GetNextRandomDecimal();
+            number %= long.MaxValue;
+            return (int)number;
+        }
+
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public int GetNextRandomInteger()
+        {
+            decimal number = GetNextRandomDecimal();
+            number %= int.MaxValue;
+            return (int)number;
+        }
+
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public decimal GetNextRandomDecimal()
+        {
+            if (Client.IsServerSided)
+            {
+                return Client.Server.randomDecimal.NextDecimal();
+            }
+
+            lock (NextRandomIdLock)
+            {
+                int ReqId = 0;
+                SyncObject SyncNextRandomId = RegisterRequest(ref ReqId);
+
+                SendMessage(new MsgGetNextId(), new RequestHeader(ReqId, false));
+
+                decimal response = SyncNextRandomId.Wait<decimal>(0, 30000);
+
+                if (response == null)
+                    throw new Exception("A time out occured, ");
+
+                return response;
+            }
         }
 
         public void Disconnect()

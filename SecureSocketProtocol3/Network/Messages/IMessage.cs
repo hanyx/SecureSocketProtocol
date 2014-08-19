@@ -1,4 +1,5 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,8 @@ namespace SecureSocketProtocol3.Network.Messages
 
         /// <summary> This is the message in raw size after decompression </summary>
         public int DecompressedRawSize { get; set; }
+
+        public Header Header { get; internal set; }
 
         public IMessage()
         {

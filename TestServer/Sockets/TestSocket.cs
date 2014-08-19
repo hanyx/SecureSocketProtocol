@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace TestClient.Sockets
+namespace TestServer.Sockets
 {
     public class TestSocket : OperationalSocket
     {
@@ -23,7 +23,7 @@ namespace TestClient.Sockets
         public TestSocket(SSPClient client)
             : base(client)
         {
-            
+
         }
 
         public override void onReceiveData(byte[] Data, Header header)

@@ -134,6 +134,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         ApplyKey(wopEx, key);
                         return MazeErrorCode.Finished;
                     }
+                    else
+                    {
+                        return MazeErrorCode.Error;
+                    }
                     break;
                 }
             }

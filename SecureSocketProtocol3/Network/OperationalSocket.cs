@@ -1,6 +1,8 @@
-﻿using SecureSocketProtocol3.Misc;
+﻿using SecureSocketProtocol3.Hashers;
+using SecureSocketProtocol3.Misc;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.Messages;
+using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -14,6 +16,14 @@ namespace SecureSocketProtocol3.Network
     /// </summary>
     public abstract class OperationalSocket
     {
+        public abstract void onReceiveData(byte[] Data, Header header);
+        public abstract void onReceiveMessage(IMessage Message, Header header);
+
+        public abstract void onBeforeConnect();
+        public abstract void onConnect();
+        public abstract void onDisconnect(DisconnectReason Reason);
+        public abstract void onException(Exception ex, ErrorType errorType);
+
         public SSPClient Client { get; private set; }
         internal TaskQueue<PayloadInfo> PacketQueue;
 
@@ -26,6 +36,8 @@ namespace SecureSocketProtocol3.Network
         /// The version of the Operational Socket
         /// </summary>
         public abstract Version Version { get; }
+
+        public bool isConnected { get; internal set; }
 
         /// <summary>
         /// Create a new Operational Socket to create a new Virtual Socket
@@ -69,7 +81,15 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         public void Connect()
         {
+            if (!Client.RegisteredOperationalSocket(this))
+                throw new Exception("Register the Operational Socket first");
 
+            int RequestId = 0;
+            SyncObject syncObj = Client.Connection.RegisterRequest(ref RequestId);
+
+            Client.Connection.SendMessage(new MsgCreateConnection(GetIdentifier()), new RequestHeader(RequestId, false));
+
+            syncObj.Wait<object>(null, 100000);
         }
 
         /// <summary>
@@ -78,6 +98,14 @@ namespace SecureSocketProtocol3.Network
         public void Disconnect()
         {
 
+        }
+
+        internal ulong GetIdentifier()
+        {
+            CRC32 hasher = new CRC32();
+            uint name = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Name)), 0);
+            uint version = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Version.ToString())), 0);
+            return name * version;
         }
     }
 }

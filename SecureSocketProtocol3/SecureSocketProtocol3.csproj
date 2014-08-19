@@ -56,6 +56,7 @@
     <Compile Include="Network\Connection.cs" />
     <Compile Include="Network\Headers\ConnectionHeader.cs" />
     <Compile Include="Network\Headers\Header.cs" />
+    <Compile Include="Network\Headers\RequestHeader.cs" />
     <Compile Include="Network\Headers\SystemHeader.cs" />
     <Compile Include="Network\MazingHandshake\ClientMaze.cs" />
     <Compile Include="Network\MazingHandshake\Maze\Maze.cs" />
@@ -66,7 +67,11 @@
     <Compile Include="Network\Messages\IMessage.cs" />
     <Compile Include="Network\Messages\MessageHandler.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
+    <Compile Include="Network\Messages\TCP\MsgGetNextId.cs" />
+    <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
+    <Compile Include="Network\Messages\TCP\MsgGetNextIdResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
+    <Compile Include="Network\Messages\TCP\MsgInitOk.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="Network\User.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
@@ -156,6 +161,7 @@
     <Compile Include="ProtoBuf\ServiceModel\XmlProtoSerializer.cs" />
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
+    <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
     <Compile Include="Utils\SyncObject.cs" />

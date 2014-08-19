@@ -15,7 +15,12 @@ namespace SecureSocketProtocol3
 {
     public abstract class SSPClient
     {
-        internal Connection Connection { get; set; }
+        public abstract void onBeforeConnect();
+        public abstract void onConnect();
+        public abstract void onDisconnect(DisconnectReason Reason);
+        public abstract void onException(Exception ex, ErrorType errorType);
+
+        public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
         public decimal ClientId { get { return Connection.ClientId; } }
         public bool Connected { get { return Connection.Connected; } }
@@ -136,23 +141,36 @@ namespace SecureSocketProtocol3
             {
                 throw new Exception("Username or Password is incorrect.");
             }
-            onClientConnect();
-        }
 
-        public abstract void onClientConnect();
-        public abstract void onDisconnect(DisconnectReason Reason);
-        public abstract void onException(Exception ex, ErrorType errorType);
+            bool initOk = Connection.InitSync.Wait<bool>(false, 30000);
+            if (!initOk)
+            {
+                throw new Exception("A server time-out occured");
+            }
+            onBeforeConnect();
+            onConnect();
+        }
 
         public void Disconnect()
         {
 
         }
 
-        public void CreateConnection()
+        public void RegisterOperationalSocket(OperationalSocket opSocket)
         {
-            lock (Locky)
+            lock (Connection.RegisteredOperationalSockets)
             {
-                //Connection.SendMessage(new MsgCreateConnection(), new SystemHeader());
+                if (Connection.RegisteredOperationalSockets.ContainsKey(opSocket.GetIdentifier()))
+                    throw new Exception("This operational socket is already registered, conflict?");
+                Connection.RegisteredOperationalSockets.Add(opSocket.GetIdentifier(), opSocket.GetType());
+            }
+        }
+
+        internal bool RegisteredOperationalSocket(OperationalSocket opSocket)
+        {
+            lock (Connection.RegisteredOperationalSockets)
+            {
+                return Connection.RegisteredOperationalSockets.ContainsKey(opSocket.GetIdentifier());
             }
         }
     }

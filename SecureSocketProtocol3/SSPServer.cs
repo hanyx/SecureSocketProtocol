@@ -20,7 +20,7 @@ namespace SecureSocketProtocol3
         internal Socket TcpServer { get; private set; }
         public ServerProperties serverProperties { get; private set; }
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
-        private RandomDecimal randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
+        internal RandomDecimal randomDecimal { get; private set; }
 
         private object FindKeyLock = new object();
 
@@ -35,6 +35,7 @@ namespace SecureSocketProtocol3
 
             this.serverProperties = serverProperties;
             this.Clients = new SortedList<decimal, SSPClient>();
+            this.randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
 
             this.TcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.TcpServer.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp), serverProperties.ListenPort));

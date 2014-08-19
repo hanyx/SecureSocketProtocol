@@ -19,7 +19,6 @@ namespace TestClient
         static void Main(string[] args)
         {
             Client client = new Client();
-            client.CreateConnection();
             /*Random random = new Random();
 
             byte[] temp = new byte[70000];
@@ -64,6 +63,47 @@ namespace TestClient
 
         }
 
+        public override void onConnect()
+        {
+            Console.WriteLine("Client successfully connected");
+
+
+            Benchmark bench = new Benchmark();
+            while (true)
+            {
+                bench.Bench(new BenchCallback(onBenchEvent));
+                
+                if(bench.PastASecond)
+                {
+                    Console.WriteLine("Speed:" + bench.SpeedPerSec);
+                }
+            }
+
+            //TestSocket testSock = new TestSocket(this);
+            //testSock.Connect();
+        }
+
+        private void onBenchEvent()
+        {
+            int number = base.Connection.GetNextRandomInteger();
+        }
+
+        public override void onDisconnect(DisconnectReason Reason)
+        {
+
+        }
+
+        public override void onException(Exception ex, ErrorType errorType)
+        {
+
+        }
+
+        public override void onBeforeConnect()
+        {
+            base.RegisterOperationalSocket(new TestSocket(this));
+        }
+
+
         private class ClientProps : ClientProperties
         {
 
@@ -97,8 +137,8 @@ namespace TestClient
                 get
                 {
                     List<MemoryStream> keys = new List<MemoryStream>();
-                    keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey1.dat")));
-                    keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey2.dat")));
+                    keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey1.dat")));
+                    keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey2.dat")));
                     return keys.ToArray();
                 }
             }
@@ -107,7 +147,7 @@ namespace TestClient
             {
                 get
                 {
-                    return new MemoryStream(File.ReadAllBytes("./Data/PublicKey1.dat"));
+                    return new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PublicKey1.dat"));
                 }
             }
 
@@ -124,23 +164,6 @@ namespace TestClient
                     };
                 }
             }
-        }
-
-        public override void onClientConnect()
-        {
-            Console.WriteLine("Client successfully connected");
-            TestSocket testSock = new TestSocket(this);
-            
-        }
-
-        public override void onDisconnect(DisconnectReason Reason)
-        {
-
-        }
-
-        public override void onException(Exception ex, ErrorType errorType)
-        {
-
         }
     }
 }

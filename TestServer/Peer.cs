@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TestServer.Sockets;
 
 namespace TestServer
 {
@@ -14,7 +15,7 @@ namespace TestServer
         }
 
 
-        public override void onClientConnect()
+        public override void onConnect()
         {
 
         }
@@ -27,6 +28,11 @@ namespace TestServer
         public override void onException(Exception ex, ErrorType errorType)
         {
 
+        }
+
+        public override void onBeforeConnect()
+        {
+            base.RegisterOperationalSocket(new TestSocket(this));
         }
     }
 }

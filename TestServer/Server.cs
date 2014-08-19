@@ -21,9 +21,9 @@ namespace TestServer
             if (Program.Users.Count == 0)
             {
                 List<Stream> keys = new List<Stream>();
-                keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey1.dat")));
-                keys.Add(new MemoryStream(File.ReadAllBytes("./Data/PrivateKey2.dat")));
-                User user = base.RegisterUser("UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes("./Data/PublicKey1.dat")));
+                keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey1.dat")));
+                keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey2.dat")));
+                User user = base.RegisterUser("UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PublicKey1.dat")));
 
                 Program.Users.Add(user.EncryptedHash, user.GetUserDbInfo());
             }

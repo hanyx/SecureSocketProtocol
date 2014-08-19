@@ -31,7 +31,7 @@ namespace MazeHandShakeTest
             {
                 MazeErrorCode clientError = MazeErrorCode.Error;
                 MazeErrorCode serverError = MazeErrorCode.Error;
-                int multiplier = 1000000;
+                int multiplier = 100;
 
                 while (true)
                 {
