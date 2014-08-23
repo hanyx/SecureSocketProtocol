@@ -39,8 +39,10 @@ namespace SecureSocketProtocol3.Network
         /// The fragment id should never exceed 128
         /// 
         /// The checksum is all the information combined to a small hash of 1Byte
+        /// 
+        /// Fragment Full Size - Contains the full size for the packet
         /// </summary>
-        public const int HEADER_SIZE = 12; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE)
+        public const int HEADER_SIZE = 12; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE) + FragmentFullSize(3Bytes)
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
         public const int MAX_FRAGMENT_SIZE = (1024 * 1024) * 5; //5MB packet is max
 
@@ -50,15 +52,17 @@ namespace SecureSocketProtocol3.Network
         private Socket Handle { get { return Client.Handle; } }
         private Stopwatch LastPacketSW = new Stopwatch();
         private byte[] Buffer = new byte[HEADER_SIZE + MAX_PAYLOAD];
-        private SortedList<ushort, Type> Headers;
-        private MessageHandler messageHandler;
+        internal MessageHandler messageHandler { get; private set; }
         private TaskQueue<SystemPacket> SystemPackets;
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
+        internal SortedList<int, OperationalSocket> OperationalSockets { get; private set; }
         internal SortedList<int, SyncObject> Requests { get; private set; }
 
         private ReceiveType ReceiveState = ReceiveType.Header;
         internal SyncObject HandshakeSync { get; private set; }
         internal SyncObject InitSync { get; private set; }
+
+        internal HeaderList Headers { get; private set; }
         
         //locks
         private object NextRandomIdLock = new object();
@@ -83,7 +87,7 @@ namespace SecureSocketProtocol3.Network
 
         //Security
         private WopEx HeaderEncryption;
-        private int PrivateSeed;
+        internal int PrivateSeed { get; private set; }
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -102,12 +106,13 @@ namespace SecureSocketProtocol3.Network
         {
             this.Client = client;
             this.Connected = true;
-            this.Headers = new SortedList<ushort, Type>();
+            this.Headers = new HeaderList(this);
             this.SystemPackets = new TaskQueue<SystemPacket>(onSystemPacket, 50);
             this.HandshakeSync = new SyncObject(this);
             this.InitSync = new SyncObject(this);
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
             this.Requests = new SortedList<int, SyncObject>();
+            this.OperationalSockets = new SortedList<int, OperationalSocket>();
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
@@ -134,10 +139,11 @@ namespace SecureSocketProtocol3.Network
             this.messageHandler.AddMessage(typeof(MsgInitOk), "INIT_OK");
             this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
             this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
+            this.messageHandler.AddMessage(typeof(MsgConnectionData), "CONNECTION_DATA");
 
-            RegisterHeader(typeof(SystemHeader));
-            RegisterHeader(typeof(ConnectionHeader));
-            RegisterHeader(typeof(RequestHeader));
+            Headers.RegisterHeader(typeof(SystemHeader));
+            Headers.RegisterHeader(typeof(ConnectionHeader));
+            Headers.RegisterHeader(typeof(RequestHeader));
         }
 
         internal void StartReceiver()
@@ -255,12 +261,12 @@ namespace SecureSocketProtocol3.Network
                                     pr.Offset = ReadOffset;
 
                                 Type type = null;
-                                if (Headers.TryGetValue(HeaderId, out type))
+                                if ((type = Headers.GetHeaderType(HeaderId)) != null)
                                 {
                                     Header header = Header.DeSerialize(type, pr);
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = messageHandler.HandleMessage(pr, MessageId);
-                                    message.RawSize = PayloadLen + HEADER_SIZE;
+                                    message.RawSize = (FragmentBuffer != null ? FragmentBuffer.Length + (HEADER_SIZE * (FragmentId - 128)) : 0) + PayloadLen + HEADER_SIZE;
                                     message.Header = header;
 
                                     if (message.GetType() == typeof(MsgHandshake))
@@ -333,7 +339,7 @@ namespace SecureSocketProtocol3.Network
 
             //serialize the custom header
             byte[] SerializedHeader = Header.Serialize(header);
-            ushort HeaderId = (ushort)(this.PrivateSeed + header.GetHeaderId(header));
+            ushort HeaderId = Headers.GetHeaderId(header);
 
             byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
             bool UseFragments = fragment > 0;
@@ -342,7 +348,7 @@ namespace SecureSocketProtocol3.Network
             while(length > 0)
             {
                 int packetLength = length > MAX_PAYLOAD ? MAX_PAYLOAD : length;
-                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength + (SerializedHeader != null ? SerializedHeader.Length : 0) + 3]; //+3 = A small fragment header size containing the full size
+                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength + (SerializedHeader != null ? SerializedHeader.Length : 0)];
                 using (PayloadWriter pw = new PayloadWriter(new MemoryStream(tempBuffer, 0, tempBuffer.Length)))
                 {
                     length -= packetLength;
@@ -401,17 +407,6 @@ namespace SecureSocketProtocol3.Network
         private void onSystemPacket(SystemPacket systemPacket)
         {
             systemPacket.Message.ProcessPayload(Client);
-        }
-
-        private void RegisterHeader(Type HeaderType)
-        {
-            Header header = (Header)Activator.CreateInstance(HeaderType);
-            ushort headerId = (ushort)(this.PrivateSeed + header.GetHeaderId(header));
-
-            if (Headers.ContainsKey(headerId))
-                throw new Exception("Header already exists, Header Conflict!");
-
-            Headers.Add(headerId, HeaderType);
         }
 
         internal void SendMessage(IMessage message, Header header)

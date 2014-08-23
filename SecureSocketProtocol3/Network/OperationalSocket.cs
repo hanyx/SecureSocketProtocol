@@ -26,6 +26,9 @@ namespace SecureSocketProtocol3.Network
 
         public SSPClient Client { get; private set; }
         internal TaskQueue<PayloadInfo> PacketQueue;
+        internal int ConnectionId { get; set; }
+        internal MessageHandler messageHandler;
+        public HeaderList Headers { get; private set; }
 
         /// <summary>
         /// The name of the Operation Socket, must be unique
@@ -47,6 +50,8 @@ namespace SecureSocketProtocol3.Network
         {
             this.Client = Client;
             this.PacketQueue = new TaskQueue<PayloadInfo>(onPacketQueue, 50); //Payload x 10 = Memory in use
+            this.messageHandler = new MessageHandler(Client.Connection.messageHandler.Seed);
+            this.Headers = new HeaderList(Client.Connection);
         }
 
         /// <summary>
@@ -58,7 +63,16 @@ namespace SecureSocketProtocol3.Network
         /// <param name="Header">The header that is being used for this packet</param>
         protected void SendData(byte[] Data, int Offset, int Length, Header Header)
         {
-
+            if (Offset > 0)
+            {
+                byte[] temp = new byte[Length];
+                Array.Copy(Data, Offset, temp, 0, temp.Length);
+                Client.Connection.SendMessage(new MsgConnectionData(this, temp, Header), new ConnectionHeader(this.ConnectionId));
+            }
+            else
+            {
+                Client.Connection.SendMessage(new MsgConnectionData(this, Data, Header), new ConnectionHeader(this.ConnectionId));
+            }
         }
 
         /// <summary>
@@ -77,19 +91,36 @@ namespace SecureSocketProtocol3.Network
         }
 
         /// <summary>
-        /// Establish a virtual connection
+        /// Establish the virtual connection
         /// </summary>
         public void Connect()
         {
+            if (isConnected)
+                throw new Exception("Already connected");
             if (!Client.RegisteredOperationalSocket(this))
                 throw new Exception("Register the Operational Socket first");
+
+            onBeforeConnect();
 
             int RequestId = 0;
             SyncObject syncObj = Client.Connection.RegisterRequest(ref RequestId);
 
             Client.Connection.SendMessage(new MsgCreateConnection(GetIdentifier()), new RequestHeader(RequestId, false));
 
-            syncObj.Wait<object>(null, 100000);
+            MsgCreateConnectionResponse response = syncObj.Wait<MsgCreateConnectionResponse>(null, 100000);
+            if (response == null)
+                throw new Exception("A server time-out occured");
+
+            if (!response.Success)
+                throw new Exception("No success in creating the Operational Socket, too many connections or server-sided error ?");
+
+            if (Client.Connection.OperationalSockets.ContainsKey(response.ConnectionId))
+                throw new Exception("Connection Id Conflict detected, An attacker ?");
+
+            Client.Connection.OperationalSockets.Add(response.ConnectionId, this);
+            this.ConnectionId = response.ConnectionId;
+            this.isConnected = true;
+            onConnect();
         }
 
         /// <summary>

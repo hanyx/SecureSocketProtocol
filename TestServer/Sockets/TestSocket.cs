@@ -2,9 +2,11 @@
 using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.Messages;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TestServer.Sockets.Headers;
 
 namespace TestServer.Sockets
 {
@@ -26,9 +28,15 @@ namespace TestServer.Sockets
 
         }
 
+        Benchmark bench = new Benchmark();
         public override void onReceiveData(byte[] Data, Header header)
         {
+            bench.Bench(new BenchCallback(() => { }));
 
+            if (bench.PastASecond)
+            {
+                Console.WriteLine("Speed:" + bench.SpeedPerSec + ", raw size: " + Math.Round( ((((ulong)(Data.Length + 28) * bench.SpeedPerSec) / 1000F) / 1000F) / 1000F, 2)    + "GBps");
+            }
         }
 
         public override void onReceiveMessage(IMessage Message, Header header)
@@ -38,7 +46,7 @@ namespace TestServer.Sockets
 
         public override void onBeforeConnect()
         {
-
+            base.Headers.RegisterHeader(typeof(TestHeader));
         }
 
         public override void onConnect()

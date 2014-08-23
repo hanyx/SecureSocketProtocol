@@ -18,6 +18,7 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+            Console.Title = "SSP Client";
             Client client = new Client();
             /*Random random = new Random();
 
@@ -68,7 +69,7 @@ namespace TestClient
             Console.WriteLine("Client successfully connected");
 
 
-            Benchmark bench = new Benchmark();
+            /*Benchmark bench = new Benchmark();
             while (true)
             {
                 bench.Bench(new BenchCallback(onBenchEvent));
@@ -77,10 +78,22 @@ namespace TestClient
                 {
                     Console.WriteLine("Speed:" + bench.SpeedPerSec);
                 }
-            }
+            }*/
 
-            //TestSocket testSock = new TestSocket(this);
-            //testSock.Connect();
+            TestSocket testSock = new TestSocket(this);
+            testSock.Connect();
+
+
+            Benchmark bench = new Benchmark();
+            /**/while (true)
+            {
+                bench.Bench(new BenchCallback(() => testSock.SendStuff()));
+
+                if (bench.PastASecond)
+                {
+                    Console.WriteLine("Speed:" + bench.SpeedPerSec);
+                }
+            }
         }
 
         private void onBenchEvent()
@@ -109,7 +122,7 @@ namespace TestClient
 
             public override string HostIp
             {
-                get { return "192.168.2.10"; }
+                get { return "127.0.0.1"; }// "192.168.2.10"; }
             }
 
             public override ushort Port
@@ -137,8 +150,8 @@ namespace TestClient
                 get
                 {
                     List<MemoryStream> keys = new List<MemoryStream>();
-                    keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey1.dat")));
-                    keys.Add(new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PrivateKey2.dat")));
+                    keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
+                    keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
                     return keys.ToArray();
                 }
             }
@@ -147,7 +160,7 @@ namespace TestClient
             {
                 get
                 {
-                    return new MemoryStream(File.ReadAllBytes(@"C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\Data\PublicKey1.dat"));
+                    return new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat"));
                 }
             }
 

@@ -14,6 +14,7 @@ namespace TestServer
 
         static void Main(string[] args)
         {
+            Console.Title = "SSP Server";
             Users = new SortedList<string, User.UserDbInfo>();
 
 

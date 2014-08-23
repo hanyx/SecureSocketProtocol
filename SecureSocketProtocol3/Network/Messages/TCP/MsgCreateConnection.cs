@@ -25,14 +25,43 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         public override void ProcessPayload(SSPClient client)
         {
+            if (!client.IsServerSided)
+                return; //weird... send nothing back
+
             RequestHeader reqHeader = Header as RequestHeader;
             if (reqHeader != null)
             {
-                if (client.Connection.RegisteredOperationalSockets.ContainsKey(Identifier))
+                Type type = null;
+                lock (client.Connection.RegisteredOperationalSockets)
                 {
+                    client.Connection.RegisteredOperationalSockets.TryGetValue(Identifier, out type);
+                }
+                
+                if(type != null)
+                {
+                    try
+                    {
+                        OperationalSocket OpSocket = (OperationalSocket)Activator.CreateInstance(type, client);
+                        OpSocket.isConnected = true;
 
+                        lock (client.Connection.OperationalSockets)
+                        {
+                            Random rnd = new Random();
+                            OpSocket.ConnectionId = rnd.Next();
+                            while(client.Connection.OperationalSockets.ContainsKey(OpSocket.ConnectionId))
+                                OpSocket.ConnectionId = rnd.Next();
+                        }
 
-                    client.Connection.SendMessage(new MsgCreateConnectionResponse(0, false), new RequestHeader(reqHeader.RequestId, true));
+                        client.Connection.OperationalSockets.Add(OpSocket.ConnectionId, OpSocket);
+
+                        OpSocket.onBeforeConnect();
+                        client.Connection.SendMessage(new MsgCreateConnectionResponse(OpSocket.ConnectionId, true), new RequestHeader(reqHeader.RequestId, true));
+                        OpSocket.Connect();
+                    }
+                    catch
+                    {
+                        client.Connection.SendMessage(new MsgCreateConnectionResponse(0, false), new RequestHeader(reqHeader.RequestId, true));
+                    }
                 }
                 else
                 {

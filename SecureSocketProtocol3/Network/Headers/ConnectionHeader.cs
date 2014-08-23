@@ -8,7 +8,8 @@ namespace SecureSocketProtocol3.Network.Headers
     /// <summary>
     /// The header information for establishing a connection
     /// </summary>
-    internal class ConnectionHeader : Header
+    [ProtoContract]
+    internal sealed class ConnectionHeader : Header
     {
         public override Version Version
         {
@@ -23,6 +24,11 @@ namespace SecureSocketProtocol3.Network.Headers
         [ProtoMember(1)]
         public int ConnectionId;
 
+        public ConnectionHeader(int ConnectionId)
+            : base()
+        {
+            this.ConnectionId = ConnectionId;
+        }
         public ConnectionHeader()
             : base()
         {

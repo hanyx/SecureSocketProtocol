@@ -7,7 +7,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Headers
 {
     [ProtoContract]
-    public class RequestHeader : Header
+    internal sealed class RequestHeader : Header
     {
         [ProtoMember(1)]
         public int RequestId;
@@ -48,6 +48,7 @@ namespace SecureSocketProtocol3.Network.Headers
                     {
                         syncObj.Value = ResponseObj;
                         syncObj.Pulse();
+                        Client.Connection.Requests.Remove(RequestId);
                     }
                 }
             }

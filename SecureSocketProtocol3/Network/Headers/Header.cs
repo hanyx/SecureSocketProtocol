@@ -21,7 +21,7 @@ namespace SecureSocketProtocol3.Network.Headers
 
         }
 
-        internal ushort GetHeaderId(Header header)
+        public ushort GetHeaderId()
         {
             CRC32 hasher = new CRC32();
             uint name = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes(HeaderName)), 0);

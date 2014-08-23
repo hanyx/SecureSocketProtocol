@@ -5,6 +5,7 @@ using SecureSocketProtocol3.Network.Messages;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TestClient.Sockets.Headers;
 
 namespace TestClient.Sockets
 {
@@ -38,12 +39,12 @@ namespace TestClient.Sockets
 
         public override void onBeforeConnect()
         {
-
+            base.Headers.RegisterHeader(typeof(TestHeader));
         }
 
         public override void onConnect()
         {
-
+            
         }
 
         public override void onDisconnect(DisconnectReason Reason)
@@ -54,6 +55,11 @@ namespace TestClient.Sockets
         public override void onException(Exception ex, ErrorType errorType)
         {
 
+        }
+
+        public void SendStuff()
+        {
+            base.SendData(new byte[70000], 0, 70000, new TestHeader());
         }
     }
 }
