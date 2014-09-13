@@ -12,6 +12,8 @@ using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Misc;
 using System.Threading;
 using SecureSocketProtocol3.Network.MazingHandshake;
+using ProtoBuf;
+using SecureSocketProtocol3.Features;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -41,8 +43,10 @@ namespace SecureSocketProtocol3.Network
         /// The checksum is all the information combined to a small hash of 1Byte
         /// 
         /// Fragment Full Size - Contains the full size for the packet
+        /// 
+        /// FeatureId - The Id of the Feature that has been used for additional features to add in the OperationalSocket
         /// </summary>
-        public const int HEADER_SIZE = 12; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE) + FragmentFullSize(3Bytes)
+        public const int HEADER_SIZE = 16; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE) + FragmentFullSize(3Bytes) + FeatureId(INT)
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
         public const int MAX_FRAGMENT_SIZE = (1024 * 1024) * 5; //5MB packet is max
 
@@ -55,7 +59,7 @@ namespace SecureSocketProtocol3.Network
         internal MessageHandler messageHandler { get; private set; }
         private TaskQueue<SystemPacket> SystemPackets;
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
-        internal SortedList<int, OperationalSocket> OperationalSockets { get; private set; }
+        internal SortedList<ushort, OperationalSocket> OperationalSockets { get; private set; }
         internal SortedList<int, SyncObject> Requests { get; private set; }
 
         private ReceiveType ReceiveState = ReceiveType.Header;
@@ -71,6 +75,7 @@ namespace SecureSocketProtocol3.Network
         private int ReadOffset = 0;
         private int WriteOffset = 0;
         private int ReadableDataLen = 0;
+        private int TotalReceived = 0;
 
         //fragment information
         private byte[] FragmentBuffer = null;
@@ -84,6 +89,7 @@ namespace SecureSocketProtocol3.Network
         private ushort HeaderId = 0;
         private byte FragmentId = 0;
         private byte HeaderChecksum = 0;
+        private int FeatureId = 0;
 
         //Security
         private WopEx HeaderEncryption;
@@ -112,7 +118,7 @@ namespace SecureSocketProtocol3.Network
             this.InitSync = new SyncObject(this);
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
             this.Requests = new SortedList<int, SyncObject>();
-            this.OperationalSockets = new SortedList<int, OperationalSocket>();
+            this.OperationalSockets = new SortedList<ushort, OperationalSocket>();
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
@@ -193,13 +199,16 @@ namespace SecureSocketProtocol3.Network
                         FragmentId = Buffer[ReadOffset + 7];
                         HeaderChecksum = Buffer[ReadOffset + 8];
                         FragmentFullSize = (int)Buffer[ReadOffset + 9] | Buffer[ReadOffset + 10] << 8 | Buffer[ReadOffset + 11] << 16;
+                        FeatureId = BitConverter.ToInt32(Buffer, ReadOffset + 12);
 
                         byte ReChecksum = 0; //re-calculate the checksum
                         ReChecksum += (byte)PayloadLen;
                         ReChecksum += FragmentId;
                         ReChecksum += CurPacketId;
+                        ReChecksum += (byte)ConnectionId;
                         ReChecksum += (byte)HeaderId;
                         ReChecksum += (byte)FragmentFullSize;
+                        ReChecksum += (byte)FeatureId;
 
                         if (ReChecksum != HeaderChecksum ||
                             FragmentFullSize > MAX_FRAGMENT_SIZE)
@@ -208,6 +217,7 @@ namespace SecureSocketProtocol3.Network
                             return;
                         }
 
+                        TotalReceived = HEADER_SIZE;
                         ReadableDataLen -= HEADER_SIZE;
                         ReadOffset += HEADER_SIZE;
                         ReceiveState = ReceiveType.Payload;
@@ -218,6 +228,7 @@ namespace SecureSocketProtocol3.Network
                     Process = ReadableDataLen >= PayloadLen;
                     if (ReadableDataLen >= PayloadLen)
                     {
+                        TotalReceived += PayloadLen;
                         //check if Fragments are being used for big packets
                         //we could improve the performance of Fragments by changing the buffer directly to the FragmentBuffer
                         bool ProcessPacket = true;
@@ -260,13 +271,28 @@ namespace SecureSocketProtocol3.Network
                                 if (FragmentBuffer == null)
                                     pr.Offset = ReadOffset;
 
-                                Type type = null;
-                                if ((type = Headers.GetHeaderType(HeaderId)) != null)
+                                OperationalSocket OpSocket = null;
+                                if (ConnectionId > 0)
+                                {
+                                    lock(OperationalSockets)
+                                    {
+                                        if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
+                                        {
+                                            //strange...
+                                            Disconnect();
+                                            return;
+                                        }
+                                    }
+                                }
+
+                                Type type = OpSocket != null ? OpSocket.Headers.GetHeaderType(HeaderId) : Headers.GetHeaderType(HeaderId);
+
+                                if (type != null)
                                 {
                                     Header header = Header.DeSerialize(type, pr);
                                     uint MessageId = pr.ReadUInteger();
-                                    IMessage message = messageHandler.HandleMessage(pr, MessageId);
-                                    message.RawSize = (FragmentBuffer != null ? FragmentBuffer.Length + (HEADER_SIZE * (FragmentId - 128)) : 0) + PayloadLen + HEADER_SIZE;
+                                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.HandleMessage(pr, MessageId) : messageHandler.HandleMessage(pr, MessageId);
+                                    message.RawSize = TotalReceived;
                                     message.Header = header;
 
                                     if (message.GetType() == typeof(MsgHandshake))
@@ -292,6 +318,7 @@ namespace SecureSocketProtocol3.Network
 
                             //destroy FragmentBuffer if used
                             FragmentBuffer = null;
+                            TotalReceived = 0;
                         }
 
                         PacketsIn++;
@@ -326,22 +353,58 @@ namespace SecureSocketProtocol3.Network
         /// <summary>
         /// Send data to the established connection
         /// </summary>
-        /// <param name="data">The data to send</param>
-        /// <param name="offset">The index where the data starts</param>
-        /// <param name="length">The length of the data to send</param>
-        /// <param name="header">The header to use for adding additional information</param>
-        private void _send(byte[] data, int offset, int length, Header header)
+        /// <param name="Message">The data to send</param>
+        /// <param name="Header">The Header to use for adding additional information</param>
+        /// <param name="feature">The Feature that has been used for this Message</param>
+        /// <param name="OpSocket">The OperationalSocket that has been used for this Message</param>
+        internal void SendMessage(IMessage Message, Header Header, Feature feature = null, OperationalSocket OpSocket = null)
         {
-            if (header == null)
+            if (Message == null)
+                throw new ArgumentException("Message cannot be null");
+            if (Header == null)
                 throw new ArgumentException("Header cannot be null");
-            if (length >= MAX_FRAGMENT_SIZE)
-                throw new ArgumentException("Data length cannot be greater then " + MAX_FRAGMENT_SIZE);
 
-            //serialize the custom header
-            byte[] SerializedHeader = Header.Serialize(header);
-            ushort HeaderId = Headers.GetHeaderId(header);
+            uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
+            byte[] SerializedHeader = Header.Serialize(Header);
+            ushort HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
 
-            byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
+            if (SerializedHeader.Length >= MAX_FRAGMENT_SIZE)
+                throw new ArgumentException("Header length cannot be greater then " + (MAX_PAYLOAD / 2));
+
+            using (OptimizedPayloadStream ms = new OptimizedPayloadStream(SerializedHeader, HeaderId, feature, OpSocket))
+            {
+                ms.Write(BitConverter.GetBytes(messageId), 0, 4);
+
+                MemoryStream stream = ms.PayloadFrames[ms.PayloadFrames.Count - 1];
+
+                int ReservedPos = (int)stream.Position;
+                ms.Write(new byte[3], 0, 3); //reserve space
+
+                ms.WritingMessage = true;
+                Serializer.Serialize(ms, Message);
+                ms.WritingMessage = false;
+
+                using (PayloadWriter pw = new PayloadWriter(new MemoryStream(stream.GetBuffer())))
+                {
+                    pw.Position = ReservedPos; //skip MessageId data
+                    pw.WriteThreeByteInteger(ms.MessageLength);//Reserved Space + MessageId = 7
+                }
+                ms.Commit();
+
+                for (int i = 0; i < ms.PayloadFrames.Count; i++)
+                {
+                    stream = ms.PayloadFrames[i];
+
+                    lock (HeaderEncryption)
+                    {
+                        HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
+                    }
+
+                    Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
+                }
+            }
+
+            /*byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
             bool UseFragments = fragment > 0;
             int FullLength = length + SerializedHeader.Length + (UseFragments ? 3 : 0);
 
@@ -401,22 +464,12 @@ namespace SecureSocketProtocol3.Network
                     Handle.Send(tempBuffer, 0, pw.Position, SocketFlags.None);
                 }
                 offset += packetLength;
-            }
+            }*/
         }
 
         private void onSystemPacket(SystemPacket systemPacket)
         {
             systemPacket.Message.ProcessPayload(Client);
-        }
-
-        internal void SendMessage(IMessage message, Header header)
-        {
-            using (PayloadWriter pw = new PayloadWriter())
-            {
-                pw.WriteUInteger(messageHandler.GetMessageId(message.GetType()));
-                pw.WriteBytes(IMessage.Serialize(message));
-                _send(pw.ToByteArray(), 0, pw.Length, header);
-            }
         }
 
         internal void ApplyNewKey(Mazing mazeHandshake, byte[] key, byte[] salt)

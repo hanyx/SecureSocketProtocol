@@ -12,35 +12,25 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
     internal class MsgConnectionData : IMessage
     {
         [ProtoMember(1)]
-        public bool isData;
-
-        [ProtoMember(2)]
         public byte[] Payload;
 
-        [ProtoMember(3)]
+        [ProtoMember(2)]
         public uint MessageId;
 
-        [ProtoMember(4)]
+        [ProtoMember(3)]
         public byte[] HeaderPayload;
 
-        [ProtoMember(5)]
+        [ProtoMember(4)]
         public ushort HeaderId;
 
-        public MsgConnectionData(OperationalSocket OpSocket, byte[] Data, Headers.Header header)
-            : base()
-        {
-            this.isData = true;
-            this.Payload = Data;
-            this.MessageId = 0;
-            this.HeaderPayload = Headers.Header.Serialize(header);
-            this.HeaderId = OpSocket.Headers.GetHeaderId(header);
-        }
+        [ProtoMember(5)]
+        public int FeatureId;
+
         public MsgConnectionData(OperationalSocket OpSocket, IMessage Message, Headers.Header header)
             : base()
         {
-            this.isData = false;
             this.Payload = IMessage.Serialize(Message);
-            this.MessageId = OpSocket.messageHandler.GetMessageId(Message.GetType());
+            this.MessageId = OpSocket.MessageHandler.GetMessageId(Message.GetType());
             this.HeaderPayload = Headers.Header.Serialize(header);
             this.HeaderId = OpSocket.Headers.GetHeaderId(header);
         }
@@ -72,15 +62,8 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                         Header p_header = Headers.Header.DeSerialize(HeaderType, new PayloadReader(HeaderPayload));
 
-                        if (isData)
-                        {
-                            OpSocket.onReceiveData(Payload, p_header);
-                        }
-                        else
-                        {
-                            IMessage msg = OpSocket.messageHandler.HandleMessage(new PayloadReader(new MemoryStream(Payload)), MessageId);
-                            OpSocket.onReceiveMessage(msg, p_header);
-                        }
+                        IMessage msg = OpSocket.MessageHandler.HandleMessage(new PayloadReader(new MemoryStream(Payload)), MessageId);
+                        OpSocket.onReceiveMessage(msg, p_header);
                     }
                     else
                     {

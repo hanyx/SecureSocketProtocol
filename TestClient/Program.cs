@@ -19,7 +19,14 @@ namespace TestClient
         static void Main(string[] args)
         {
             Console.Title = "SSP Client";
-            Client client = new Client();
+            try
+            {
+                Client client = new Client();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
             /*Random random = new Random();
 
             byte[] temp = new byte[70000];
@@ -83,15 +90,23 @@ namespace TestClient
             TestSocket testSock = new TestSocket(this);
             testSock.Connect();
 
+            Stopwatch RuntimeSW = Stopwatch.StartNew();
 
             Benchmark bench = new Benchmark();
-            /**/while (true)
+            while (true)
             {
-                bench.Bench(new BenchCallback(() => testSock.SendStuff()));
+                //Thread.Sleep(1);
+                int size = 0;
+                bench.Bench(new BenchCallback(() => size = testSock.SendStuff()));
 
                 if (bench.PastASecond)
                 {
-                    Console.WriteLine("Speed:" + bench.SpeedPerSec);
+                    ulong Speed = bench.SpeedPerSec * 60000;
+                    double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
+                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 0);
+
+                    Console.WriteLine("Speed:" + bench.SpeedPerSec + "(" + size + ")\t\t" + MegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
+                    Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
                 }
             }
         }
@@ -115,7 +130,6 @@ namespace TestClient
         {
             base.RegisterOperationalSocket(new TestSocket(this));
         }
-
 
         private class ClientProps : ClientProperties
         {

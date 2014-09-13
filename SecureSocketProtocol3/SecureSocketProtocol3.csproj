@@ -49,6 +49,7 @@
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
+    <Compile Include="Features\Feature.cs" />
     <Compile Include="Hashers\CRC32.cs" />
     <Compile Include="Misc\PayloadInfo.cs" />
     <Compile Include="Misc\SystemPacket.cs" />
@@ -164,6 +165,7 @@
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
     <Compile Include="Utils\Benchmark.cs" />
+    <Compile Include="Utils\OptimizedPayloadStream.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
     <Compile Include="Utils\SyncObject.cs" />

@@ -16,7 +16,6 @@ namespace SecureSocketProtocol3.Network
     /// </summary>
     public abstract class OperationalSocket
     {
-        public abstract void onReceiveData(byte[] Data, Header header);
         public abstract void onReceiveMessage(IMessage Message, Header header);
 
         public abstract void onBeforeConnect();
@@ -26,8 +25,8 @@ namespace SecureSocketProtocol3.Network
 
         public SSPClient Client { get; private set; }
         internal TaskQueue<PayloadInfo> PacketQueue;
-        internal int ConnectionId { get; set; }
-        internal MessageHandler messageHandler;
+        internal ushort ConnectionId { get; set; }
+        public MessageHandler MessageHandler { get; private set; }
         public HeaderList Headers { get; private set; }
 
         /// <summary>
@@ -43,46 +42,25 @@ namespace SecureSocketProtocol3.Network
         public bool isConnected { get; internal set; }
 
         /// <summary>
-        /// Create a new Operational Socket to create a new Virtual Socket
+        /// Create a new Operational Socket
         /// </summary>
         /// <param name="Client">The Client to use</param>
         public OperationalSocket(SSPClient Client)
         {
             this.Client = Client;
             this.PacketQueue = new TaskQueue<PayloadInfo>(onPacketQueue, 50); //Payload x 10 = Memory in use
-            this.messageHandler = new MessageHandler(Client.Connection.messageHandler.Seed);
+            this.MessageHandler = new MessageHandler(Client.Connection.messageHandler.Seed);
             this.Headers = new HeaderList(Client.Connection);
-        }
-
-        /// <summary>
-        /// Send data to the other side
-        /// </summary>
-        /// <param name="Data">The data to send</param>
-        /// <param name="Offset">The index of where the data starts</param>
-        /// <param name="Length">The length to send</param>
-        /// <param name="Header">The header that is being used for this packet</param>
-        protected void SendData(byte[] Data, int Offset, int Length, Header Header)
-        {
-            if (Offset > 0)
-            {
-                byte[] temp = new byte[Length];
-                Array.Copy(Data, Offset, temp, 0, temp.Length);
-                Client.Connection.SendMessage(new MsgConnectionData(this, temp, Header), new ConnectionHeader(this.ConnectionId));
-            }
-            else
-            {
-                Client.Connection.SendMessage(new MsgConnectionData(this, Data, Header), new ConnectionHeader(this.ConnectionId));
-            }
         }
 
         /// <summary>
         /// Send a message to the other side
         /// </summary>
         /// <param name="Message">The message to send</param>
-        /// <param name="Header">The header that is being used for this packet</param>
-        protected void SendData(IMessage Message, Header Header)
+        /// <param name="Header">The header that is being used for this message</param>
+        protected void SendMessage(IMessage Message, Header Header)
         {
-
+            Client.Connection.SendMessage(Message, Header, null, this);
         }
 
         private void onPacketQueue(PayloadInfo inf)

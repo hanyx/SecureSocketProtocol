@@ -120,6 +120,8 @@ namespace SecureSocketProtocol3
             Connection = new Connection(this);
             Connection.StartReceiver();
 
+            onBeforeConnect();
+
             //let's begin the handshake
             User user = new User(Properties.Username, Properties.Password, new List<Stream>(Properties.PrivateKeyFiles), Properties.PublicKeyFile);
             user.GenKey(SessionSide.Client);
@@ -134,8 +136,8 @@ namespace SecureSocketProtocol3
             //send our encrypted public key
             Connection.SendMessage(new MsgHandshake(encryptedPublicKey), new SystemHeader());
 
-            //and now just wait for the handshake to finish...
-            MazeErrorCode errorCode = Connection.HandshakeSync.Wait<MazeErrorCode>(MazeErrorCode.Error, 30000);
+            //and now just wait for the handshake to finish... can't take longer then 60 seconds
+            MazeErrorCode errorCode = Connection.HandshakeSync.Wait<MazeErrorCode>(MazeErrorCode.Error, 60000);
 
             if (errorCode != MazeErrorCode.Finished)
             {
@@ -147,7 +149,13 @@ namespace SecureSocketProtocol3
             {
                 throw new Exception("A server time-out occured");
             }
-            onBeforeConnect();
+
+            //re-calculate the private keys
+            for(int i = 0; i < Properties.PrivateKeyFiles.Length; i++)
+            {
+                clientHS.RecalculatePrivateKey(Properties.PrivateKeyFiles[i]);
+            }
+
             onConnect();
         }
 

@@ -17,7 +17,9 @@ namespace TestServer
 
         public override void onConnect()
         {
-
+            Console.WriteLine("Peer connected " + base.RemoteIp);
+            //TestSocket testSock = new TestSocket(this);
+            //testSock.Connect();
         }
 
         public override void onDisconnect(DisconnectReason Reason)

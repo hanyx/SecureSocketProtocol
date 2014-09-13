@@ -44,8 +44,10 @@ namespace SecureSocketProtocol3.Network.Headers
         public static Header DeSerialize(Type HeaderType, PayloadReader pr)
         {
             ushort size = pr.ReadUShort();
-            byte[] data = pr.ReadBytes(size);
-            return (Header)Serializer.Deserialize(new MemoryStream(data), HeaderType);
+            //byte[] data = pr.ReadBytes(size);
+            Header header = (Header)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Offset, size), HeaderType);
+            pr.Offset += size;
+            return header;
 
             /*FieldInfo[] fields = header.GetType().GetFields();
             for (int i = 0; i < fields.Length; i++)

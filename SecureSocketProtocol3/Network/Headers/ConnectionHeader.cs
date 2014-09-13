@@ -13,7 +13,7 @@ namespace SecureSocketProtocol3.Network.Headers
     {
         public override Version Version
         {
-            get { return new Version(0, 0, 0, 1); }
+            get { return new Version(0, 0, 0, 2); }
         }
 
         public override string HeaderName
@@ -22,9 +22,9 @@ namespace SecureSocketProtocol3.Network.Headers
         }
 
         [ProtoMember(1)]
-        public int ConnectionId;
+        public ushort ConnectionId;
 
-        public ConnectionHeader(int ConnectionId)
+        public ConnectionHeader(ushort ConnectionId)
             : base()
         {
             this.ConnectionId = ConnectionId;

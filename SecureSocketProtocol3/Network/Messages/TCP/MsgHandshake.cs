@@ -61,7 +61,18 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                             client.onException(ex, ErrorType.UserLand);
                             return; //don't send that we're ready since we're clearly not at this point
                         }
+
                         client.Connection.SendMessage(new MsgInitOk(), new SystemHeader());
+
+                        try
+                        {
+                            client.onConnect();
+                        }
+                        catch (Exception ex)
+                        {
+                            client.onException(ex, ErrorType.UserLand);
+                            return; //don't send that we're ready since we're clearly not at this point
+                        }
                     }
                     else
                     {

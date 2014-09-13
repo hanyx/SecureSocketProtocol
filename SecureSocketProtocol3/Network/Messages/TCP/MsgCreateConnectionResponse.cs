@@ -11,12 +11,12 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
     public class MsgCreateConnectionResponse : IMessage
     {
         [ProtoMember(1)]
-        public int ConnectionId;
+        public ushort ConnectionId;
 
         [ProtoMember(2)]
         public bool Success;
 
-        public MsgCreateConnectionResponse(int ConnectionId, bool Success)
+        public MsgCreateConnectionResponse(ushort ConnectionId, bool Success)
             : base()
         {
             this.ConnectionId = ConnectionId;

@@ -49,10 +49,6 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         //generate another prime and send it back
                         BigInteger client_Prime = BigInteger.genPseudoPrime(256, 50, new Random(server_prime.IntValue()));
 
-                        byte[] test = client_Prime.getBytes();
-                        BigInteger asd = new BigInteger(test);
-
-
                         byte[] primeData = client_Prime.getBytes();
                         wopEx.Encrypt(primeData, 0, primeData.Length);
                         ResponseData = primeData;

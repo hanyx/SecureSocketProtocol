@@ -31,6 +31,7 @@ namespace SecureSocketProtocol3.Network.Messages
             using (PayloadWriter pw = new PayloadWriter())
             {
                 Serializer.Serialize(ms, message);
+
                 pw.WriteThreeByteInteger((int)ms.Length);
                 pw.WriteBytes(ms.ToArray());
                 return pw.ToByteArray();
@@ -40,8 +41,10 @@ namespace SecureSocketProtocol3.Network.Messages
         public static IMessage DeSerialize(Type HeaderType, PayloadReader pr)
         {
             int size = pr.ReadThreeByteInteger();
-            byte[] data = pr.ReadBytes(size);
-            return (IMessage)Serializer.Deserialize(new MemoryStream(data), HeaderType);
+            //byte[] data = pr.ReadBytes(size);
+            IMessage message = (IMessage)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Offset, size), HeaderType);
+            pr.Offset += size;
+            return message;
         }
     }
 }

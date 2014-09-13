@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using TestServer.Sockets.Headers;
+using TestServer.Sockets.Messages;
 
 namespace TestServer.Sockets
 {
@@ -29,7 +30,7 @@ namespace TestServer.Sockets
         }
 
         Benchmark bench = new Benchmark();
-        public override void onReceiveData(byte[] Data, Header header)
+        /*public override void onReceiveData(byte[] Data, Header header)
         {
             bench.Bench(new BenchCallback(() => { }));
 
@@ -37,7 +38,7 @@ namespace TestServer.Sockets
             {
                 Console.WriteLine("Speed:" + bench.SpeedPerSec + ", raw size: " + Math.Round( ((((ulong)(Data.Length + 28) * bench.SpeedPerSec) / 1000F) / 1000F) / 1000F, 2)    + "GBps");
             }
-        }
+        }*/
 
         public override void onReceiveMessage(IMessage Message, Header header)
         {
@@ -47,11 +48,12 @@ namespace TestServer.Sockets
         public override void onBeforeConnect()
         {
             base.Headers.RegisterHeader(typeof(TestHeader));
+            base.MessageHandler.AddMessage(typeof(TestMessage), "TEST_MESSAGE");
         }
 
         public override void onConnect()
         {
-
+            Console.WriteLine("Operational Socket is connected");
         }
 
         public override void onDisconnect(DisconnectReason Reason)

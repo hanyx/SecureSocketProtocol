@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using vicMazeGen;
@@ -227,9 +228,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 byte[] tempKey = new byte[count];
                 new Random(PrivateSalt.IntValue()).NextBytes(tempKey);
                 Array.Copy(tempKey, _key, tempKey.Length);
-                this.MazeKey = new BigInteger(_key);
+                key = new BigInteger(_key);
             }
-
         }
 
         public WopEx GetWopEncryption()
@@ -310,6 +310,50 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         {
             //Step 1
             return Mazing.ByteCode;
+        }
+
+        public Stream RecalculatePrivateKey(Stream PrivateKeyData)
+        {
+            if (!PrivateKeyData.CanSeek || !PrivateKeyData.CanWrite)
+                throw new Exception("Unable to write to the stream");
+
+            BigInteger InversedInt = 0;
+
+            try
+            {
+                InversedInt = PrivateSalt.modInverse(this.Username);
+            }
+            catch
+            {
+                //no inverse could be found
+                InversedInt = PrivateSalt + this.Username;
+            }
+
+            PatchKey(ref InversedInt); //patch the key to randomize the 0xFF bytes
+            byte[] inverseData = InversedInt.getBytes();
+
+            int temp = InversedInt.IntValue();
+
+            for (int j = 0; j <= 1; j++)
+            {
+                for (int i = 4 * j; i < PrivateKeyData.Length; i += 8)
+                {
+                    byte[] tempData = new byte[4];
+                    int read = 0;
+
+                    PrivateKeyData.Position = i;
+                    if ((read = PrivateKeyData.Read(tempData, 0, tempData.Length)) <= 0)
+                        break;
+
+                    int TempKey = BitConverter.ToInt32(tempData, 0) ^ temp;
+
+                    PrivateKeyData.Position -= read;
+                    PrivateKeyData.Write(BitConverter.GetBytes(TempKey), 0, read);
+
+                    temp = TempKey;
+                }
+            }
+            return PrivateKeyData;
         }
     }
 

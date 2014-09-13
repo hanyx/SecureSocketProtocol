@@ -27,11 +27,6 @@ namespace TestClient.Sockets
             
         }
 
-        public override void onReceiveData(byte[] Data, Header header)
-        {
-
-        }
-
         public override void onReceiveMessage(IMessage Message, Header header)
         {
 
@@ -40,11 +35,12 @@ namespace TestClient.Sockets
         public override void onBeforeConnect()
         {
             base.Headers.RegisterHeader(typeof(TestHeader));
+            base.MessageHandler.AddMessage(typeof(TestMessage), "TEST_MESSAGE");
         }
 
         public override void onConnect()
         {
-            
+            Console.WriteLine("Operational Socket is connected");
         }
 
         public override void onDisconnect(DisconnectReason Reason)
@@ -57,9 +53,12 @@ namespace TestClient.Sockets
 
         }
 
-        public void SendStuff()
+        private int test = 0;
+        public int SendStuff()
         {
-            base.SendData(new byte[70000], 0, 70000, new TestHeader());
+            test++;
+            base.SendMessage(new TestMessage() { Buffer = new byte[test] }, new TestHeader());
+            return test;
         }
     }
 }

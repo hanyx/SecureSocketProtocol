@@ -25,9 +25,6 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         public override void ProcessPayload(SSPClient client)
         {
-            if (!client.IsServerSided)
-                return; //weird... send nothing back
-
             RequestHeader reqHeader = Header as RequestHeader;
             if (reqHeader != null)
             {
@@ -39,6 +36,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                 
                 if(type != null)
                 {
+                    bool SendedSuccess = false;
                     try
                     {
                         OperationalSocket OpSocket = (OperationalSocket)Activator.CreateInstance(type, client);
@@ -47,20 +45,32 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         lock (client.Connection.OperationalSockets)
                         {
                             Random rnd = new Random();
-                            OpSocket.ConnectionId = rnd.Next();
+                            OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);
                             while(client.Connection.OperationalSockets.ContainsKey(OpSocket.ConnectionId))
-                                OpSocket.ConnectionId = rnd.Next();
+                                OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);
                         }
 
                         client.Connection.OperationalSockets.Add(OpSocket.ConnectionId, OpSocket);
 
-                        OpSocket.onBeforeConnect();
+                        try
+                        {
+                            OpSocket.onBeforeConnect();
+                        }
+                        catch (Exception ex)
+                        {
+                            OpSocket.onException(ex, ErrorType.UserLand);
+                        }
+
                         client.Connection.SendMessage(new MsgCreateConnectionResponse(OpSocket.ConnectionId, true), new RequestHeader(reqHeader.RequestId, true));
-                        OpSocket.Connect();
+                        SendedSuccess = true;
+                        OpSocket.onConnect();
                     }
                     catch
                     {
-                        client.Connection.SendMessage(new MsgCreateConnectionResponse(0, false), new RequestHeader(reqHeader.RequestId, true));
+                        if (!SendedSuccess)
+                        {
+                            client.Connection.SendMessage(new MsgCreateConnectionResponse(0, false), new RequestHeader(reqHeader.RequestId, true));
+                        }
                     }
                 }
                 else
