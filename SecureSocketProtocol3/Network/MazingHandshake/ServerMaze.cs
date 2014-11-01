@@ -69,10 +69,12 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     {
                         _publicKey = TrimArray(_publicKey, Mazing.MAX_KEY_SIZE);
 
-                        byte[] CryptCode = new byte[0];
-                        byte[] DecryptCode = new byte[0];
-                        WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);
-                        this.wopEx = new WopEx(_key, _salt, CryptCode, DecryptCode, false, true);
+                        //byte[] CryptCode = new byte[0];
+                        //byte[] DecryptCode = new byte[0];
+                        //WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);
+                        //this.wopEx = new WopEx(_key, _salt, CryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
+
+                        this.wopEx = base.GetWopEncryption(_key, _salt);
 
                         base.FinalKey = _key;
                         base.FinalSalt = _salt;

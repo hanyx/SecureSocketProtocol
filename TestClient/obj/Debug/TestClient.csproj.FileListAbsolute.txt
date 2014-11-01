@@ -46,3 +46,7 @@ C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debu
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.exe
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.pdb
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\Data\ReadMe.txt
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\Data\PrivateKey1.dat
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\Data\PrivateKey2.dat
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\Data\PublicKey1.dat

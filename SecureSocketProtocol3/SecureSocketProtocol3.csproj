@@ -46,6 +46,20 @@
     <Compile Include="ClientProperties.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
     <Compile Include="Compressions\QuickLZ.cs" />
+    <Compile Include="Controls\ChartInfo.cs" />
+    <Compile Include="Controls\HSLColor.cs" />
+    <Compile Include="Controls\PerformanceChart.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\PerformanceChart.Designer.cs">
+      <DependentUpon>PerformanceChart.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Controls\uTorrentProgressBar.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
+      <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
+    </Compile>
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
@@ -184,6 +198,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="ProtoBuf\Web\TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Controls\uTorrentProgressBar.resx">
+      <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

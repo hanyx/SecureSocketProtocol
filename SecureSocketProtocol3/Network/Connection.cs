@@ -46,6 +46,7 @@ namespace SecureSocketProtocol3.Network
         /// 
         /// FeatureId - The Id of the Feature that has been used for additional features to add in the OperationalSocket
         /// </summary>
+
         public const int HEADER_SIZE = 16; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE) + FragmentFullSize(3Bytes) + FeatureId(INT)
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
         public const int MAX_FRAGMENT_SIZE = (1024 * 1024) * 5; //5MB packet is max
@@ -93,6 +94,7 @@ namespace SecureSocketProtocol3.Network
 
         //Security
         private WopEx HeaderEncryption;
+        private WopEx PayloadEncryption;
         internal int PrivateSeed { get; private set; }
 
         //connection info
@@ -135,7 +137,10 @@ namespace SecureSocketProtocol3.Network
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(PrivateSeed, 25, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, false, false);
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
+
+            WopEx.GenerateCryptoCode(PrivateSeed << 3, 3, ref encCode, ref decCode);
+            this.PayloadEncryption = new WopEx(privKey, SaltKey, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
@@ -228,6 +233,11 @@ namespace SecureSocketProtocol3.Network
                     Process = ReadableDataLen >= PayloadLen;
                     if (ReadableDataLen >= PayloadLen)
                     {
+                        lock (PayloadEncryption)
+                        {
+                            PayloadEncryption.Decrypt(Buffer, ReadOffset, PayloadLen);
+                        }
+
                         TotalReceived += PayloadLen;
                         //check if Fragments are being used for big packets
                         //we could improve the performance of Fragments by changing the buffer directly to the FragmentBuffer
@@ -399,6 +409,10 @@ namespace SecureSocketProtocol3.Network
                     {
                         HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
                     }
+                    lock (PayloadEncryption)
+                    {
+                        PayloadEncryption.Encrypt(stream.GetBuffer(), HEADER_SIZE, (int)stream.Length - HEADER_SIZE);
+                    }
 
                     Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
                 }
@@ -476,6 +490,9 @@ namespace SecureSocketProtocol3.Network
         {
             mazeHandshake.ApplyKey(this.HeaderEncryption, key);
             mazeHandshake.ApplyKey(this.HeaderEncryption, salt);
+
+            mazeHandshake.ApplyKey(this.PayloadEncryption, key);
+            mazeHandshake.ApplyKey(this.PayloadEncryption, salt);
         }
 
         internal SyncObject RegisterRequest(ref int RequestId)

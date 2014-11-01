@@ -120,7 +120,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
             SHA512 hasher = SHA512Managed.Create();
 
-            //trim down the public key if bigger then 32768
+            //trim down the public key if bigger then MAX_KEY_SIZE (32768)
             this._publicKeyData = TrimArray(PublicKeyData, MAX_KEY_SIZE);
 
             for (int i = 0; i < PrivateKeyData.Count; i++)
@@ -236,11 +236,15 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         {
             byte[] key = MazeKey.getBytes();
             byte[] salt = PrivateSalt.getBytes();
+            return GetWopEncryption(key, salt);
+        }
+
+        public WopEx GetWopEncryption(byte[] Key, byte[] Salt)
+        {
             byte[] CryptCode = new byte[0];
             byte[] DecryptCode = new byte[0];
-            WopEx.GenerateCryptoCode(BitConverter.ToInt32(key, 0) + BitConverter.ToInt32(salt, 0), 15, ref CryptCode, ref DecryptCode);
-            WopEx wop = new WopEx(key, salt, CryptCode, DecryptCode, false, true);
-            return wop;
+            WopEx.GenerateCryptoCode(BitConverter.ToInt32(Key, 0) + BitConverter.ToInt32(Salt, 0), 15, ref CryptCode, ref DecryptCode);
+            return new WopEx(Key, Salt, CryptCode, DecryptCode, WopEncMode.Simple);
         }
 
         public byte[] GetEncryptedPublicKey()
@@ -290,7 +294,12 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         protected byte[] TrimArray(byte[] Input, int newLength)
         {
             if (Input.Length < newLength)
-                return Input;
+            {
+                //copy array just to be safe for futher calculations
+                byte[] temp = new byte[Input.Length];
+                Array.Copy(Input, Input, temp.Length);
+                return temp;
+            }
 
             byte[] newArray = new byte[Input.Length];
             Array.Copy(Input, newArray, newLength);

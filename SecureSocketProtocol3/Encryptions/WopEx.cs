@@ -11,22 +11,30 @@ namespace SecureSocketProtocol3.Encryptions
     /// </summary>
     public class WopEx
     {
-        public const int INSTRUCTION_SMALL_SIZE = 2;
-        public const int INSTRUCTION_BIG_SIZE = 9;
+        private InstructionInfo[] _encInstructions;
+        private InstructionInfo[] _decInstructions;
 
-        public InstructionInfo[] EncInstructions { get; private set; }
-        public InstructionInfo[] DecInstructions { get; private set; }
+        public InstructionInfo[] EncInstructions { get { return _encInstructions; } }
+        public InstructionInfo[] DecInstructions { get { return _decInstructions; } }
 
         public byte[] Key { get; private set; }
         public byte[] Salt { get; private set; }
 
         private int EncSeed = 0;
         private int DecSeed = 0;
-        private bool shuffleInsts { get; set; }
-        private bool SimpleEncryption { get; set; }
+
+        private int Enc_Key_Pos = 0;
+        private int Dec_Key_Pos = 0;
+
+        private int Enc_Salt_Pos = 1;
+        private int Dec_Salt_Pos = 1;
 
         private Random enc_random;
         private Random dec_random;
+
+        public WopEncMode WopMode { get; private set; }
+
+        private static object Locky = new object();
 
         /// <summary>
         /// Initialize the WopEx Encryption
@@ -35,9 +43,8 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Salt">The Salt to use</param>
         /// <param name="EncryptionCode">The encryption algorithm that was generated</param>
         /// <param name="DecryptionCode">The decryption algorithm that was generated</param>
-        /// <param name="ShuffleInstructions">Should the instructions shuffle when the encryption and decryption routines end? improves security</param>
-        /// <param name="SimpleEncryption">If False the encrypt and decrypt order must be correct, if True the order for encrypting/decrypting does not matter (Decreases security)</param>
-        public WopEx(byte[] Key, byte[] Salt, byte[] EncryptionCode, byte[] DecryptionCode, bool ShuffleInstructions, bool SimpleEncryption)
+        /// <param name="WopMode">The encryption mode</param>
+        public WopEx(byte[] Key, byte[] Salt, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode WopMode)
         {
             if (EncryptionCode.Length != DecryptionCode.Length)
                 throw new Exception("Encryption and Decryption algorithms must be the same size");
@@ -53,11 +60,14 @@ namespace SecureSocketProtocol3.Encryptions
             this.enc_random = new Random(EncSeed);
             this.dec_random = new Random(DecSeed);
 
-            this.SimpleEncryption = SimpleEncryption;
+            this.WopMode = WopMode;
+            ReadAlgorithm(EncryptionCode, DecryptionCode, ref _encInstructions, ref _decInstructions);
+        }
 
-            this.shuffleInsts = ShuffleInstructions;
-            List<InstructionInfo> EncInstructions = new List<InstructionInfo>();
-            List<InstructionInfo> DecInstructions = new List<InstructionInfo>();
+        private void ReadAlgorithm(byte[] EncryptionCode, byte[] DecryptionCode, ref InstructionInfo[] EncInstructions, ref InstructionInfo[] DecInstructions)
+        {
+            List<InstructionInfo> temp_EncInstructions = new List<InstructionInfo>();
+            List<InstructionInfo> temp_DecInstructions = new List<InstructionInfo>();
 
             using (PayloadReader EncPr = new PayloadReader(EncryptionCode))
             using (PayloadReader DecPr = new PayloadReader(DecryptionCode))
@@ -73,7 +83,7 @@ namespace SecureSocketProtocol3.Encryptions
                         case Instruction.Minus:
                         case Instruction.XOR:
                         {
-                            EncInstructions.Add(new InstructionInfo(EncInst, (uint)EncPr.ReadInteger()));
+                            temp_EncInstructions.Add(new InstructionInfo(EncInst, (uint)EncPr.ReadInteger()));
                             break;
                         }
                         case Instruction.BitRight:
@@ -83,12 +93,17 @@ namespace SecureSocketProtocol3.Encryptions
                         case Instruction.RotateRight_Big:
                         case Instruction.RotateRight_Small:
                         {
-                            EncInstructions.Add(new InstructionInfo(EncInst, EncPr.ReadByte()));
+                            temp_EncInstructions.Add(new InstructionInfo(EncInst, EncPr.ReadByte()));
                             break;
                         }
                         case Instruction.SwapBits:
                         {
-                            EncInstructions.Add(new InstructionInfo(EncInst, 0));
+                            temp_EncInstructions.Add(new InstructionInfo(EncInst, 0));
+                            break;
+                        }
+                        case Instruction.ForLoop_PlusMinus:
+                        {
+                            temp_EncInstructions.Add(new InstructionInfo(EncInst, (uint)EncPr.ReadInteger(), (uint)EncPr.ReadInteger(), EncPr.ReadByte()));
                             break;
                         }
                         default:
@@ -103,7 +118,7 @@ namespace SecureSocketProtocol3.Encryptions
                         case Instruction.Minus:
                         case Instruction.XOR:
                         {
-                            DecInstructions.Add(new InstructionInfo(DecInst, (uint)DecPr.ReadInteger()));
+                            temp_DecInstructions.Add(new InstructionInfo(DecInst, (uint)DecPr.ReadInteger()));
                             break;
                         }
                         case Instruction.BitRight:
@@ -113,12 +128,17 @@ namespace SecureSocketProtocol3.Encryptions
                         case Instruction.RotateRight_Big:
                         case Instruction.RotateRight_Small:
                         {
-                            DecInstructions.Add(new InstructionInfo(DecInst, DecPr.ReadByte()));
+                            temp_DecInstructions.Add(new InstructionInfo(DecInst, DecPr.ReadByte()));
                             break;
                         }
                         case Instruction.SwapBits:
                         {
-                            DecInstructions.Add(new InstructionInfo(DecInst, 0));
+                            temp_DecInstructions.Add(new InstructionInfo(DecInst, 0));
+                            break;
+                        }
+                        case Instruction.ForLoop_PlusMinus:
+                        {
+                            temp_DecInstructions.Add(new InstructionInfo(EncInst, (uint)DecPr.ReadInteger(), (uint)DecPr.ReadInteger(), DecPr.ReadByte()));
                             break;
                         }
                         default:
@@ -128,8 +148,8 @@ namespace SecureSocketProtocol3.Encryptions
                     }
                 }
             }
-            this.EncInstructions = EncInstructions.ToArray();
-            this.DecInstructions = DecInstructions.ToArray();
+            EncInstructions = temp_EncInstructions.ToArray();
+            DecInstructions = temp_DecInstructions.ToArray();
         }
 
         /// <summary>
@@ -140,72 +160,111 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Length">The length to encrypt</param>
         public void Encrypt(byte[] Data, int Offset, int Length)
         {
-            int OrgLen = Length;
-            Length += Offset;
-
-            uint tempCrypt = 0;
-
-            using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+            lock (EncInstructions)
             {
-                for (int i = Offset, k = 0; i < Length; k++)
+                int OrgLen = Length;
+                Length += Offset;
+
+                uint tempCrypt = 0;
+
+                using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
                 {
-                    pw.vStream.Position = i;
-                    int size = i + 4 < Length ? 4 : Length - i;
-                    int usedsize = 0;
-                    uint value = 0;
-
-                    if (size == 4)
+                    for (int i = Offset, k = 0; i < Length; k++)
                     {
-                        value = BitConverter.ToUInt32(Data, i);
-                        usedsize = 4;
-                    }
-                    else
-                    {
-                        value = Data[i];
-                        usedsize = 1;
-                    }
+                        pw.vStream.Position = i;
+                        int size = i + 4 < Length ? 4 : Length - i;
+                        int usedsize = 0;
+                        uint value = 0;
 
-                    bool isExecuted = false;
-                    int InstructionsExecuted = 0;
-
-                    this.EncSeed += (int)value;
-
-                    if (usedsize == 4)
-                    {
-                        value ^= (uint)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
-                        
-                        for (int j = 0; j < EncInstructions.Length; j++)
+                        if (size == 4)
                         {
-                            InstructionInfo inf = EncInstructions[j];
-                            uint temp = ExecuteInstruction(value, inf, ref isExecuted);
-                            if (isExecuted)
-                            {
-                                value = temp;
-                                InstructionsExecuted++;
-                            }
+                            value = BitConverter.ToUInt32(Data, i);
+                            usedsize = 4;
                         }
-                        pw.WriteUInteger(value);
-                    }
-                    else
-                    {
-                        value ^= (byte)(Key[((!SimpleEncryption ? enc_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
-                        for (int j = 0; j < EncInstructions.Length; j++)
+                        else
                         {
-                            InstructionInfo inf = EncInstructions[j];
-                            byte temp = ExecuteInstruction((byte)value, inf, ref isExecuted);
-                            if (isExecuted)
-                            {
-                                value = temp;
-                            }
+                            value = Data[i];
+                            usedsize = 1;
                         }
-                        pw.WriteByte((byte)value);
-                    }
-                    i += usedsize;
-                }
 
-                if (shuffleInsts)
-                {
-                    ShuffleInstructions(EncInstructions, EncSeed);
+                        bool isExecuted = false;
+                        int InstructionsExecuted = 0;
+
+                        this.EncSeed += (int)value;
+
+                        if (usedsize == 4)
+                        {
+                            if(WopMode == WopEncMode.Simple)
+                            {
+                                value ^= (uint)(Key[(k % Key.Length)] * Salt[(OrgLen + k) % Salt.Length]);
+                            }
+                            else
+                            {
+                                value ^= (uint)(Key[(enc_random.Next(0, Key.Length) + Enc_Key_Pos) % Key.Length] * Salt[(OrgLen + Enc_Salt_Pos) % Salt.Length]);
+                            }
+
+                            for (int j = 0; j < EncInstructions.Length; j++)
+                            {
+                                InstructionInfo inf = EncInstructions[j];
+                                uint temp = ExecuteInstruction(value, inf, ref isExecuted, false);
+                                if (isExecuted)
+                                {
+                                    value = temp;
+                                    InstructionsExecuted++;
+                                }
+                            }
+                            pw.WriteUInteger(value);
+                        }
+                        else
+                        {
+                            if (WopMode == WopEncMode.Simple)
+                            {
+                                value ^= (byte)(Key[(k % Key.Length)] * Salt[(OrgLen + k) % Salt.Length]);
+                            }
+                            else
+                            {
+                                value ^= (byte)(Key[(enc_random.Next(0, Key.Length) + Enc_Key_Pos) % Key.Length] * Salt[(OrgLen + Enc_Salt_Pos) % Salt.Length]);
+                            }
+
+                            for (int j = 0; j < EncInstructions.Length; j++)
+                            {
+                                InstructionInfo inf = EncInstructions[j];
+                                byte temp = ExecuteInstruction((byte)value, inf, ref isExecuted, false);
+                                if (isExecuted)
+                                {
+                                    value = temp;
+                                }
+                            }
+                            pw.WriteByte((byte)value);
+                        }
+                        i += usedsize;
+
+                        if (WopMode != WopEncMode.Simple)
+                        {
+                            Enc_Key_Pos += 1;
+                            Enc_Salt_Pos += 1;
+                        }
+                    }
+
+                    switch (WopMode)
+                    {
+                        case WopEncMode.GenerateNewAlgorithm:
+                        {
+                            byte[] tempEncCode = new byte[0];
+                            byte[] tempDecCode = new byte[0];
+                            GenerateCryptoCode(EncSeed, this.EncInstructions.Length, ref tempEncCode, ref tempDecCode, false); //don't test, it will break
+                            InstructionInfo[] encInstructions = new InstructionInfo[0];
+                            InstructionInfo[] decInstructions = new InstructionInfo[0];
+                            ReadAlgorithm(tempEncCode, tempDecCode, ref encInstructions, ref decInstructions);
+                            this._encInstructions = encInstructions;
+                            break;
+                        }
+                        case WopEncMode.ShuffleInstructions:
+                        {
+                            ShuffleInstructions(EncInstructions, EncSeed);
+                            break;
+                        }
+                    }
                 }
             }
         }
@@ -218,76 +277,116 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Length">The length to decrypt</param>
         public void Decrypt(byte[] Data, int Offset, int Length)
         {
-            int OrgLen = Length;
-            Length += Offset;
-            using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+            lock (DecInstructions)
             {
-                for (int i = Offset, k = 0; i < Length; k++)
+                int OrgLen = Length;
+                Length += Offset;
+                using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
                 {
-                    pw.vStream.Position = i;
-                    int size = i + 4 < Length ? 4 : Length - i;
-                    int usedsize = 0;
-                    uint value = 0;
-
-                    if (size == 4)
+                    for (int i = Offset, k = 0; i < Length; k++)
                     {
-                        value = BitConverter.ToUInt32(Data, i);
-                        usedsize = 4;
-                    }
-                    else
-                    {
-                        value = Data[i];
-                        usedsize = 1;
-                    }
+                        pw.vStream.Position = i;
+                        int size = i + 4 < Length ? 4 : Length - i;
+                        int usedsize = 0;
+                        uint value = 0;
 
-                    bool isExecuted = false;
-                    int InstructionsExecuted = 0;
-
-                    if (usedsize == 4)
-                    {
-                        for (int j = DecInstructions.Length - 1; j >= 0; j--)
+                        if (size == 4)
                         {
-                            InstructionInfo inf = DecInstructions[j];
-                            uint temp = ExecuteInstruction(value, inf, ref isExecuted);
-                            if (isExecuted)
-                            {
-                                value = temp;
-                                InstructionsExecuted++;
-                            }
+                            value = BitConverter.ToUInt32(Data, i);
+                            usedsize = 4;
+                        }
+                        else
+                        {
+                            value = Data[i];
+                            usedsize = 1;
                         }
 
-                        value ^= (uint)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
-                        pw.WriteUInteger(value);
-                    }
-                    else
-                    {
-                        for (int j = DecInstructions.Length - 1; j >= 0; j--)
+                        bool isExecuted = false;
+                        int InstructionsExecuted = 0;
+
+                        if (usedsize == 4)
                         {
-                            InstructionInfo inf = DecInstructions[j];
-                            byte temp = ExecuteInstruction((byte)value, inf, ref isExecuted);
-                            if (isExecuted)
+                            for (int j = DecInstructions.Length - 1; j >= 0; j--)
                             {
-                                value = temp;
-                                InstructionsExecuted++;
+                                InstructionInfo inf = DecInstructions[j];
+                                uint temp = ExecuteInstruction(value, inf, ref isExecuted, true);
+                                if (isExecuted)
+                                {
+                                    value = temp;
+                                    InstructionsExecuted++;
+                                }
                             }
+
+                            if (WopMode == WopEncMode.Simple)
+                            {
+                                value ^= (uint)(Key[(k % Key.Length)] * Salt[(OrgLen + k) % Salt.Length]);
+                            }
+                            else
+                            {
+                                value ^= (uint)(Key[(dec_random.Next(0, Key.Length) + Dec_Key_Pos) % Key.Length] * Salt[(OrgLen + Dec_Salt_Pos) % Salt.Length]);
+                            }
+
+                            pw.WriteUInteger(value);
+                        }
+                        else
+                        {
+                            for (int j = DecInstructions.Length - 1; j >= 0; j--)
+                            {
+                                InstructionInfo inf = DecInstructions[j];
+                                byte temp = ExecuteInstruction((byte)value, inf, ref isExecuted, true);
+                                if (isExecuted)
+                                {
+                                    value = temp;
+                                    InstructionsExecuted++;
+                                }
+                            }
+
+                            if (WopMode == WopEncMode.Simple)
+                            {
+                                value ^= (byte)(Key[(k % Key.Length)] * Salt[(OrgLen + k) % Salt.Length]);
+                            }
+                            else
+                            {
+                                value ^= (byte)(Key[(dec_random.Next(0, Key.Length) + Dec_Key_Pos) % Key.Length] * Salt[(OrgLen + Dec_Salt_Pos) % Salt.Length]);
+                            }
+
+                            pw.WriteByte((byte)value);
                         }
 
-                        value ^= (byte)(Key[((!SimpleEncryption ? dec_random.Next(0, Key.Length) : 0) + k) % Key.Length] * Salt[(OrgLen + k) % Salt.Length]);
-                        pw.WriteByte((byte)value);
+                        this.DecSeed += (int)value;
+                        i += usedsize;
+
+                        if (WopMode != WopEncMode.Simple)
+                        {
+                            Dec_Key_Pos += 1;
+                            Dec_Salt_Pos += 1;
+                        }
                     }
 
-                    this.DecSeed += (int)value;
-                    i += usedsize;
-                }
-
-                if (shuffleInsts)
-                {
-                    ShuffleInstructions(DecInstructions, DecSeed);
+                    switch (WopMode)
+                    {
+                        case WopEncMode.GenerateNewAlgorithm:
+                        {
+                            byte[] tempEncCode = new byte[0];
+                            byte[] tempDecCode = new byte[0];
+                            GenerateCryptoCode(DecSeed, this.EncInstructions.Length, ref tempEncCode, ref tempDecCode, false); //don't test, it will break
+                            InstructionInfo[] encInstructions = new InstructionInfo[0];
+                            InstructionInfo[] decInstructions = new InstructionInfo[0];
+                            ReadAlgorithm(tempEncCode, tempDecCode, ref encInstructions, ref decInstructions);
+                            this._decInstructions = decInstructions;
+                            break;
+                        }
+                        case WopEncMode.ShuffleInstructions:
+                        {
+                            ShuffleInstructions(DecInstructions, DecSeed);
+                            break;
+                        }
+                    }
                 }
             }
         }
 
-        private byte ExecuteInstruction(byte value, InstructionInfo inf, ref bool Executed)
+        private byte ExecuteInstruction(byte value, InstructionInfo inf, ref bool Executed, bool IsDecrypt)
         {
             Executed = true;
             byte InstVal = (byte)(inf.Value % 255);
@@ -313,7 +412,7 @@ namespace SecureSocketProtocol3.Encryptions
             Executed = false;
             return 0;
         }
-        private uint ExecuteInstruction(uint value, InstructionInfo inf, ref bool Executed)
+        private uint ExecuteInstruction(uint value, InstructionInfo inf, ref bool Executed, bool IsDecrypt)
         {
             Executed = true;
             switch (inf.Inst)
@@ -334,6 +433,31 @@ namespace SecureSocketProtocol3.Encryptions
                     return value >> 1;*/
                 case Instruction.XOR:
                     return value ^= inf.Value;
+                case Instruction.ForLoop_PlusMinus:
+                {
+                    /* Some heavier algorithm, hopefully no real performance drop */
+                    uint decValue = inf.Value;
+                    uint incValue = inf.Value2;
+                    uint loops = inf.Value3 >> 1;
+
+                    if (IsDecrypt)
+                    {
+                        for (int i = 0; i < loops; i++)
+                        {
+                            value += decValue;
+                            value -= incValue;
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < loops; i++)
+                        {
+                            value -= decValue;
+                            value += incValue;
+                        }
+                    }
+                    return value;
+                }
             }
             Executed = false;
             return 0;
@@ -345,95 +469,117 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="Instructions">The max number of instructions to generate, higher=slower</param>
         /// <param name="EncryptCode"></param>
         /// <param name="DecryptCode"></param>
-        public static void GenerateCryptoCode(int Seed, int Instructions, ref byte[] EncryptCode, ref byte[] DecryptCode)
+        /// <param name="TestAlgorithm">Test the algorithm for strongness, it will take longer generating the algorithm</param>
+        public static void GenerateCryptoCode(int Seed, int Instructions, ref byte[] EncryptCode, ref byte[] DecryptCode, bool TestAlgorithm = true)
         {
-            Random rnd = new Random(Seed);
-            do
+            lock (Locky)
             {
-                int Insts = Instructions;
-                PayloadWriter EncPw = new PayloadWriter();
-                PayloadWriter DecPw = new PayloadWriter();
-
-                //generate a random instruction and when generated set the opposide for Decryption
-                while (Insts > 0)
+                Random rnd = new Random(Seed);
+                do
                 {
-                    Instruction inst = (Instruction)rnd.Next(0, 11);
+                    int Insts = Instructions;
+                    PayloadWriter EncPw = new PayloadWriter();
+                    PayloadWriter DecPw = new PayloadWriter();
 
-                    switch (inst)
+                    //generate a random instruction and when generated set the opposide for Decryption
+                    while (Insts > 0)
                     {
-                        case Instruction.BitLeft:
-                        {
-                            byte bitSize = (byte)rnd.Next(1, 3); //maybe needs to be higher ?
-                            EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
-                            DecPw.WriteBytes(new byte[] { (byte)Instruction.BitRight, bitSize });
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.Minus:
-                        {
-                            int size = rnd.Next();
-                        
-                            EncPw.WriteByte((byte)inst);
-                            EncPw.WriteInteger(size);
+                        Instruction inst = (Instruction)rnd.Next(0, 12);
 
-                            DecPw.WriteByte((byte)Instruction.Plus);
-                            DecPw.WriteInteger(size);
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.Plus:
+                        switch (inst)
                         {
-                            int size = rnd.Next();
+                            case Instruction.BitLeft:
+                            {
+                                byte bitSize = (byte)rnd.Next(1, 3); //maybe needs to be higher ?
+                                EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
+                                DecPw.WriteBytes(new byte[] { (byte)Instruction.BitRight, bitSize });
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.Minus:
+                            {
+                                int size = rnd.Next();
 
-                            EncPw.WriteByte((byte)inst);
-                            EncPw.WriteInteger(size);
+                                EncPw.WriteByte((byte)inst);
+                                EncPw.WriteInteger(size);
 
-                            DecPw.WriteByte((byte)Instruction.Minus);
-                            DecPw.WriteInteger(size);
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.RotateLeft_Big:
-                        {
-                            byte bitSize = (byte)rnd.Next(1, 60);
-                            EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
-                            DecPw.WriteBytes(new byte[] { (byte)Instruction.RotateRight_Big, bitSize });
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.RotateLeft_Small:
-                        {
-                            byte bitSize = (byte)rnd.Next(1, 15);
-                            EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
-                            DecPw.WriteBytes(new byte[] { (byte)Instruction.RotateRight_Small, bitSize });
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.SwapBits:
-                        {
-                            EncPw.WriteBytes(new byte[] { (byte)inst });
-                            DecPw.WriteBytes(new byte[] { (byte)inst });
-                            Insts--;
-                            break;
-                        }
-                        case Instruction.XOR:
-                        {
-                            int size = rnd.Next(100, int.MaxValue);
+                                DecPw.WriteByte((byte)Instruction.Plus);
+                                DecPw.WriteInteger(size);
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.Plus:
+                            {
+                                int size = rnd.Next();
 
-                            EncPw.WriteByte((byte)inst);
-                            EncPw.WriteInteger(size);
+                                EncPw.WriteByte((byte)inst);
+                                EncPw.WriteInteger(size);
 
-                            DecPw.WriteByte((byte)Instruction.XOR);
-                            DecPw.WriteInteger(size);
-                            Insts--;
-                            break;
+                                DecPw.WriteByte((byte)Instruction.Minus);
+                                DecPw.WriteInteger(size);
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.ForLoop_PlusMinus:
+                            {
+                                int size = rnd.Next();
+                                int size2 = rnd.Next();
+                                int loops = rnd.Next(2, 255);
+
+                                EncPw.WriteByte((byte)inst);
+                                EncPw.WriteInteger(size);
+                                EncPw.WriteInteger(size2);
+                                EncPw.WriteByte((byte)loops);
+
+                                DecPw.WriteByte((byte)Instruction.ForLoop_PlusMinus);
+                                DecPw.WriteInteger(size);
+                                DecPw.WriteInteger(size2);
+                                DecPw.WriteByte((byte)loops);
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.RotateLeft_Big:
+                            {
+                                byte bitSize = (byte)rnd.Next(1, 60);
+                                EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
+                                DecPw.WriteBytes(new byte[] { (byte)Instruction.RotateRight_Big, bitSize });
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.RotateLeft_Small:
+                            {
+                                byte bitSize = (byte)rnd.Next(1, 15);
+                                EncPw.WriteBytes(new byte[] { (byte)inst, bitSize });
+                                DecPw.WriteBytes(new byte[] { (byte)Instruction.RotateRight_Small, bitSize });
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.SwapBits:
+                            {
+                                EncPw.WriteBytes(new byte[] { (byte)inst });
+                                DecPw.WriteBytes(new byte[] { (byte)inst });
+                                Insts--;
+                                break;
+                            }
+                            case Instruction.XOR:
+                            {
+                                int size = rnd.Next(100, int.MaxValue);
+
+                                EncPw.WriteByte((byte)inst);
+                                EncPw.WriteInteger(size);
+
+                                DecPw.WriteByte((byte)Instruction.XOR);
+                                DecPw.WriteInteger(size);
+                                Insts--;
+                                break;
+                            }
                         }
                     }
-                }
 
-                EncryptCode = EncPw.ToByteArray();
-                DecryptCode = DecPw.ToByteArray();
-            } while(IsAlgorithmWeak(EncryptCode, DecryptCode));
+                    EncryptCode = EncPw.ToByteArray();
+                    DecryptCode = DecPw.ToByteArray();
+                } while (TestAlgorithm && IsAlgorithmWeak(EncryptCode, DecryptCode, Seed));
+            }
         }
 
         /// <summary>
@@ -442,16 +588,16 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="EncryptCode"></param>
         /// <param name="DecryptCode"></param>
         /// <returns></returns>
-        private static bool IsAlgorithmWeak(byte[] EncryptCode, byte[] DecryptCode)
+        private static bool IsAlgorithmWeak(byte[] EncryptCode, byte[] DecryptCode, int Seed)
         {
-            Random rnd = new Random();
+            Random rnd = new Random(Seed);
             byte[] RandData = new byte[513];
             rnd.NextBytes(RandData);
 
             byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
             byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1  };
 
-            WopEx wop = new WopEx(Key, Salt, EncryptCode, DecryptCode, true, false);
+            WopEx wop = new WopEx(Key, Salt, EncryptCode, DecryptCode, WopEncMode.Simple);
 
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
@@ -589,6 +735,7 @@ namespace SecureSocketProtocol3.Encryptions
             Minus = 8,
             SwapBits = 9,
             XOR = 10,
+            ForLoop_PlusMinus = 11
         }
 
         public enum Filter
@@ -606,11 +753,26 @@ namespace SecureSocketProtocol3.Encryptions
         {
             public Instruction Inst { get; private set; }
             public uint Value { get; private set; }
+            public uint Value2 { get; private set; }
+            public uint Value3 { get; private set; }
 
             public InstructionInfo(Instruction Inst, uint Value)
             {
                 this.Inst = Inst;
                 this.Value = Value;
+            }
+            public InstructionInfo(Instruction Inst, uint Value, uint Value2)
+            {
+                this.Inst = Inst;
+                this.Value = Value;
+                this.Value2 = Value2;
+            }
+            public InstructionInfo(Instruction Inst, uint Value, uint Value2, uint Value3)
+            {
+                this.Inst = Inst;
+                this.Value = Value;
+                this.Value2 = Value2;
+                this.Value3 = Value3;
             }
 
             public override string ToString()

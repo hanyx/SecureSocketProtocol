@@ -75,4 +75,22 @@ namespace SecureSocketProtocol3
         Data = 1,
         Message = 2,
     }
+
+    public enum WopEncMode
+    {
+        /// <summary>
+        /// No instruction shuffling or other methods are being used, The order for encrypting/decrypting does not matter (Decreases security)
+        /// </summary>
+        Simple = 0,
+        /// <summary>
+        /// Shuffle the algorithm after calling the Encrypt method
+        /// This is a quick way of making the next data "Unique"
+        /// </summary>
+        ShuffleInstructions = 1,
+        /// <summary>
+        /// Generate a new unique algorithm to use after the Encrypt method has been called
+        /// This will make the data completely unique but thus will take longer to encrypt a lot of data
+        /// </summary>
+        GenerateNewAlgorithm = 2
+    }
 }

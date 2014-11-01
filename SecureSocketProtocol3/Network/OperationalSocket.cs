@@ -111,10 +111,15 @@ namespace SecureSocketProtocol3.Network
 
         internal ulong GetIdentifier()
         {
-            CRC32 hasher = new CRC32();
-            uint name = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Name)), 0);
-            uint version = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Version.ToString())), 0);
-            return name * version;
+            CRC32 crc = new CRC32();
+            byte[] name = crc.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Name));
+            byte[] version = crc.ComputeHash(ASCIIEncoding.ASCII.GetBytes(Version.ToString()));
+
+            byte[] temp = new byte[8];
+            Array.Copy(name, 0, temp, 0, 4);
+            Array.Copy(version, 0, temp, 4, 4);
+
+            return BitConverter.ToUInt64(temp, 0);
         }
     }
 }
