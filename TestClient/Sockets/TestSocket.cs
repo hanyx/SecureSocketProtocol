@@ -53,11 +53,21 @@ namespace TestClient.Sockets
 
         }
 
+        string TestStr = "";
+
         private int test = 0;
         public int SendStuff()
         {
             test++;
-            base.SendMessage(new TestMessage() { Buffer = new byte[test] }, new TestHeader());
+            base.SendMessage(new TestMessage() { Buffer = new byte[65535] }, new TestHeader());
+
+            /*if (TestStr == "")
+            {
+                for (int i = 0; i < 10000; i++)
+                    TestStr += "lol";
+            }
+            base.SendMessage(new TestMessage() { Buffer = ASCIIEncoding.ASCII.GetBytes(TestStr) }, new TestHeader());
+            */
             return test;
         }
     }

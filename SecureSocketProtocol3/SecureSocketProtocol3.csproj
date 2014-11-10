@@ -179,6 +179,7 @@
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
     <Compile Include="Utils\Benchmark.cs" />
+    <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\OptimizedPayloadStream.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />

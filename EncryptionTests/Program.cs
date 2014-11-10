@@ -14,14 +14,15 @@ namespace EncryptionTests
         private static WopEx wop_dec;
         static void Main(string[] args)
         {
-            byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3,  };
-            byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2,  };
+            byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
+            byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, };
+            byte[] IV = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
 
             byte[] EncryptCode = new byte[0];
             byte[] DecryptCode = new byte[0];
             WopEx.GenerateCryptoCode(12345678, 20, ref EncryptCode, ref DecryptCode);
-            wop_enc = new WopEx(Key, Salt, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
-            wop_dec = new WopEx(Key, Salt, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
+            wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
+            wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
 
             if (File.Exists("./temp.txt"))
                 File.Delete("./temp.txt");
@@ -44,7 +45,7 @@ namespace EncryptionTests
 
         private static void ShowAlgorithm(WopEx wop)
         {
-            Log("Instructions: " + wop.EncInstructions.Length);
+            /*Log("Instructions: " + wop..EncInstructions.Length);
 
             foreach (WopEx.InstructionInfo inf in wop.EncInstructions)
             {
@@ -62,7 +63,7 @@ namespace EncryptionTests
                     Log("}");
                     Log();
                 }
-            }
+            }*/
         }
 
         private static void Log()

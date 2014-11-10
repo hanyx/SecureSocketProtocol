@@ -25,3 +25,4 @@ C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtoco
 C:\Users\DragonHunter\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csprojResolveAssemblyReference.cache
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.Controls.uTorrentProgressBar.resources
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csproj.GenerateResource.Cache
+C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csprojResolveAssemblyReference.cache

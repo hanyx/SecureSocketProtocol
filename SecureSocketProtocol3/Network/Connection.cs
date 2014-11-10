@@ -24,6 +24,21 @@ namespace SecureSocketProtocol3.Network
             151, 221, 126, 222, 126, 142, 126, 208, 107, 209, 212, 218, 228, 167, 158, 252, 105, 147, 185, 178
         };
 
+        private static readonly byte[] InitialVector = new byte[]
+        {
+            83, 210, 20, 80, 15, 131, 109, 63, 2, 143, 206, 152, 135, 66, 176, 37, 180, 108, 2, 49, 14, 237, 135, 160, 203,
+            91, 31, 34, 200, 209, 62, 118, 97, 216, 21, 194, 26, 240, 123, 203, 255, 133, 163, 27, 11, 30, 15, 105, 237, 63,
+            115, 92, 163, 27, 105, 158, 29, 236, 70, 58, 243, 206, 197, 230, 158, 133, 116, 70, 121, 50, 54, 59, 236, 31, 175,
+            125, 60, 148, 175, 200, 6, 231, 19, 89, 126, 255, 165, 224, 193, 203, 55, 213, 112, 247, 101, 52, 9, 91, 146, 152,
+            251, 69, 168, 123, 116, 99, 52, 10, 3, 198, 56, 251, 217, 148, 7, 171, 137, 24, 113, 111, 87, 70, 98, 134, 119,
+            197, 214, 38, 39, 51, 129, 67, 233, 205, 190, 97, 251, 254, 80, 91, 56, 187, 63, 146, 125, 76, 140, 152, 7, 40,
+            126, 252, 203, 91, 105, 108, 178, 216, 45, 233, 130, 69, 175, 121, 150, 206, 181, 127, 151, 136, 168, 170, 199, 214, 133,
+            218, 181, 178, 177, 101, 92, 128, 108, 255, 230, 235, 197, 233, 245, 137, 186, 129, 165, 225, 162, 69, 61, 27, 106, 147,
+            82, 122, 65, 42, 88, 50, 117, 104, 76, 20, 171, 71, 245, 55, 177, 30, 248, 66, 75, 31, 35, 68, 83, 150, 86,
+            26, 107, 25, 237, 113, 190, 103, 1, 145, 182, 126, 220, 217, 216, 239, 231, 233, 146, 253, 60, 235, 72, 26, 200, 164,
+            188, 80, 156, 184, 140, 106
+        };
+
         /// <summary>
         /// The length contains always 2 bytes Unsigned Short
         /// 
@@ -137,10 +152,10 @@ namespace SecureSocketProtocol3.Network
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(PrivateSeed, 25, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(privKey, SaltKey, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
 
-            WopEx.GenerateCryptoCode(PrivateSeed << 3, 3, ref encCode, ref decCode);
-            this.PayloadEncryption = new WopEx(privKey, SaltKey, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
+            WopEx.GenerateCryptoCode(PrivateSeed << 3, 25, ref encCode, ref decCode);
+            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm);
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
@@ -417,68 +432,6 @@ namespace SecureSocketProtocol3.Network
                     Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
                 }
             }
-
-            /*byte fragment = (byte)(length > MAX_PAYLOAD ? 1 : 0);
-            bool UseFragments = fragment > 0;
-            int FullLength = length + SerializedHeader.Length + (UseFragments ? 3 : 0);
-
-            while(length > 0)
-            {
-                int packetLength = length > MAX_PAYLOAD ? MAX_PAYLOAD : length;
-                byte[] tempBuffer = new byte[HEADER_SIZE + packetLength + (SerializedHeader != null ? SerializedHeader.Length : 0)];
-                using (PayloadWriter pw = new PayloadWriter(new MemoryStream(tempBuffer, 0, tempBuffer.Length)))
-                {
-                    length -= packetLength;
-                    pw.Position = 0;
-
-                    ushort PayloadLength = (ushort)(packetLength + (SerializedHeader != null ? SerializedHeader.Length : 0));
-                    byte FragmentId = UseFragments ? (byte)(length > 0 ? fragment : (fragment + 128)) : (byte)0;
-
-                    //header
-                    pw.WriteUShort(PayloadLength); //length
-                    pw.WriteByte(CurPacketId); //cur packet id
-                    pw.WriteUShort(0); //Connection Id
-                    pw.WriteUShort(HeaderId); //Header Id
-
-                    if (UseFragments)
-                    {
-                        pw.WriteByte(FragmentId); //fragment id
-                        fragment++;
-                    }
-                    else
-                    {
-                        pw.WriteByte(0); //fragment id
-                    }
-
-                    byte checksum = 0;
-                    checksum += (byte)PayloadLength;
-                    checksum += FragmentId;
-                    checksum += CurPacketId;
-                    checksum += (byte)HeaderId;
-                    checksum += (byte)FullLength;
-                    pw.WriteByte(checksum);
-
-                    pw.WriteThreeByteInteger(FullLength); //the full packet size, mainly used for Fragmentation
-
-                    //encrypt the header
-                    lock (HeaderEncryption)
-                    {
-                        HeaderEncryption.Encrypt(tempBuffer, 0, HEADER_SIZE);
-                    }
-
-                    //payload related
-                    if (SerializedHeader != null)
-                    {
-                        pw.WriteBytes(SerializedHeader);
-                        SerializedHeader = null; //only send the header once
-                    }
-
-                    //write data
-                    pw.WriteBytes(data, offset, packetLength);
-                    Handle.Send(tempBuffer, 0, pw.Position, SocketFlags.None);
-                }
-                offset += packetLength;
-            }*/
         }
 
         private void onSystemPacket(SystemPacket systemPacket)

@@ -79,7 +79,7 @@ namespace SecureSocketProtocol3
     public enum WopEncMode
     {
         /// <summary>
-        /// No instruction shuffling or other methods are being used, The order for encrypting/decrypting does not matter (Decreases security)
+        /// The order for encrypting/decrypting does not matter (Highly Decreases security)
         /// </summary>
         Simple = 0,
         /// <summary>

@@ -27,14 +27,14 @@ namespace TestClient
             {
                 Console.WriteLine(ex.Message);
             }
-            /*Random random = new Random();
+            Random random = new Random();
 
             byte[] temp = new byte[70000];
             
             Stopwatch sw = Stopwatch.StartNew();
             Stopwatch RuntimeSW = Stopwatch.StartNew();
 
-            client.CreateConnection();
+            /*client.CreateConnection();
 
             int count = 0;
             int speed = 0;
