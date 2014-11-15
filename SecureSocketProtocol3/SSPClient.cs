@@ -13,7 +13,7 @@ using System.Text;
 
 namespace SecureSocketProtocol3
 {
-    public abstract class SSPClient
+    public abstract class SSPClient : IDisposable
     {
         public abstract void onBeforeConnect();
         public abstract void onConnect();
@@ -25,7 +25,7 @@ namespace SecureSocketProtocol3
         public decimal ClientId { get { return Connection.ClientId; } }
         public bool Connected { get { return Connection.Connected; } }
 
-        internal ClientProperties Properties { get; private set; }
+        public ClientProperties Properties { get; private set; }
         internal Socket Handle { get; set; }
         internal SSPServer Server;
         internal Mazing clientHS { get; private set; }
@@ -180,6 +180,12 @@ namespace SecureSocketProtocol3
             {
                 return Connection.RegisteredOperationalSockets.ContainsKey(opSocket.GetIdentifier());
             }
+        }
+
+        public void Dispose()
+        {
+            try { Handle.Close(); }
+            catch { }
         }
     }
 }
