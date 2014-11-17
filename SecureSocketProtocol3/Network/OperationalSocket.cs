@@ -60,7 +60,7 @@ namespace SecureSocketProtocol3.Network
         /// <param name="Header">The header that is being used for this message</param>
         protected void SendMessage(IMessage Message, Header Header)
         {
-            Client.Connection.SendMessage(Message, Header, null, this);
+            Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), null, this);
         }
 
         private void onPacketQueue(PayloadInfo inf)

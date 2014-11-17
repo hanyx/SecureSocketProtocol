@@ -161,7 +161,7 @@ namespace SecureSocketProtocol3
 
         public void Disconnect()
         {
-
+            Dispose();
         }
 
         public void RegisterOperationalSocket(OperationalSocket opSocket)
@@ -186,6 +186,13 @@ namespace SecureSocketProtocol3
         {
             try { Handle.Close(); }
             catch { }
+
+            this.Connection = null;
+            this.Properties = null;
+            this.Handle = null;
+            this.Server = null;
+            this.clientHS = null;
+            this.serverHS = null;
         }
     }
 }

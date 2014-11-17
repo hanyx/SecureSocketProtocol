@@ -165,7 +165,6 @@ namespace SecureSocketProtocol3.Network
             this.messageHandler.AddMessage(typeof(MsgInitOk), "INIT_OK");
             this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
             this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
-            this.messageHandler.AddMessage(typeof(MsgConnectionData), "CONNECTION_DATA");
 
             Headers.RegisterHeader(typeof(SystemHeader));
             Headers.RegisterHeader(typeof(ConnectionHeader));
@@ -310,7 +309,7 @@ namespace SecureSocketProtocol3.Network
                                     }
                                 }
 
-                                Type type = OpSocket != null ? OpSocket.Headers.GetHeaderType(HeaderId) : Headers.GetHeaderType(HeaderId);
+                                Type type = Headers.GetHeaderType(HeaderId);
 
                                 if (type != null)
                                 {
@@ -330,7 +329,7 @@ namespace SecureSocketProtocol3.Network
                                     {
                                         lock (SystemPackets)
                                         {
-                                            SystemPackets.Enqueue(new SystemPacket(header, message));
+                                            SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId));
                                         }
                                     }
                                 }
@@ -436,6 +435,29 @@ namespace SecureSocketProtocol3.Network
 
         private void onSystemPacket(SystemPacket systemPacket)
         {
+            ConnectionHeader ConHeader = systemPacket.Header as ConnectionHeader;
+            if (ConHeader != null)
+            {
+                lock(OperationalSockets)
+                {
+                    OperationalSocket OpSocket = null;
+                    if (OperationalSockets.TryGetValue(systemPacket.ConnectionId, out OpSocket))
+                    {
+                        Header header = ConHeader.DeserializeHeader(OpSocket);
+                        if (header == null)
+                        {
+                            return;
+                        }
+
+                        OpSocket.onReceiveMessage(systemPacket.Message, header);
+                    }
+                    else
+                    {
+
+                    }                    
+                }
+            }
+
             systemPacket.Message.ProcessPayload(Client);
         }
 

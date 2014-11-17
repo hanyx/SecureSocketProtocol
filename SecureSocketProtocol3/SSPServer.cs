@@ -37,10 +37,12 @@ namespace SecureSocketProtocol3
             this.Clients = new SortedList<decimal, SSPClient>();
             this.randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
 
+            SysLogger.Log("Starting server", SysLogType.Debug);
             this.TcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.TcpServer.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp), serverProperties.ListenPort));
             this.TcpServer.Listen(100);
             this.TcpServer.BeginAccept(AsyncAction, null);
+            SysLogger.Log("Started server", SysLogType.Debug);
         }
 
         private void AsyncAction(IAsyncResult result)
@@ -54,6 +56,8 @@ namespace SecureSocketProtocol3
                 client.Connection = new Network.Connection(client);
                 client.Connection.ClientId = randomDecimal.NextDecimal();
                 client.serverHS.onFindKeyInDatabase += serverHS_onFindKeyInDatabase;
+
+                SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
 
                 lock (Clients)
                 {

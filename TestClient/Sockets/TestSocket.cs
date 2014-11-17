@@ -59,7 +59,7 @@ namespace TestClient.Sockets
         public int SendStuff()
         {
             test++;
-            base.SendMessage(new TestMessage() { Buffer = new byte[65535] }, new TestHeader());
+            base.SendMessage(new TestMessage() { Buffer = new byte[1337] }, new TestHeader());
 
             /*if (TestStr == "")
             {

@@ -20,6 +20,8 @@ namespace SecureSocketProtocol3
     internal delegate bool AuthenticationDelegate(SSPClient client, string Username, string Password);
     public delegate void ReceiveDataCallback(byte[] Payload, Header header);
 
+    public delegate void SysLogDeletegate(string Message, SysLogType Type);
+
     public enum DisconnectReason
     {
         UnexpectedlyDisconnected = 0,
@@ -92,5 +94,15 @@ namespace SecureSocketProtocol3
         /// This will make the data completely unique but thus will take longer to encrypt a lot of data
         /// </summary>
         GenerateNewAlgorithm = 2
+    }
+
+    public enum SysLogType
+    {
+        None = 0,
+        Debug = 1,
+        Network = 2,
+        HandShake = 3,
+        PacketAnalyzes = 4,
+        Everything = 5
     }
 }

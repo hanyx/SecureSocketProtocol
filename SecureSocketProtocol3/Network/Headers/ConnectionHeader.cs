@@ -1,6 +1,7 @@
 ﻿using ProtoBuf;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 namespace SecureSocketProtocol3.Network.Headers
@@ -13,7 +14,7 @@ namespace SecureSocketProtocol3.Network.Headers
     {
         public override Version Version
         {
-            get { return new Version(0, 0, 0, 2); }
+            get { return new Version(0, 0, 0, 3); }
         }
 
         public override string HeaderName
@@ -22,17 +23,35 @@ namespace SecureSocketProtocol3.Network.Headers
         }
 
         [ProtoMember(1)]
-        public ushort ConnectionId;
+        public byte[] HeaderPayload;
 
-        public ConnectionHeader(ushort ConnectionId)
+        [ProtoMember(2)]
+        public ushort HeaderPayloadId;
+
+        [ProtoMember(3)]
+        public int FeatureId;
+
+        public ConnectionHeader(Header header, OperationalSocket OpSocket, int FeatureId)
             : base()
         {
-            this.ConnectionId = ConnectionId;
+            this.HeaderPayload = Headers.Header.Serialize(header);
+
+            this.HeaderPayloadId = OpSocket.Headers.GetHeaderId(header);
+            this.FeatureId = FeatureId;
         }
+
         public ConnectionHeader()
             : base()
         {
 
+        }
+
+        public Header DeserializeHeader(OperationalSocket OpSocket)
+        {
+            Type HeaderType = OpSocket.Headers.GetHeaderType(HeaderPayloadId);
+            if(HeaderType == null)
+                return null;
+            return Headers.Header.DeSerialize(HeaderType, new Utils.PayloadReader(HeaderPayload));
         }
     }
 }

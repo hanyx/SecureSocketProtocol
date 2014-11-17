@@ -18,6 +18,7 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+            SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
             try
             {
@@ -61,6 +62,11 @@ namespace TestClient
             }*/
             Process.GetCurrentProcess().WaitForExit();
         }
+
+        static void SysLogger_onSysLog(string Message, SysLogType Type)
+        {
+            Console.WriteLine("[SysLogger][" + Type + "] " + Message);
+        }
     }
 
     public class Client : SSPClient
@@ -93,7 +99,7 @@ namespace TestClient
             Stopwatch RuntimeSW = Stopwatch.StartNew();
 
             Benchmark bench = new Benchmark();
-            while (true)
+            //while (false)
             {
                 //Thread.Sleep(1);
                 int size = 0;

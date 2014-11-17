@@ -10,11 +10,13 @@ namespace SecureSocketProtocol3.Misc
     {
         public Header Header { get; private set; }
         public IMessage Message { get; private set; }
+        public ushort ConnectionId { get; private set; }
 
-        public SystemPacket(Header header, IMessage message)
+        public SystemPacket(Header header, IMessage message, ushort ConnectionId)
         {
             this.Header = header;
             this.Message = message;
+            this.ConnectionId = ConnectionId;
         }
     }
 }

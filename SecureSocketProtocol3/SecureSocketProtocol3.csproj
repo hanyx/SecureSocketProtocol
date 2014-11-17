@@ -82,7 +82,6 @@
     <Compile Include="Network\MazingHandshake\ServerMaze.cs" />
     <Compile Include="Network\Messages\IMessage.cs" />
     <Compile Include="Network\Messages\MessageHandler.cs" />
-    <Compile Include="Network\Messages\TCP\MsgConnectionData.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
     <Compile Include="Network\Messages\TCP\MsgGetNextId.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
@@ -184,6 +183,7 @@
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
     <Compile Include="Utils\SyncObject.cs" />
+    <Compile Include="Utils\SysLogger.cs" />
     <Compile Include="Utils\TaskQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServerProperties.cs" />
