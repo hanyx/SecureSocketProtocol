@@ -118,11 +118,6 @@ namespace SecureSocketProtocol3.Network
         public ulong PacketsOut { get; private set; }
         public ulong DataOut { get; private set; }
 
-        Stopwatch sw = Stopwatch.StartNew();
-        int recv = 0;
-        int recvPackets = 0;
-        int recvPacketsTotal = 0;
-
         internal bool HandShakeCompleted { get; set; }
 
         public Connection(SSPClient client)
@@ -139,7 +134,9 @@ namespace SecureSocketProtocol3.Network
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
-            
+
+            PrivateSeed = privKey.Length >= 8 ? BitConverter.ToInt32(privKey, 0) : 0xBEEF;
+
             for (int i = 0; i < privKey.Length; i++)
                 PrivateSeed += privKey[i];
 
@@ -182,6 +179,9 @@ namespace SecureSocketProtocol3.Network
             try
             {
                 BytesTransferred = Handle.EndReceive(result);
+
+                SysLogger.Log("Received " + BytesTransferred, SysLogType.Network);
+
                 if (BytesTransferred <= 0)
                 {
                     this.Connected = false;
@@ -192,6 +192,24 @@ namespace SecureSocketProtocol3.Network
             {
                 this.Connected = false;
                 return;
+            }
+
+
+            //let's check the certificate
+            if (Client.Certificate != null)
+            {
+                if (Client.Certificate.ValidFrom > DateTime.Now)
+                {
+                    //we need to wait till the time is right
+                    Client.Disconnect();
+                    return;
+                }
+                if (Client.Certificate.ValidTo < DateTime.Now)
+                {
+                    //certificate is not valid anymore
+                    Client.Disconnect();
+                    return;
+                }
             }
 
             this.LastPacketSW = Stopwatch.StartNew();
@@ -316,20 +334,24 @@ namespace SecureSocketProtocol3.Network
                                     Header header = Header.DeSerialize(type, pr);
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = OpSocket != null ? OpSocket.MessageHandler.HandleMessage(pr, MessageId) : messageHandler.HandleMessage(pr, MessageId);
-                                    message.RawSize = TotalReceived;
-                                    message.Header = header;
 
-                                    if (message.GetType() == typeof(MsgHandshake))
+                                    if (message != null)
                                     {
-                                        //we must directly process this message because if the handshake ends the keys will change
-                                        //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
-                                        message.ProcessPayload(Client);
-                                    }
-                                    else
-                                    {
-                                        lock (SystemPackets)
+                                        message.RawSize = TotalReceived;
+                                        message.Header = header;
+
+                                        if (message.GetType() == typeof(MsgHandshake))
                                         {
-                                            SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId));
+                                            //we must directly process this message because if the handshake ends the keys will change
+                                            //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                            message.ProcessPayload(Client, null);
+                                        }
+                                        else
+                                        {
+                                            lock (SystemPackets)
+                                            {
+                                                SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId));
+                                            }
                                         }
                                     }
                                 }
@@ -438,7 +460,7 @@ namespace SecureSocketProtocol3.Network
             ConnectionHeader ConHeader = systemPacket.Header as ConnectionHeader;
             if (ConHeader != null)
             {
-                lock(OperationalSockets)
+                lock (OperationalSockets)
                 {
                     OperationalSocket OpSocket = null;
                     if (OperationalSockets.TryGetValue(systemPacket.ConnectionId, out OpSocket))
@@ -454,11 +476,13 @@ namespace SecureSocketProtocol3.Network
                     else
                     {
 
-                    }                    
+                    }
                 }
             }
-
-            systemPacket.Message.ProcessPayload(Client);
+            else
+            {
+                systemPacket.Message.ProcessPayload(Client, null);
+            }
         }
 
         internal void ApplyNewKey(Mazing mazeHandshake, byte[] key, byte[] salt)

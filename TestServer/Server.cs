@@ -97,7 +97,7 @@ namespace TestServer
 
             public override DateTime ValidTo
             {
-                get { return DateTime.Now.AddDays(1); }
+                get { return validDate.AddDays(1); }
             }
 
             public override DateTime ValidFrom

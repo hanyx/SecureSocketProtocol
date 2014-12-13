@@ -31,8 +31,18 @@ namespace SecureSocketProtocol3
         internal Mazing clientHS { get; private set; }
         internal ServerMaze serverHS { get; private set; }
 
+        /// <summary>
+        /// Currently only available on server-side
+        /// </summary>
+        public CertificateInfo Certificate { get; internal set; }
+
         private object Locky = new object();
         internal bool IsServerSided { get { return Server != null; } }
+
+        /// <summary>
+        /// The name of the logged in person
+        /// </summary>
+        public string Username { get; internal set; }
 
         public SSPClient()
         {
@@ -155,6 +165,8 @@ namespace SecureSocketProtocol3
             {
                 clientHS.RecalculatePrivateKey(Properties.PrivateKeyFiles[i]);
             }
+
+            this.Username = Properties.Username;
 
             onConnect();
         }

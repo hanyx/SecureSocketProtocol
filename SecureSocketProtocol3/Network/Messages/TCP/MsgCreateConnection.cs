@@ -23,7 +23,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         }
 
-        public override void ProcessPayload(SSPClient client)
+        public override void ProcessPayload(SSPClient client, OperationalSocket _OpSocket)
         {
             RequestHeader reqHeader = Header as RequestHeader;
             if (reqHeader != null)
@@ -40,6 +40,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                     try
                     {
                         OperationalSocket OpSocket = (OperationalSocket)Activator.CreateInstance(type, client);
+
                         OpSocket.isConnected = true;
 
                         lock (client.Connection.OperationalSockets)

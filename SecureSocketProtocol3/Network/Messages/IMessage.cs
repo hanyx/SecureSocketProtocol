@@ -23,7 +23,7 @@ namespace SecureSocketProtocol3.Network.Messages
 
         }
 
-        public abstract void ProcessPayload(SSPClient client);
+        public abstract void ProcessPayload(SSPClient client, OperationalSocket OpSocket);
 
         public static byte[] Serialize(IMessage message)
         {

@@ -14,7 +14,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         }
 
-        public override void ProcessPayload(SSPClient client)
+        public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)
         {
             client.Connection.InitSync.Value = true;
             client.Connection.InitSync.Pulse();

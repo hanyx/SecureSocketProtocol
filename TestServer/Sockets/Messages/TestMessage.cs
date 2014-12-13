@@ -1,4 +1,5 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Messages;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ namespace TestServer.Sockets.Messages
 
         }
 
-        public override void ProcessPayload(SecureSocketProtocol3.SSPClient client)
+        public override void ProcessPayload(SecureSocketProtocol3.SSPClient client, OperationalSocket OpSocket)
         {
 
         }

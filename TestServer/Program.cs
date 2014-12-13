@@ -28,7 +28,9 @@ namespace TestServer
 
         static void SysLogger_onSysLog(string Message, SysLogType Type)
         {
+            Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("[SysLogger][" + Type + "] " + Message);
+            Console.ForegroundColor = ConsoleColor.Gray;
         }
     }
 }

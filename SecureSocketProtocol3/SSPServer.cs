@@ -56,6 +56,7 @@ namespace SecureSocketProtocol3
                 client.Connection = new Network.Connection(client);
                 client.Connection.ClientId = randomDecimal.NextDecimal();
                 client.serverHS.onFindKeyInDatabase += serverHS_onFindKeyInDatabase;
+                client.Certificate = serverProperties.ServerCertificate;
 
                 SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
 
@@ -71,7 +72,7 @@ namespace SecureSocketProtocol3
             this.TcpServer.BeginAccept(AsyncAction, null);
         }
 
-        private bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey)
+        private bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
         {
             lock (FindKeyLock)
             {
@@ -85,6 +86,7 @@ namespace SecureSocketProtocol3
                     Key = user.Key.getBytes();
                     Salt = user.PrivateSalt.getBytes();
                     PublicKey = user.PublicKey;
+                    Username = user.UsernameStr;
                     return true;
                 }
                 catch { return false; }

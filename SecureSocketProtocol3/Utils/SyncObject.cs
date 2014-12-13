@@ -30,6 +30,14 @@ namespace SecureSocketProtocol3.Utils
                 throw new ArgumentException("connection.Connection is null");
             this.connection = connection.Connection;
         }
+        public SyncObject(OperationalSocket OpSocket)
+        {
+            if (OpSocket == null)
+                throw new ArgumentNullException("OpSocket");
+            if (OpSocket.Client == null)
+                throw new ArgumentNullException("OpSocket.Client");
+            this.connection = OpSocket.Client.Connection;
+        }
 
         /// <param name="TimeOut">The time to wait for the object being pulsed</param>
         public T Wait<T>(T TimeOutValue, uint TimeOut = 0)

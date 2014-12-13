@@ -24,7 +24,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         }
 
-        public override void ProcessPayload(SSPClient client)
+        public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)
         {
             SSPClient _client = client as SSPClient;
             if (_client != null)
@@ -52,6 +52,9 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                     if (_client.IsServerSided)
                     {
+                        if (mazeHandshake as ServerMaze != null)
+                            client.Username = (mazeHandshake as ServerMaze).Username;
+
                         try
                         {
                             client.onBeforeConnect();

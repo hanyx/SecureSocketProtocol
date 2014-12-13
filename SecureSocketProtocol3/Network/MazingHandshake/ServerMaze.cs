@@ -13,12 +13,14 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         private MazeErrorCode LastErrorCode = MazeErrorCode.Success;
         private byte[] _publicKeyResponse = null;
 
-        public delegate bool FindKeyInDatabaseCallback(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey);
+        public delegate bool FindKeyInDatabaseCallback(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username);
         public event FindKeyInDatabaseCallback onFindKeyInDatabase;
 
         public WopEx wopEx;
         private BigInteger server_Prime;
         private BigInteger client_Prime;
+
+        public string Username { get; private set; }
 
         public ServerMaze()
             : base(new Size(512, 512), 10, 30)
@@ -64,16 +66,11 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     byte[] _key = new byte[0];
                     byte[] _salt = new byte[0];
                     byte[] _publicKey = new byte[0];
+                    string _userName = "";
 
-                    if (onFindKeyInDatabase(EncHashedMsg, ref _key, ref _salt, ref _publicKey))
+                    if (onFindKeyInDatabase(EncHashedMsg, ref _key, ref _salt, ref _publicKey, ref _userName))
                     {
                         _publicKey = TrimArray(_publicKey, Mazing.MAX_KEY_SIZE);
-
-                        //byte[] CryptCode = new byte[0];
-                        //byte[] DecryptCode = new byte[0];
-                        //WopEx.GenerateCryptoCode(BitConverter.ToInt32(_key, 0) + BitConverter.ToInt32(_salt, 0), 15, ref CryptCode, ref DecryptCode);
-                        //this.wopEx = new WopEx(_key, _salt, CryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
-
                         this.wopEx = base.GetWopEncryption(_key, _salt);
 
                         base.FinalKey = _key;
@@ -104,6 +101,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         byte[] primeData = server_Prime.getBytes();
                         wopEx.Encrypt(primeData, 0, primeData.Length);
                         ResponseData = primeData;
+
+                        this.Username = _userName;
 
                         Step++;
                     }
@@ -140,7 +139,6 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     {
                         return MazeErrorCode.Error;
                     }
-                    break;
                 }
             }
             return MazeErrorCode.Success;

@@ -11,7 +11,7 @@ namespace SecureSocketProtocol3.Network
     public class User
     {
         //client/server information
-        public string Username;
+        public string Username { get; set; }
         public string Password { get; set; }
         public List<byte[]> PrivateKeys { get; private set; }
         public byte[] PublicKey { get; set; }
@@ -92,11 +92,12 @@ namespace SecureSocketProtocol3.Network
         /// <returns></returns>
         public UserDbInfo GetUserDbInfo()
         {
-            return new UserDbInfo(MazeHandshake.Username, MazeHandshake.Password, EncryptedHash, MazeHandshake.MazeKey, MazeHandshake.PrivateSalt, MazeHandshake.PublicKeyData);
+            return new UserDbInfo(MazeHandshake.Username, MazeHandshake.Password, EncryptedHash, MazeHandshake.MazeKey, MazeHandshake.PrivateSalt, MazeHandshake.PublicKeyData, Username);
         }
 
         public class UserDbInfo
         {
+            public string UsernameStr { get; private set; }
             public BigInteger Username { get; private set; }
             public BigInteger Password { get; private set; }
             public string EncryptedHash { get; private set; }
@@ -111,7 +112,7 @@ namespace SecureSocketProtocol3.Network
             /// <param name="Key"></param>
             /// <param name="PrivateSalt"></param>
             /// <param name="PublicKey"></param>
-            public UserDbInfo(BigInteger Username, BigInteger Password, string EncryptedHash, BigInteger Key, BigInteger PrivateSalt, byte[] PublicKey)
+            public UserDbInfo(BigInteger Username, BigInteger Password, string EncryptedHash, BigInteger Key, BigInteger PrivateSalt, byte[] PublicKey, string UsernameStr)
             {
                 this.Username = Username;
                 this.Password = Password;
@@ -119,6 +120,7 @@ namespace SecureSocketProtocol3.Network
                 this.Key = Key;
                 this.PrivateSalt = PrivateSalt;
                 this.PublicKey = PublicKey;
+                this.UsernameStr = UsernameStr;
             }
         }
     }

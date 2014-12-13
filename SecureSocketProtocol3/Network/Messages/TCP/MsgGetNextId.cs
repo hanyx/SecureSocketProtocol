@@ -15,7 +15,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
         }
 
-        public override void ProcessPayload(SSPClient client)
+        public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)
         {
             RequestHeader ReqHeader = Header as RequestHeader;
             if (ReqHeader != null)
