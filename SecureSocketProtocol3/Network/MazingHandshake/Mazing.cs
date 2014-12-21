@@ -33,6 +33,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         }
 
         public const int MAX_KEY_SIZE = 32768;
+        public const int ROUNDS = 256;
         public int Step { get; protected set; }
         public abstract MazeErrorCode onReceiveData(byte[] Data, ref byte[] ResponseData);
         public Size MazeSize { get; private set; }
@@ -248,7 +249,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             //badly hardcoded, should be dynamic
             byte[] IV = new byte[] { 71, 140, 33, 100, 118, 9, 92, 129, 42, 113, 247, 20, 250, 36, 90, 204, 108, 64, 151, 34, 216, 92, 188, 191, 132, 127, 15, 28, 135, 247, 32, 246,  };
 
-            return new WopEx(Key, Salt, IV, CryptCode, DecryptCode, WopEncMode.Simple);
+            return new WopEx(Key, Salt, IV, CryptCode, DecryptCode, WopEncMode.Simple, ROUNDS);
         }
 
         public byte[] GetEncryptedPublicKey()

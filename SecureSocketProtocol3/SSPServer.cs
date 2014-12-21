@@ -52,6 +52,7 @@ namespace SecureSocketProtocol3
                 Socket AcceptSocket = this.TcpServer.EndAccept(result); //<- can throw a error
                 SSPClient client = GetNewClient();
                 client.Handle = AcceptSocket;
+                client.RemoteIp = AcceptSocket.RemoteEndPoint.ToString().Split(':')[0];
                 client.Server = this;
                 client.Connection = new Network.Connection(client);
                 client.Connection.ClientId = randomDecimal.NextDecimal();

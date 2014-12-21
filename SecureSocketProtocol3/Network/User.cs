@@ -122,6 +122,45 @@ namespace SecureSocketProtocol3.Network
                 this.PublicKey = PublicKey;
                 this.UsernameStr = UsernameStr;
             }
+
+            /// <summary>
+            /// serialize the UserDbInfo in a Base64 string
+            /// </summary>
+            /// <returns></returns>
+            public string Serialize()
+            {
+                using (PayloadWriter pw = new PayloadWriter())
+                {
+                    pw.WriteString(UsernameStr);
+                    pw.WriteString(EncryptedHash);
+
+                    pw.WriteBigInteger(Username);
+                    pw.WriteBigInteger(Password);
+                    pw.WriteBigInteger(Key);
+                    pw.WriteBigInteger(PrivateSalt);
+
+                    pw.WriteInteger(PublicKey.Length);
+                    pw.WriteBytes(PublicKey);
+
+                    return Convert.ToBase64String(pw.ToByteArray());
+                }
+            }
+
+            public UserDbInfo Deserialize(string SerializedData)
+            {
+                using(PayloadReader pr = new PayloadReader(Convert.FromBase64String(SerializedData)))
+                {
+                    string userStr = pr.ReadString();
+                    string EncryptedHashStr = pr.ReadString();
+                    BigInteger userInt = pr.ReadBigInteger();
+                    BigInteger passInt = pr.ReadBigInteger();
+                    BigInteger keyInt = pr.ReadBigInteger();
+                    BigInteger saltInt = pr.ReadBigInteger();
+                    byte[] pubKey = pr.ReadBytes(pr.ReadInteger());
+
+                    return new UserDbInfo(userInt, passInt, EncryptedHashStr, keyInt, saltInt, pubKey, userStr);
+                }
+            }
         }
     }
 }

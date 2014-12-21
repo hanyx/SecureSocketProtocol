@@ -21,7 +21,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
 
@@ -58,7 +58,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm, 1);
 
             Random rnd = new Random(12345678);
 
@@ -97,7 +97,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm, 1);
 
             Random rnd = new Random(12345678);
 
@@ -124,7 +124,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.ShuffleInstructions);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.ShuffleInstructions, 1);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
 

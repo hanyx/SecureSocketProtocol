@@ -81,7 +81,7 @@ namespace SecureSocketProtocol3
     public enum WopEncMode
     {
         /// <summary>
-        /// The order for encrypting/decrypting does not matter (Highly Decreases security)
+        /// The order for encrypting/decrypting does not matter and it will decrease the security of the Initial Vector Key (Highly Decreases security)
         /// </summary>
         Simple = 0,
         /// <summary>

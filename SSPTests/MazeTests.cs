@@ -41,7 +41,7 @@ namespace SSPTests
                 Stopwatch sw = Stopwatch.StartNew();
                 ClientMaze client = new ClientMaze();
                 ServerMaze server = new ServerMaze();
-                server.onFindKeyInDatabase += (string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey) =>
+                server.onFindKeyInDatabase += (string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username) =>
                 {
                     foreach (User user in Server_Users)
                     {
@@ -50,6 +50,7 @@ namespace SSPTests
                             Key = user.ServerHandshake.MazeKey.getBytes();
                             Salt = user.ServerHandshake.PrivateSalt.getBytes();
                             PublicKey = user.PublicKey;
+                            Username = user.Username;
                             return true;
                         }
                     }

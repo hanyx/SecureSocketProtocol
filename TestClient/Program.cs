@@ -18,6 +18,22 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+
+            /*byte[] TestKey = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
+            byte[] TestSalt  = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
+            byte[] TestIV = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 2, 2, 2, 2, 3, 3, 3, 3 };
+
+            byte[] encCode = new byte[0];
+            byte[] decCode = new byte[0];
+            WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
+
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
+            */
+
+
+
+
+
             SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
             try
@@ -196,6 +212,11 @@ namespace TestClient
                         218, 155
                     };
                 }
+            }
+
+            public override uint Cipher_Rounds
+            {
+                get { return 512; }
             }
         }
     }

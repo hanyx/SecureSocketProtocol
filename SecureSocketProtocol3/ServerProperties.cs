@@ -22,5 +22,8 @@ namespace SecureSocketProtocol3
 
         /// <summary> If keyfiles are being used it will make it harder to decrypt the traffic </summary>
         public abstract Stream[] KeyFiles { get; }
+
+        /// <summary>  </summary>
+        public abstract uint Cipher_Rounds { get; }
     }
 }

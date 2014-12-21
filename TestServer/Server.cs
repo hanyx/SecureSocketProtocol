@@ -64,6 +64,11 @@ namespace TestServer
             {
                 get { return new Stream[0]; }
             }
+
+            public override uint Cipher_Rounds
+            {
+                get { return 512; }
+            }
         }
 
         private class Certificate : CertificateInfo

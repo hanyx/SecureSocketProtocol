@@ -60,6 +60,7 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Encryptions\KeyEncryptor.cs" />
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />

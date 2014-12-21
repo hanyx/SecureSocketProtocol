@@ -19,6 +19,8 @@ namespace SecureSocketProtocol3
 
         public abstract byte[] NetworkKey { get; }
 
+        public abstract uint Cipher_Rounds { get; }
+
         public ClientProperties()
         {
 

@@ -9,7 +9,7 @@ namespace SecureSocketProtocol3.Encryptions
 {
     /// <summary>
     /// WopEx is a more advanced form of the WopEncryption
-    /// WopEx is able to generate a random encryption and decryption algorithm
+    /// WopEx is able to generate a random encryption and decryption algorithm(s)
     /// </summary>
     public class WopEx
     {
@@ -32,6 +32,8 @@ namespace SecureSocketProtocol3.Encryptions
         /// </summary>
         public byte[] Salt { get; private set; }
 
+        public uint Rounds { get; private set; }
+
         /// <summary>
         /// Initialize the WopEx Encryption
         /// </summary>
@@ -41,7 +43,7 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="EncryptionCode">The encryption algorithm that was generated</param>
         /// <param name="DecryptionCode">The decryption algorithm that was generated</param>
         /// <param name="WopMode">The encryption mode</param>
-        public WopEx(byte[] Key, byte[] Salt, byte[] InitialVector, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode)
+        public WopEx(byte[] Key, byte[] Salt, byte[] InitialVector, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode, uint Rounds)
         {
             if (EncryptionCode.Length != DecryptionCode.Length)
                 throw new Exception("Encryption and Decryption algorithms must be the same size");
@@ -49,6 +51,8 @@ namespace SecureSocketProtocol3.Encryptions
                 throw new Exception("The Key and Salt must atleast have a size of 8");
             if (InitialVector.Length < 32)
                 throw new Exception("The Initial Vector must atleast have a size of 32");
+            if (Rounds == 0)
+                throw new Exception("There must be atleast 1 round");
 
             this.Key = new byte[Key.Length];
             Array.Copy(Key, this.Key, Key.Length);
@@ -59,6 +63,7 @@ namespace SecureSocketProtocol3.Encryptions
             this.Key = ExpandKey(this.Key);
             this.Salt = ExpandKey(this.Salt);
 
+            this.Rounds = Rounds;
             this.EncMode = EncMode;
             this.EncState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)));
             this.EncState.Instructions = ReadAlgorithm(EncryptionCode);
@@ -154,46 +159,50 @@ namespace SecureSocketProtocol3.Encryptions
                 int OrgLen = Length;
                 Length += Offset;
 
-                ulong temp_Value = EncState.IV[EncMode == WopEncMode.Simple ? 0 : EncState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
-                EncState.IV_Pos = (EncState.IV_Pos + 1) % EncState.IV.Length;
-
-                using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+                for (int round = 0; round < Rounds; round++)
                 {
-                    for (int i = Offset, k = 0; i < Length; k++)
+                    ulong temp_Value = EncState.IV[EncMode == WopEncMode.Simple ? 0 : EncState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
+
+                    using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
                     {
-                        pw.vStream.Position = i;
-                        int size = i + 8 < Length ? 8 : Length - i;
-                        int usedsize = 0;
-                        ulong OrgValue = 0;
-
-                        if (size == 8)
+                        for (int i = Offset, k = 0; i < Length; k++)
                         {
-                            OrgValue = BitConverter.ToUInt64(Data, i);
-                            usedsize = 8;
+                            pw.vStream.Position = i;
+                            int size = i + 8 < Length ? 8 : Length - i;
+                            int usedsize = 0;
+                            ulong OrgValue = 0;
 
-                            ulong value = Encrypt_Core_Big(OrgValue, OrgLen, k) ^ temp_Value;
-                            pw.WriteULong(value);
-                            temp_Value += value;
-                        }
-                        else
-                        {
-                            OrgValue = Data[i];
-                            usedsize = 1;
+                            if (size == 8)
+                            {
+                                OrgValue = BitConverter.ToUInt64(Data, i);
+                                usedsize = 8;
 
-                            ulong value = Encrypt_Core_Small((byte)OrgValue, OrgLen, k);
-                            pw.WriteByte((byte)value);
-                        }
+                                ulong value = Encrypt_Core_Big(OrgValue, OrgLen, k) ^ temp_Value;
+                                pw.WriteULong(value);
+                                temp_Value += value;
+                            }
+                            else
+                            {
+                                OrgValue = Data[i];
+                                usedsize = 1;
 
-                        EncState.Seed += (int)OrgValue;
-                        i += usedsize;
+                                ulong value = Encrypt_Core_Small((byte)OrgValue, OrgLen, k);
+                                pw.WriteByte((byte)value);
+                            }
 
-                        if (EncMode != WopEncMode.Simple)
-                        {
-                            EncState.Key_Pos += 1;
-                            EncState.Salt_Pos += 1;
+                            EncState.Seed += (int)OrgValue;
+                            i += usedsize;
+
+                            if (EncMode != WopEncMode.Simple)
+                            {
+                                EncState.Key_Pos += 1;
+                                EncState.Salt_Pos += 1;
+                            }
                         }
                     }
                 }
+
+                EncState.IV_Pos = (EncState.IV_Pos + 1) % EncState.IV.Length;
 
                 switch (EncMode)
                 {
@@ -221,7 +230,7 @@ namespace SecureSocketProtocol3.Encryptions
 
         private BigInteger Encrypt_Core_BigInteger(BigInteger value, int OrgLen, int k)
         {
-            if (EncMode == WopEncMode.Simple)
+            if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
                 value ^= (ulong)(EncState.Key[(k % EncState.Key.Length)] * EncState.Salt[(OrgLen + k) % EncState.Salt.Length]);
             }
@@ -246,7 +255,7 @@ namespace SecureSocketProtocol3.Encryptions
 
         private ulong Encrypt_Core_Big(ulong value, int OrgLen, int k)
         {
-            if (EncMode == WopEncMode.Simple)
+            if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
                 value ^= (ulong)(EncState.Key[(k % EncState.Key.Length)] * EncState.Salt[(OrgLen + k) % EncState.Salt.Length]);
             }
@@ -271,7 +280,7 @@ namespace SecureSocketProtocol3.Encryptions
 
         private byte Encrypt_Core_Small(byte value, int OrgLen, int k)
         {
-            if (EncMode == WopEncMode.Simple)
+            if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
                 value ^= (byte)(EncState.Key[(k % EncState.Key.Length)] * EncState.Salt[(OrgLen + k) % EncState.Salt.Length]);
             }
@@ -307,47 +316,50 @@ namespace SecureSocketProtocol3.Encryptions
                 int OrgLen = Length;
                 Length += Offset;
 
-                ulong temp_Value = DecState.IV[EncMode == WopEncMode.Simple ? 0 : DecState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
-                DecState.IV_Pos = (DecState.IV_Pos + 1) % DecState.IV.Length;
-
-                using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+                for (int round = 0; round < Rounds; round++)
                 {
-                    for (int i = Offset, k = 0; i < Length; k++)
+                    using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
                     {
-                        pw.vStream.Position = i;
-                        int size = i + 8 < Length ? 8 : Length - i;
-                        int usedsize = 0;
-                        ulong value = 0;
-                        ulong OrgReadValue = 0;
-
-                        if (size == 8)
+                        ulong temp_Value = DecState.IV[EncMode == WopEncMode.Simple ? 0 : DecState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
+                        for (int i = Offset, k = 0; i < Length; k++)
                         {
-                            OrgReadValue = BitConverter.ToUInt64(Data, i);
-                            usedsize = 8;
+                            pw.vStream.Position = i;
+                            int size = i + 8 < Length ? 8 : Length - i;
+                            int usedsize = 0;
+                            ulong value = 0;
+                            ulong OrgReadValue = 0;
 
-                            value = Decrypt_Core_Big(OrgReadValue ^ temp_Value, OrgLen, k);
-                            pw.WriteULong(value);
-                        }
-                        else
-                        {
-                            OrgReadValue = Data[i];
-                            usedsize = 1;
+                            if (size == 8)
+                            {
+                                OrgReadValue = BitConverter.ToUInt64(Data, i);
+                                usedsize = 8;
 
-                            value = Decrypt_Core_Small((byte)OrgReadValue, OrgLen, k);
-                            pw.WriteByte((byte)value);
-                        }
+                                value = Decrypt_Core_Big(OrgReadValue ^ temp_Value, OrgLen, k);
+                                pw.WriteULong(value);
+                            }
+                            else
+                            {
+                                OrgReadValue = Data[i];
+                                usedsize = 1;
 
-                        temp_Value += OrgReadValue;
-                        DecState.Seed += (int)value;
-                        i += usedsize;
+                                value = Decrypt_Core_Small((byte)OrgReadValue, OrgLen, k);
+                                pw.WriteByte((byte)value);
+                            }
 
-                        if (EncMode != WopEncMode.Simple)
-                        {
-                            DecState.Key_Pos += 1;
-                            DecState.Salt_Pos += 1;
+                            temp_Value += OrgReadValue;
+                            DecState.Seed += (int)value;
+                            i += usedsize;
+
+                            if (EncMode != WopEncMode.Simple)
+                            {
+                                DecState.Key_Pos += 1;
+                                DecState.Salt_Pos += 1;
+                            }
                         }
                     }
                 }
+
+                DecState.IV_Pos = (DecState.IV_Pos + 1) % DecState.IV.Length;
 
                 switch (EncMode)
                 {
@@ -387,7 +399,7 @@ namespace SecureSocketProtocol3.Encryptions
                 }
             }
 
-            if (EncMode == WopEncMode.Simple)
+            if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
                 value ^= (ulong)(DecState.Key[(k % DecState.Key.Length)] * DecState.Salt[(OrgLen + k) % DecState.Salt.Length]);
             }
@@ -412,7 +424,7 @@ namespace SecureSocketProtocol3.Encryptions
                 }
             }
 
-            if (EncMode == WopEncMode.Simple)
+            if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
                 value ^= (byte)(DecState.Key[(k % DecState.Key.Length)] * DecState.Salt[(OrgLen + k) % DecState.Salt.Length]);
             }
@@ -471,31 +483,31 @@ namespace SecureSocketProtocol3.Encryptions
                 case Instruction.XOR:
                     return value ^= inf.Value_Long;
                 case Instruction.ForLoop_PlusMinus:
-                    {
-                        /* Heavy "Algorithm" */
-                        /*uint decValue = inf.Value;
-                        uint incValue = inf.Value2;
-                        uint loops = inf.Value3 >> 1;
+                {
+                    /* Heavy "Algorithm" */
+                    /*uint decValue = inf.Value;
+                    uint incValue = inf.Value2;
+                    uint loops = inf.Value3 >> 1;
 
-                        if (IsDecrypt)
+                    if (IsDecrypt)
+                    {
+                        for (int i = 0; i < loops; i++)
                         {
-                            for (int i = 0; i < loops; i++)
-                            {
-                                value += decValue;
-                                value -= incValue;
-                            }
+                            value += decValue;
+                            value -= incValue;
                         }
-                        else
-                        {
-                            for (int i = 0; i < loops; i++)
-                            {
-                                value -= decValue;
-                                value += incValue;
-                            }
-                        }
-                        return value;*/
-                        break;
                     }
+                    else
+                    {
+                        for (int i = 0; i < loops; i++)
+                        {
+                            value -= decValue;
+                            value += incValue;
+                        }
+                    }
+                    return value;*/
+                    break;
+                }
             }
             Executed = false;
             return 0;
@@ -695,7 +707,7 @@ namespace SecureSocketProtocol3.Encryptions
             byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1 };
             byte[] IV = new byte[] { 100, 132, 194, 103, 165, 222, 64, 110, 144, 217, 202, 129, 54, 97, 230, 25, 34, 58, 100, 79, 80, 124, 14, 61, 191, 5, 174, 94, 194, 10, 222, 215 };
 
-            WopEx wop = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.Simple);
+            WopEx wop = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.Simple, 1);
 
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
