@@ -67,7 +67,7 @@ namespace TestServer
 
             public override uint Cipher_Rounds
             {
-                get { return 512; }
+                get { return 1; }
             }
         }
 

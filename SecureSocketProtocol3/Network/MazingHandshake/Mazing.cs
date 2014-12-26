@@ -227,7 +227,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             if (count > 0)
             {
                 byte[] tempKey = new byte[count];
-                new Random(PrivateSalt.IntValue()).NextBytes(tempKey);
+                new FastRandom(PrivateSalt.IntValue()).NextBytes(tempKey);
                 Array.Copy(tempKey, _key, tempKey.Length);
                 key = new BigInteger(_key);
             }
@@ -249,7 +249,16 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             //badly hardcoded, should be dynamic
             byte[] IV = new byte[] { 71, 140, 33, 100, 118, 9, 92, 129, 42, 113, 247, 20, 250, 36, 90, 204, 108, 64, 151, 34, 216, 92, 188, 191, 132, 127, 15, 28, 135, 247, 32, 246,  };
 
-            return new WopEx(Key, Salt, IV, CryptCode, DecryptCode, WopEncMode.Simple, ROUNDS);
+            //apply Public Key to IV just to make it a little harder
+            if (_publicKeyData != null)
+            {
+                for (int i = 0; i < _publicKeyData.Length; i++)
+                {
+                    IV[i % IV.Length] += _publicKeyData[i];
+                }
+            }
+
+            return new WopEx(Key, Salt, IV, CryptCode, DecryptCode, WopEncMode.Simple, ROUNDS, true);
         }
 
         public byte[] GetEncryptedPublicKey()

@@ -37,7 +37,7 @@ namespace SecureSocketProtocol3.Utils
                 List<int> temp = new List<int>();
                 IntData = BitConverter.GetBytes(rnd.Next());
                 WopEx.GenerateCryptoCode(rnd.Next(), 10, ref encryptCode, ref decryptCode);
-                this.wopEx = new WopEx(BitConverter.GetBytes(rnd.Next()), BitConverter.GetBytes(rnd.Next()), InitialVector, encryptCode, decryptCode, WopEncMode.ShuffleInstructions, 2);
+                this.wopEx = new WopEx(BitConverter.GetBytes(rnd.Next()), BitConverter.GetBytes(rnd.Next()), InitialVector, encryptCode, decryptCode, WopEncMode.ShuffleInstructions, 2, true);
                 bool success = true;
 
                 for (int i = 0; i < 100; i++)

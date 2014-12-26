@@ -2,6 +2,7 @@
 using SecureSocketProtocol3.Encryptions;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -97,7 +98,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm, 1);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
 
             Random rnd = new Random(12345678);
 
@@ -106,12 +107,25 @@ namespace SSPTests
             byte[] DataChunk = new byte[65535];
             rnd.NextBytes(DataChunk);
 
+            Stopwatch SW = Stopwatch.StartNew();
+            List<double> SpeedPerSec = new List<double>();
+            double TempSpeed = 0;
+
             while (TotalDone < TotalData)
             {
                 wopEx.Encrypt(DataChunk, 0, DataChunk.Length);
                 //wopEx.Decrypt(DataChunk, 0, DataChunk.Length);
                 TotalDone += DataChunk.Length;
+                TempSpeed += DataChunk.Length;
+
+                if (SW.ElapsedMilliseconds >= 1000)
+                {
+                    SpeedPerSec.Add(Math.Round((TempSpeed / 1000D) / 1000D, 2));
+                    TempSpeed = 0;
+                    SW = Stopwatch.StartNew();
+                }
             }
+            SW.Stop();
         }
 
         [TestMethod()]

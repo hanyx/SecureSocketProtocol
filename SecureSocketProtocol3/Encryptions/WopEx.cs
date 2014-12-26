@@ -1,4 +1,5 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Encryptions.Compiler;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -34,6 +35,8 @@ namespace SecureSocketProtocol3.Encryptions
 
         public uint Rounds { get; private set; }
 
+        private bool UseDynamicCompiler;
+
         /// <summary>
         /// Initialize the WopEx Encryption
         /// </summary>
@@ -43,7 +46,8 @@ namespace SecureSocketProtocol3.Encryptions
         /// <param name="EncryptionCode">The encryption algorithm that was generated</param>
         /// <param name="DecryptionCode">The decryption algorithm that was generated</param>
         /// <param name="WopMode">The encryption mode</param>
-        public WopEx(byte[] Key, byte[] Salt, byte[] InitialVector, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode, uint Rounds)
+        /// <param name="UseCompiler">Using the dynamic compiler will increase performance</param>
+        public WopEx(byte[] Key, byte[] Salt, byte[] InitialVector, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode, uint Rounds, bool UseDynamicCompiler)
         {
             if (EncryptionCode.Length != DecryptionCode.Length)
                 throw new Exception("Encryption and Decryption algorithms must be the same size");
@@ -53,6 +57,8 @@ namespace SecureSocketProtocol3.Encryptions
                 throw new Exception("The Initial Vector must atleast have a size of 32");
             if (Rounds == 0)
                 throw new Exception("There must be atleast 1 round");
+
+            this.UseDynamicCompiler = UseDynamicCompiler;
 
             this.Key = new byte[Key.Length];
             Array.Copy(Key, this.Key, Key.Length);
@@ -65,11 +71,13 @@ namespace SecureSocketProtocol3.Encryptions
 
             this.Rounds = Rounds;
             this.EncMode = EncMode;
-            this.EncState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)));
+            this.EncState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)), false);
             this.EncState.Instructions = ReadAlgorithm(EncryptionCode);
+            this.EncState.Compile();
 
-            this.DecState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)));
+            this.DecState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)), true);
             this.DecState.Instructions = ReadAlgorithm(DecryptionCode);
+            this.DecState.Compile();
         }
 
         private static byte[] WriteInstruction(InstructionInfo Instruction)
@@ -168,29 +176,28 @@ namespace SecureSocketProtocol3.Encryptions
                         for (int i = Offset, k = 0; i < Length; k++)
                         {
                             pw.vStream.Position = i;
-                            int size = i + 8 < Length ? 8 : Length - i;
                             int usedsize = 0;
-                            ulong OrgValue = 0;
 
-                            if (size == 8)
+                            if (i + 8 < Length)
                             {
-                                OrgValue = BitConverter.ToUInt64(Data, i);
+                                ulong OrgValue = BitConverter.ToUInt64(Data, i);
                                 usedsize = 8;
 
                                 ulong value = Encrypt_Core_Big(OrgValue, OrgLen, k) ^ temp_Value;
                                 pw.WriteULong(value);
                                 temp_Value += value;
+                                EncState.Seed += (int)OrgValue;
                             }
                             else
                             {
-                                OrgValue = Data[i];
+                                byte OrgValue = Data[i];
                                 usedsize = 1;
 
-                                ulong value = Encrypt_Core_Small((byte)OrgValue, OrgLen, k);
-                                pw.WriteByte((byte)value);
+                                byte value = Encrypt_Core_Small(OrgValue, OrgLen, k);
+                                pw.WriteByte(value);
+                                EncState.Seed += OrgValue;
                             }
 
-                            EncState.Seed += (int)OrgValue;
                             i += usedsize;
 
                             if (EncMode != WopEncMode.Simple)
@@ -217,11 +224,21 @@ namespace SecureSocketProtocol3.Encryptions
                             GetNextRandomInstruction(fastRand, ref tempEncCode, ref tempDecCode);
                             EncState.Instructions[i] = tempEncCode;
                         }
+
+                        if (UseDynamicCompiler)
+                        {
+                            EncState.Compile();
+                        }
                         break;
                     }
                     case WopEncMode.ShuffleInstructions:
                     {
                         ShuffleInstructions(EncState.Instructions, EncState.Seed);
+
+                        if (UseDynamicCompiler)
+                        {
+                            EncState.Compile();
+                        }
                         break;
                     }
                 }
@@ -264,15 +281,22 @@ namespace SecureSocketProtocol3.Encryptions
                 value ^= (ulong)(EncState.Key[(EncState.random.Next(0, EncState.Key.Length) + EncState.Key_Pos) % EncState.Key.Length] * EncState.Salt[(OrgLen + EncState.Salt_Pos) % EncState.Salt.Length]);
             }
 
-            for (int j = 0; j < EncState.Instructions.Length; j++)
+            if (UseDynamicCompiler)
             {
-                bool isExecuted = false;
-                InstructionInfo inf = inf = EncState.Instructions[j];
-
-                ulong temp = ExecuteInstruction(value, inf, ref isExecuted, false);
-                if (isExecuted)
+                value = EncState.Algorithm.CalculateULong(value);
+            }
+            else
+            {
+                for (int j = 0; j < EncState.Instructions.Length; j++)
                 {
-                    value = temp;
+                    bool isExecuted = false;
+                    InstructionInfo inf = EncState.Instructions[j];
+
+                    ulong temp = ExecuteInstruction(value, inf, ref isExecuted, false);
+                    if (isExecuted)
+                    {
+                        value = temp;
+                    }
                 }
             }
             return value;
@@ -306,7 +330,7 @@ namespace SecureSocketProtocol3.Encryptions
         /// <summary>
         /// Decrypt the data
         /// </summary>
-        /// <param name="Data">The data to decrypt</param>
+        /// <param name="Data">The data to decrypt</param>l
         /// <param name="Offset">The index where the data starts</param>
         /// <param name="Length">The length to decrypt</param>
         public void Decrypt(byte[] Data, int Offset, int Length)
@@ -324,12 +348,11 @@ namespace SecureSocketProtocol3.Encryptions
                         for (int i = Offset, k = 0; i < Length; k++)
                         {
                             pw.vStream.Position = i;
-                            int size = i + 8 < Length ? 8 : Length - i;
                             int usedsize = 0;
                             ulong value = 0;
                             ulong OrgReadValue = 0;
 
-                            if (size == 8)
+                            if (i + 8 < Length)
                             {
                                 OrgReadValue = BitConverter.ToUInt64(Data, i);
                                 usedsize = 8;
@@ -374,11 +397,21 @@ namespace SecureSocketProtocol3.Encryptions
                             GetNextRandomInstruction(fastRand, ref tempEncCode, ref tempDecCode);
                             DecState.Instructions[i] = tempDecCode;
                         }
+
+                        if (UseDynamicCompiler)
+                        {
+                            DecState.Compile();
+                        }
                         break;
                     }
                     case WopEncMode.ShuffleInstructions:
                     {
                         ShuffleInstructions(DecState.Instructions, DecState.Seed);
+
+                        if (UseDynamicCompiler)
+                        {
+                            DecState.Compile();
+                        }
                         break;
                     }
                 }
@@ -387,15 +420,22 @@ namespace SecureSocketProtocol3.Encryptions
 
         private ulong Decrypt_Core_Big(ulong value, int OrgLen, int k)
         {
-            for (int j = DecState.Instructions.Length - 1; j >= 0; j--)
+            if (UseDynamicCompiler)
             {
-                bool isExecuted = false;
-                InstructionInfo inf = inf = DecState.Instructions[j];
-
-                ulong temp = ExecuteInstruction(value, inf, ref isExecuted, true);
-                if (isExecuted)
+                value = DecState.Algorithm.CalculateULong(value);
+            }
+            else
+            {
+                for (int j = DecState.Instructions.Length - 1; j >= 0; j--)
                 {
-                    value = temp;
+                    bool isExecuted = false;
+                    InstructionInfo inf = DecState.Instructions[j];
+
+                    ulong temp = ExecuteInstruction(value, inf, ref isExecuted, true);
+                    if (isExecuted)
+                    {
+                        value = temp;
+                    }
                 }
             }
 
@@ -481,7 +521,7 @@ namespace SecureSocketProtocol3.Encryptions
                 case Instruction.BitRight:
                     return value >> 1;*/
                 case Instruction.XOR:
-                    return value ^= inf.Value_Long;
+                    return value ^ inf.Value_Long;
                 case Instruction.ForLoop_PlusMinus:
                 {
                     /* Heavy "Algorithm" */
@@ -578,23 +618,23 @@ namespace SecureSocketProtocol3.Encryptions
                 FastRandom rnd = new FastRandom(Seed);
                 do
                 {
-                    int Insts = Instructions;
-                    PayloadWriter EncPw = new PayloadWriter();
-                    PayloadWriter DecPw = new PayloadWriter();
-
-                    //generate a random instruction and when generated set the opposide for Decryption
-                    for (int i = 0; i < Instructions; i++)
+                    using (PayloadWriter EncPw = new PayloadWriter())
+                    using (PayloadWriter DecPw = new PayloadWriter())
                     {
-                        InstructionInfo EncInstruction = null;
-                        InstructionInfo DecInstruction = null;
-                        GetNextRandomInstruction(rnd, ref EncInstruction, ref DecInstruction);
+                        //generate a random instruction and when generated set the opposide for Decryption
+                        for (int i = 0; i < Instructions; i++)
+                        {
+                            InstructionInfo EncInstruction = null;
+                            InstructionInfo DecInstruction = null;
+                            GetNextRandomInstruction(rnd, ref EncInstruction, ref DecInstruction);
 
-                        EncPw.WriteBytes(WriteInstruction(EncInstruction));
-                        DecPw.WriteBytes(WriteInstruction(DecInstruction));
+                            EncPw.WriteBytes(WriteInstruction(EncInstruction));
+                            DecPw.WriteBytes(WriteInstruction(DecInstruction));
+                        }
+
+                        EncryptCode = EncPw.ToByteArray();
+                        DecryptCode = DecPw.ToByteArray();
                     }
-
-                    EncryptCode = EncPw.ToByteArray();
-                    DecryptCode = DecPw.ToByteArray();
                 } while (TestAlgorithm && IsAlgorithmWeak(EncryptCode, DecryptCode, Seed));
             }
         }
@@ -606,12 +646,12 @@ namespace SecureSocketProtocol3.Encryptions
             {
                 Instruction[] InstructionList = new Instruction[]
                 {
-                    Instruction.BitLeft,
+                    //Instruction.BitLeft, //unstable do not use
                     Instruction.Minus,
                     Instruction.Plus,
                     //Instruction.ForLoop_PlusMinus, 
-                    Instruction.RotateLeft_Big,
-                    Instruction.RotateLeft_Small,
+                    //Instruction.RotateLeft_Big,
+                    //Instruction.RotateLeft_Small,
                     Instruction.SwapBits,
                     Instruction.XOR
                 };
@@ -665,7 +705,7 @@ namespace SecureSocketProtocol3.Encryptions
                     }
                     case Instruction.RotateLeft_Small:
                     {
-                        byte bitSize = (byte)rnd.Next(1, 15);
+                        byte bitSize = (byte)rnd.Next(1, 30);
 
                         EncInstruction = new InstructionInfo(inst, (uint)bitSize);
                         DecInstruction = new InstructionInfo(Instruction.RotateRight_Small, (uint)bitSize);
@@ -707,7 +747,7 @@ namespace SecureSocketProtocol3.Encryptions
             byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1 };
             byte[] IV = new byte[] { 100, 132, 194, 103, 165, 222, 64, 110, 144, 217, 202, 129, 54, 97, 230, 25, 34, 58, 100, 79, 80, 124, 14, 61, 191, 5, 174, 94, 194, 10, 222, 215 };
 
-            WopEx wop = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.Simple, 1);
+            WopEx wop = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.Simple, 1, true);
 
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
@@ -833,188 +873,15 @@ namespace SecureSocketProtocol3.Encryptions
             ForLoop_PlusMinus = 11
         }
 
-        [ProtoContract]
-        public class InstructionInfo
-        {
-            private bool _isValue1Set;
-            private bool _isValue2Set;
-            private bool _isValue3Set;
-
-            private BigInteger _value1;
-            private BigInteger _value2;
-            private BigInteger _value3;
-
-            private byte _value_byte;
-            private byte _value2_byte;
-            private byte _value3_byte;
-
-            private ulong _value_long;
-            private ulong _value2_long;
-            private ulong _value3_long;
-
-            [ProtoMember(1)]
-            public Instruction Inst;
-
-            [ProtoMember(2)]
-            public byte[] ValueData;
-
-            [ProtoMember(3)]
-            public byte[] ValueData2;
-
-            [ProtoMember(4)]
-            public byte[] ValueData3;
-
-            public BigInteger Value
-            {
-                get
-                {
-                    if (!_isValue1Set)
-                    {
-                        _value1 = new BigInteger(ValueData);
-                        _isValue1Set = true;
-                    }
-                    return _value1;
-                }
-                private set
-                {
-                    _value1 = value;
-                    ValueData = value.getBytes();
-                }
-            }
-            public BigInteger Value2
-            {
-                get
-                {
-                    if (!_isValue2Set)
-                    {
-                        _value2 = new BigInteger(ValueData2);
-                        _isValue2Set = true;
-                    }
-                    return _value2;
-                }
-                private set
-                {
-                    _value2 = value;
-                    ValueData2 = value.getBytes();
-                }
-            }
-            public BigInteger Value3
-            {
-                get
-                {
-                    if (!_isValue3Set)
-                    {
-                        _value3 = new BigInteger(ValueData3);
-                        _isValue3Set = true;
-                    }
-                    return _value3;
-                }
-                private set
-                {
-                    _value3 = value;
-                    ValueData3 = value.getBytes();
-                }
-            }
-
-
-            public byte Value_Byte
-            {
-                get
-                {
-                    if (_value_byte == 0)
-                        _value_byte = (byte)(Value.IntValue() & 0xFF);
-                    return _value_byte;
-                }
-            }
-
-            public byte Value2_Byte
-            {
-                get
-                {
-                    if (_value2_byte == 0)
-                        _value2_byte = (byte)(Value2.IntValue() & 0xFF);
-                    return _value2_byte;
-                }
-            }
-
-            public byte Value3_Byte
-            {
-                get
-                {
-                    if (_value3_byte == 0)
-                        _value3_byte = (byte)(Value3.IntValue() & 0xFF);
-                    return _value3_byte;
-                }
-            }
-
-
-            public ulong Value_Long
-            {
-                get
-                {
-                    if (_value_long == 0)
-                        _value_long = (ulong)Value.LongValue();
-                    return _value_long;
-                }
-            }
-
-            public ulong Value2_Long
-            {
-                get
-                {
-                    if (_value2_long == 0)
-                        _value2_long = (byte)Value2.IntValue();
-                    return _value2_long;
-                }
-            }
-
-            public ulong Value3_Long
-            {
-                get
-                {
-                    if (_value3_long == 0)
-                        _value3_long = (byte)Value3.IntValue();
-                    return _value3_long;
-                }
-            }
-
-
-            public InstructionInfo()
-            {
-
-            }
-
-            public InstructionInfo(Instruction Inst, BigInteger Value)
-            {
-                this.Inst = Inst;
-                this.Value = Value;
-            }
-            public InstructionInfo(Instruction Inst, BigInteger Value, BigInteger Value2)
-            {
-                this.Inst = Inst;
-                this.Value = Value;
-                this.Value2 = Value2;
-            }
-            public InstructionInfo(Instruction Inst, BigInteger Value, BigInteger Value2, BigInteger Value3)
-            {
-                this.Inst = Inst;
-                this.Value = Value;
-                this.Value2 = Value2;
-                this.Value3 = Value3;
-            }
-
-            public override string ToString()
-            {
-                return "Instruction:" + Inst + ", Value:" + Value;
-            }
-        }
-
         private class State
         {
+            public bool IsDecryptState { get; private set; }
             public InstructionInfo[] Instructions { get; set; }
+            public AlgorithmCompiler AlgoCompiler { get; private set; }
 
             public ulong[] Key { get; private set; }
             public ulong[] Salt { get; private set; }
+            public IAlgorithm Algorithm { get; private set; }
 
             /// <summary> Initial Vector </summary>
             public ulong[] IV { get; private set; }
@@ -1034,11 +901,12 @@ namespace SecureSocketProtocol3.Encryptions
                 this.random = new FastRandom();
             }
 
-            public State(ulong[] key, ulong[] salt, int seed, ulong[] IV)
+            public State(ulong[] key, ulong[] salt, int seed, ulong[] IV, bool IsDecryptState)
             {
                 this.Instructions = new InstructionInfo[0];
                 this.random = new FastRandom(seed);
                 this.Seed = seed;
+                this.IsDecryptState = IsDecryptState;
 
                 this.Key = new ulong[key.Length];
                 Array.Copy(key, this.Key, key.Length);
@@ -1048,6 +916,13 @@ namespace SecureSocketProtocol3.Encryptions
 
                 this.IV = new ulong[IV.Length];
                 Array.Copy(IV, this.IV, IV.Length);
+            }
+
+            public void Compile()
+            {
+                AlgoCompiler = null;
+                AlgoCompiler = new AlgorithmCompiler(Instructions, IsDecryptState);
+                Algorithm = AlgoCompiler.Algorithm;
             }
         }
     }

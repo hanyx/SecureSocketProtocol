@@ -148,11 +148,11 @@ namespace SecureSocketProtocol3.Network
             
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
-            WopEx.GenerateCryptoCode(PrivateSeed, 25, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds);
+            WopEx.GenerateCryptoCode(PrivateSeed, 5, ref encCode, ref decCode);
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, false);
 
-            WopEx.GenerateCryptoCode(PrivateSeed << 3, 25, ref encCode, ref decCode);
-            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds);
+            WopEx.GenerateCryptoCode(PrivateSeed << 3, 15, ref encCode, ref decCode);
+            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, true);
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");

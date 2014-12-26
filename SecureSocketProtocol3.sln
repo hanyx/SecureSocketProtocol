@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EncryptionTests", "Encrypti
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSPTests", "SSPTests\SSPTests.csproj", "{289F7D48-C46B-4203-B622-3387289F3F11}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EncPerformancetest", "EncPerformancetest\EncPerformancetest.csproj", "{27DC356E-2734-4BF0-B174-1D22933E177E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,16 @@ Global
 		{289F7D48-C46B-4203-B622-3387289F3F11}.Release|ARM.ActiveCfg = Release|Any CPU
 		{289F7D48-C46B-4203-B622-3387289F3F11}.Release|x64.ActiveCfg = Release|Any CPU
 		{289F7D48-C46B-4203-B622-3387289F3F11}.Release|x86.ActiveCfg = Release|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Release|ARM.ActiveCfg = Release|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Release|x64.ActiveCfg = Release|Any CPU
+		{27DC356E-2734-4BF0-B174-1D22933E177E}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

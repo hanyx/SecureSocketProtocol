@@ -34,48 +34,10 @@ namespace TestClient
 
 
 
-            SysLogger.onSysLog += SysLogger_onSysLog;
+            //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
-            try
-            {
-                Client client = new Client();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine(ex.Message);
-            }
-            Random random = new Random();
 
-            byte[] temp = new byte[70000];
-            
-            Stopwatch sw = Stopwatch.StartNew();
-            Stopwatch RuntimeSW = Stopwatch.StartNew();
-
-            /*client.CreateConnection();
-
-            int count = 0;
-            int speed = 0;
-            int packets = 0;
-
-            while (true)
-            {
-                temp = new byte[random.Next(5000000)];
-                client.connection.Send(temp, 0, temp.Length, new SystemHeader());
-
-                speed += temp.Length;
-                packets++;
-
-                if (sw.ElapsedMilliseconds >= 1000)
-                {
-                    Console.Title = "Runtime: " + RuntimeSW.Elapsed;
-
-                    double SpeedPerSec = Math.Round(((speed / 1024F) / 1024F), 2);
-                    Console.WriteLine("Speed:" + SpeedPerSec + "MBps" + ", " + Math.Round(((SpeedPerSec / 1024F) * 8), 2) + "Gbps, Packets: " + packets + ", last size:" + temp.Length);
-                    speed = 0;
-                    packets = 0;
-                    sw = Stopwatch.StartNew();
-                }
-            }*/
+            Client client = new Client();
             Process.GetCurrentProcess().WaitForExit();
         }
 
@@ -115,7 +77,7 @@ namespace TestClient
             Stopwatch RuntimeSW = Stopwatch.StartNew();
 
             Benchmark bench = new Benchmark();
-            //while (false)
+            while (true)
             {
                 //Thread.Sleep(1);
                 int size = 0;
@@ -216,7 +178,7 @@ namespace TestClient
 
             public override uint Cipher_Rounds
             {
-                get { return 512; }
+                get { return 1; }
             }
         }
     }

@@ -56,10 +56,11 @@ namespace TestClient.Sockets
         string TestStr = "";
 
         private int test = 0;
+        private byte[] testBytes = new byte[65535];
         public int SendStuff()
         {
             test++;
-            base.SendMessage(new TestMessage() { Buffer = new byte[1337] }, new TestHeader());
+            base.SendMessage(new TestMessage() { Buffer = testBytes }, new TestHeader());
 
             /*if (TestStr == "")
             {

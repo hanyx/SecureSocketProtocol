@@ -31,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -60,6 +61,8 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Encryptions\Compiler\IAlgorithm.cs" />
+    <Compile Include="Encryptions\Compiler\InstructionInfo.cs" />
     <Compile Include="Encryptions\KeyEncryptor.cs" />
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />
@@ -178,6 +181,7 @@
     <Compile Include="ProtoBuf\ServiceModel\XmlProtoSerializer.cs" />
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
+    <Compile Include="Encryptions\Compiler\AlgorithmCompiler.cs" />
     <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\OptimizedPayloadStream.cs" />

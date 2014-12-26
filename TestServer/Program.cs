@@ -15,7 +15,7 @@ namespace TestServer
 
         static void Main(string[] args)
         {
-            SysLogger.onSysLog += SysLogger_onSysLog;
+            //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Server";
             Users = new SortedList<string, User.UserDbInfo>();
 
