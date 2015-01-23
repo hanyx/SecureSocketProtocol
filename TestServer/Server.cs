@@ -69,6 +69,16 @@ namespace TestServer
             {
                 get { return 1; }
             }
+
+            public override EncAlgorithm EncryptionAlgorithm
+            {
+                get { return EncAlgorithm.HwAES; }
+            }
+
+            public override CompressionAlgorithm CompressionAlgorithm
+            {
+                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
+            }
         }
 
         private class Certificate : CertificateInfo

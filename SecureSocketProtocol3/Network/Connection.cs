@@ -14,6 +14,7 @@ using System.Threading;
 using SecureSocketProtocol3.Network.MazingHandshake;
 using ProtoBuf;
 using SecureSocketProtocol3.Features;
+using SecureSocketProtocol3.Compressions;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -86,6 +87,7 @@ namespace SecureSocketProtocol3.Network
         
         //locks
         private object NextRandomIdLock = new object();
+        private object SendLock = new object();
 
         //receive info
         private int ReadOffset = 0;
@@ -108,9 +110,11 @@ namespace SecureSocketProtocol3.Network
         private int FeatureId = 0;
 
         //Security
-        private WopEx HeaderEncryption;
-        private WopEx PayloadEncryption;
+        internal WopEx HeaderEncryption { get; private set; }
+        internal WopEx PayloadEncryption { get; private set; }
+        internal HwAes EncAES { get; private set; }
         internal int PrivateSeed { get; private set; }
+        internal UnsafeQuickLZ QuickLZ { get; private set; }
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -118,7 +122,11 @@ namespace SecureSocketProtocol3.Network
         public ulong PacketsOut { get; private set; }
         public ulong DataOut { get; private set; }
 
+        public ulong DataCompressedIn { get; private set; }
+
         internal bool HandShakeCompleted { get; set; }
+        public EncAlgorithm EncryptionAlgorithm { get; internal set; }
+        public CompressionAlgorithm CompressionAlgorithm { get; internal set; }
 
         public Connection(SSPClient client)
         {
@@ -131,11 +139,13 @@ namespace SecureSocketProtocol3.Network
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
             this.Requests = new SortedList<int, SyncObject>();
             this.OperationalSockets = new SortedList<ushort, OperationalSocket>();
+            this.EncryptionAlgorithm = client.Server != null ? client.Server.serverProperties.EncryptionAlgorithm : client.Properties.EncryptionAlgorithm;
+            this.CompressionAlgorithm = client.Server != null ? client.Server.serverProperties.CompressionAlgorithm : client.Properties.CompressionAlgorithm;
 
             //generate the header encryption
             byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
 
-            PrivateSeed = privKey.Length >= 8 ? BitConverter.ToInt32(privKey, 0) : 0xBEEF;
+            PrivateSeed = privKey.Length >= 4 ? BitConverter.ToInt32(privKey, 0) : 0xBEEF;
 
             for (int i = 0; i < privKey.Length; i++)
                 PrivateSeed += privKey[i];
@@ -152,7 +162,13 @@ namespace SecureSocketProtocol3.Network
             this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, false);
 
             WopEx.GenerateCryptoCode(PrivateSeed << 3, 15, ref encCode, ref decCode);
-            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, true);
+            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.Simple, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, true);
+
+            byte[] temp_iv = new byte[16];
+            Array.Copy(InitialVector, temp_iv, 16);
+            this.EncAES = new HwAes(privKey, temp_iv, 256, System.Security.Cryptography.CipherMode.CBC, System.Security.Cryptography.PaddingMode.PKCS7);
+
+            this.QuickLZ = new UnsafeQuickLZ();
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
@@ -265,10 +281,71 @@ namespace SecureSocketProtocol3.Network
                     Process = ReadableDataLen >= PayloadLen;
                     if (ReadableDataLen >= PayloadLen)
                     {
-                        lock (PayloadEncryption)
+                        byte[] DecryptedBuffer = null;
+                        int DecryptedBuffOffset = 0;
+                        int DecryptedBuffLen = 0;
+
+                        #region Encryption & Compression
+                        if (EncAlgorithm.HwAES == (EncryptionAlgorithm & EncAlgorithm.HwAES))
                         {
-                            PayloadEncryption.Decrypt(Buffer, ReadOffset, PayloadLen);
+                            lock (EncAES)
+                            {
+                                if (DecryptedBuffer != null)
+                                {
+                                    DecryptedBuffer = EncAES.Decrypt(DecryptedBuffer, DecryptedBuffOffset, DecryptedBuffLen);
+                                }
+                                else
+                                {
+                                    DecryptedBuffer = EncAES.Decrypt(Buffer, ReadOffset, PayloadLen);
+                                }
+                                DecryptedBuffLen = DecryptedBuffer.Length;
+                            }
                         }
+                        if (EncAlgorithm.WopEx == (EncryptionAlgorithm & EncAlgorithm.WopEx))
+                        {
+                            lock (PayloadEncryption)
+                            {
+                                if (DecryptedBuffer != null)
+                                {
+                                    PayloadEncryption.Decrypt(DecryptedBuffer, DecryptedBuffOffset, DecryptedBuffLen);
+                                }
+                                else
+                                {
+                                    PayloadEncryption.Decrypt(Buffer, ReadOffset, PayloadLen);
+                                }
+                                DecryptedBuffer = Buffer;
+                                DecryptedBuffOffset = ReadOffset;
+                                DecryptedBuffLen = PayloadLen;
+                            }
+                        }
+
+                        if (CompressionAlgorithm.QuickLZ == (this.CompressionAlgorithm & SecureSocketProtocol3.CompressionAlgorithm.QuickLZ))
+                        {
+                            if (DecryptedBuffer != null)
+                            {
+                                byte[] temp = QuickLZ.decompress(DecryptedBuffer, (uint)DecryptedBuffOffset);
+                                if (temp != null)
+                                {
+                                    DecryptedBuffer = temp;
+                                    DecryptedBuffOffset = 0;
+                                    DecryptedBuffLen = temp.Length;
+                                    DataCompressedIn += (ulong)DecryptedBuffLen;
+                                }
+                            }
+                            else
+                            {
+                                byte[] temp = DecryptedBuffer = QuickLZ.decompress(Buffer, (uint)ReadOffset);
+                                if (temp != null)
+                                {
+                                    DecryptedBuffer = temp;
+                                    DecryptedBuffOffset = 0;
+                                    DecryptedBuffLen = temp.Length;
+                                    DataCompressedIn += (ulong)DecryptedBuffLen;
+                                }
+                            }
+                            DecryptedBuffLen = DecryptedBuffer.Length;
+                        }
+                        #endregion
 
                         TotalReceived += PayloadLen;
                         //check if Fragments are being used for big packets
@@ -290,8 +367,8 @@ namespace SecureSocketProtocol3.Network
                                 FragmentOffset = 0;
                             }
 
-                            Array.Copy(Buffer, ReadOffset, FragmentBuffer, FragmentOffset, PayloadLen); //here it will decrease performance
-                            FragmentOffset += PayloadLen;
+                            Array.Copy(DecryptedBuffer, DecryptedBuffOffset, FragmentBuffer, FragmentOffset, DecryptedBuffLen); //here it will decrease performance
+                            FragmentOffset += DecryptedBuffLen;
 
                             bool LastFragment = (FragmentId & 128) == 128;
 
@@ -308,10 +385,10 @@ namespace SecureSocketProtocol3.Network
 
                         if (ProcessPacket)
                         {
-                            using (PayloadReader pr = new PayloadReader(FragmentBuffer != null ? FragmentBuffer : this.Buffer))
+                            using (PayloadReader pr = new PayloadReader(FragmentBuffer != null ? FragmentBuffer : DecryptedBuffer))
                             {
                                 if (FragmentBuffer == null)
-                                    pr.Offset = ReadOffset;
+                                    pr.Offset = DecryptedBuffOffset;
 
                                 OperationalSocket OpSocket = null;
                                 if (ConnectionId > 0)
@@ -405,52 +482,55 @@ namespace SecureSocketProtocol3.Network
         /// <param name="OpSocket">The OperationalSocket that has been used for this Message</param>
         internal void SendMessage(IMessage Message, Header Header, Feature feature = null, OperationalSocket OpSocket = null)
         {
-            if (Message == null)
-                throw new ArgumentException("Message cannot be null");
-            if (Header == null)
-                throw new ArgumentException("Header cannot be null");
-
-            uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
-            byte[] SerializedHeader = Header.Serialize(Header);
-            ushort HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
-
-            if (SerializedHeader.Length >= MAX_FRAGMENT_SIZE)
-                throw new ArgumentException("Header length cannot be greater then " + (MAX_PAYLOAD / 2));
-
-            using (OptimizedPayloadStream ms = new OptimizedPayloadStream(SerializedHeader, HeaderId, feature, OpSocket))
+            lock (SendLock)
             {
-                ms.Write(BitConverter.GetBytes(messageId), 0, 4);
+                if (Message == null)
+                    throw new ArgumentException("Message cannot be null");
+                if (Header == null)
+                    throw new ArgumentException("Header cannot be null");
 
-                MemoryStream stream = ms.PayloadFrames[ms.PayloadFrames.Count - 1];
+                uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
+                byte[] SerializedHeader = Header.Serialize(Header);
+                ushort HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
 
-                int ReservedPos = (int)stream.Position;
-                ms.Write(new byte[3], 0, 3); //reserve space
+                if (SerializedHeader.Length >= MAX_FRAGMENT_SIZE)
+                    throw new ArgumentException("Header length cannot be greater then " + (MAX_PAYLOAD / 2));
 
-                ms.WritingMessage = true;
-                Serializer.Serialize(ms, Message);
-                ms.WritingMessage = false;
-
-                using (PayloadWriter pw = new PayloadWriter(new MemoryStream(stream.GetBuffer())))
+                using (OptimizedPayloadStream ms = new OptimizedPayloadStream(SerializedHeader, HeaderId, feature, OpSocket))
                 {
-                    pw.Position = ReservedPos; //skip MessageId data
-                    pw.WriteThreeByteInteger(ms.MessageLength);//Reserved Space + MessageId = 7
-                }
-                ms.Commit();
+                    ms.Write(BitConverter.GetBytes(messageId), 0, 4);
 
-                for (int i = 0; i < ms.PayloadFrames.Count; i++)
-                {
-                    stream = ms.PayloadFrames[i];
+                    MemoryStream stream = ms.PayloadFrames[ms.PayloadFrames.Count - 1];
 
-                    lock (HeaderEncryption)
+                    int ReservedPos = (int)stream.Position;
+                    ms.Write(new byte[3], 0, 3); //reserve space
+
+                    ms.WritingMessage = true;
+                    Serializer.Serialize(ms, Message);
+                    ms.WritingMessage = false;
+
+                    using (PayloadWriter pw = new PayloadWriter(new MemoryStream(stream.GetBuffer())))
                     {
-                        HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
+                        pw.Position = ReservedPos; //skip MessageId data
+                        pw.WriteThreeByteInteger(ms.MessageLength);//Reserved Space + MessageId = 7
                     }
-                    lock (PayloadEncryption)
-                    {
-                        PayloadEncryption.Encrypt(stream.GetBuffer(), HEADER_SIZE, (int)stream.Length - HEADER_SIZE);
-                    }
+                    ms.Commit(this);
 
-                    Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
+                    for (int i = 0; i < ms.PayloadFrames.Count; i++)
+                    {
+                        stream = ms.PayloadFrames[i];
+
+                        lock (HeaderEncryption)
+                        {
+                            HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
+                        }
+                        /*lock (PayloadEncryption)
+                        {
+                            PayloadEncryption.Encrypt(stream.GetBuffer(), HEADER_SIZE, (int)stream.Length - HEADER_SIZE);
+                        }*/
+
+                        Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
+                    }
                 }
             }
         }

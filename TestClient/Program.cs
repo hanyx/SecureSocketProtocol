@@ -85,7 +85,7 @@ namespace TestClient
 
                 if (bench.PastASecond)
                 {
-                    ulong Speed = bench.SpeedPerSec * 60000;
+                    ulong Speed = bench.SpeedPerSec * (ulong)testSock.testBytes.Length;
                     double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
                     double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 0);
 
@@ -179,6 +179,16 @@ namespace TestClient
             public override uint Cipher_Rounds
             {
                 get { return 1; }
+            }
+
+            public override EncAlgorithm EncryptionAlgorithm
+            {
+                get { return EncAlgorithm.HwAES; }
+            }
+
+            public override CompressionAlgorithm CompressionAlgorithm
+            {
+                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
             }
         }
     }

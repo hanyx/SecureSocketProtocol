@@ -907,6 +907,7 @@ namespace SecureSocketProtocol3.Encryptions
                 this.random = new FastRandom(seed);
                 this.Seed = seed;
                 this.IsDecryptState = IsDecryptState;
+                AlgoCompiler = new AlgorithmCompiler(IsDecryptState);
 
                 this.Key = new ulong[key.Length];
                 Array.Copy(key, this.Key, key.Length);
@@ -920,9 +921,7 @@ namespace SecureSocketProtocol3.Encryptions
 
             public void Compile()
             {
-                AlgoCompiler = null;
-                AlgoCompiler = new AlgorithmCompiler(Instructions, IsDecryptState);
-                Algorithm = AlgoCompiler.Algorithm;
+                Algorithm = AlgoCompiler.Compile(Instructions);
             }
         }
     }

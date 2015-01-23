@@ -105,4 +105,25 @@ namespace SecureSocketProtocol3
         PacketAnalyzes = 4,
         Everything = 5
     }
+
+    public enum EncAlgorithm
+    {
+        /// <summary>
+        /// Hardware Accelerated AES by using the AesCryptoServiceProvider (performance only gained if CPU supports it)
+        /// </summary>
+        HwAES = 1,
+        /// <summary>
+        /// WopEx is a custom made encryption algorithm designed to be secure
+        /// </summary>
+        WopEx = 2
+    }
+
+    public enum CompressionAlgorithm
+    {
+        /// <summary>
+        /// Use no compression algorithm
+        /// </summary>
+        None = 0,
+        QuickLZ = 1
+    }
 }

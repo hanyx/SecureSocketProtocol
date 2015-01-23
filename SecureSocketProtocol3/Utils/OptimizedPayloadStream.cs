@@ -1,4 +1,5 @@
-﻿using SecureSocketProtocol3.Features;
+﻿using SecureSocketProtocol3.Compressions;
+using SecureSocketProtocol3.Features;
 using SecureSocketProtocol3.Network;
 using System;
 using System.Collections.Generic;
@@ -137,22 +138,68 @@ namespace SecureSocketProtocol3.Utils
         /// <summary>
         /// Save the changes and apply Header Information
         /// </summary>
-        public void Commit()
+        public void Commit(Connection conn)
         {
             bool UseFragments = PayloadFrames.Count > 1;
             int FullLength = 0;
             byte FragmentId = (byte)(UseFragments ? 1 : 0);
 
+            //count all the payload, this is the original size
             for (int i = 0; i < PayloadFrames.Count; i++)
                 FullLength += (int)PayloadFrames[i].Length - Connection.HEADER_SIZE;
+
+            #region Encryption & Compression
+            //compress all the data
+            for (int i = 0; i < PayloadFrames.Count; i++)
+            {
+                MemoryStream stream = PayloadFrames[i];
+                if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & CompressionAlgorithm.QuickLZ))
+                {
+                    UnsafeQuickLZ quickLz = new UnsafeQuickLZ();
+                    byte[] compressed = quickLz.compress(stream.GetBuffer(), (uint)Connection.HEADER_SIZE, (uint)stream.Length - Connection.HEADER_SIZE);
+
+                    if (compressed != null)
+                    {
+                        stream.Position = Connection.HEADER_SIZE;
+                        stream.Write(compressed, 0, compressed.Length);
+
+                        if (stream.Length != compressed.Length + Connection.HEADER_SIZE)
+                            stream.SetLength(compressed.Length + Connection.HEADER_SIZE);
+                    }
+                }
+            }
+
+            //encrypt all the data
+            for (int i = 0; i < PayloadFrames.Count; i++)
+            {
+                MemoryStream stream = PayloadFrames[i];
+                if (EncAlgorithm.HwAES == (conn.EncryptionAlgorithm & EncAlgorithm.HwAES))
+                {
+                    lock (conn.EncAES)
+                    {
+                        //no need to re-size the stream here, AES will encrypt at the same size or bigger then the stream, so data will be overwritten
+                        byte[] encrypted = conn.EncAES.Encrypt(stream.GetBuffer(), Connection.HEADER_SIZE, (int)stream.Length - Connection.HEADER_SIZE);
+                        stream.Position = Connection.HEADER_SIZE;
+                        stream.Write(encrypted, 0, encrypted.Length);
+                    }
+                }
+                if (EncAlgorithm.WopEx == (conn.EncryptionAlgorithm & EncAlgorithm.WopEx))
+                {
+                    lock (conn.PayloadEncryption)
+                    {
+                        conn.PayloadEncryption.Encrypt(stream.GetBuffer(), Connection.HEADER_SIZE, (int)stream.Length - Connection.HEADER_SIZE);
+                    }
+                }
+            }
+            #endregion
 
             for (int i = 0; i < PayloadFrames.Count; i++)
             {
                 PayloadWriter pw = new PayloadWriter(PayloadFrames[i]);
                 pw.Position = 0;
 
-                if (pw.Length - Connection.HEADER_SIZE > ushort.MaxValue)
-                    throw new OverflowException(); //should never happen if Write(...) is handled correctly
+                //if (pw.Length - Connection.HEADER_SIZE > ushort.MaxValue)
+                //    throw new OverflowException(); //should never happen if Write(...) is handled correctly
 
                 ushort PayloadLength = (ushort)(pw.Length - Connection.HEADER_SIZE);
 

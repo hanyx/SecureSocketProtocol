@@ -21,6 +21,9 @@ namespace SecureSocketProtocol3
 
         public abstract uint Cipher_Rounds { get; }
 
+        public abstract EncAlgorithm EncryptionAlgorithm { get; }
+        public abstract CompressionAlgorithm CompressionAlgorithm { get; }
+
         public ClientProperties()
         {
 

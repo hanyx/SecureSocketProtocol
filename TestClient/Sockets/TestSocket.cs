@@ -2,6 +2,7 @@
 using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.Messages;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -56,9 +57,11 @@ namespace TestClient.Sockets
         string TestStr = "";
 
         private int test = 0;
-        private byte[] testBytes = new byte[65535];
+        FastRandom rnd = new FastRandom();
+        public byte[] testBytes = new byte[65550];
         public int SendStuff()
         {
+            //testBytes = new byte[rnd.Next(0, 65535)];
             test++;
             base.SendMessage(new TestMessage() { Buffer = testBytes }, new TestHeader());
 

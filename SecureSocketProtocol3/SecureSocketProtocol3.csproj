@@ -9,8 +9,9 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>SecureSocketProtocol3</RootNamespace>
     <AssemblyName>SecureSocketProtocol3</AssemblyName>
-    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -46,7 +47,8 @@
   <ItemGroup>
     <Compile Include="ClientProperties.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
-    <Compile Include="Compressions\QuickLZ.cs" />
+    <Compile Include="Compressions\SafeQuickLZ.cs" />
+    <Compile Include="Compressions\UnsafeQuickLZ.cs" />
     <Compile Include="Controls\ChartInfo.cs" />
     <Compile Include="Controls\HSLColor.cs" />
     <Compile Include="Controls\PerformanceChart.cs">
@@ -63,6 +65,7 @@
     </Compile>
     <Compile Include="Encryptions\Compiler\IAlgorithm.cs" />
     <Compile Include="Encryptions\Compiler\InstructionInfo.cs" />
+    <Compile Include="Encryptions\HwAes.cs" />
     <Compile Include="Encryptions\KeyEncryptor.cs" />
     <Compile Include="Encryptions\WopEncryption.cs" />
     <Compile Include="Encryptions\WopEx.cs" />

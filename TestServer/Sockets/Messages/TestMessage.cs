@@ -13,6 +13,9 @@ namespace TestServer.Sockets.Messages
         [ProtoMember(1)]
         public byte[] Buffer;
 
+        [ProtoMember(2)]
+        public string TestStr;
+
         public TestMessage()
             : base()
         {

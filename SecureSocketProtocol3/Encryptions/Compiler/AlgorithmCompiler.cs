@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
@@ -13,6 +14,7 @@ namespace SecureSocketProtocol3.Encryptions.Compiler
     {
         private static object GlobalLock = new object();
         private static ulong GlobalInitialized = 0;
+        private ulong CompiledClasses = 0;
 
         private ModuleBuilder modBuilder;
         private TypeBuilder typeBuilder;
@@ -26,7 +28,7 @@ namespace SecureSocketProtocol3.Encryptions.Compiler
         /// </summary>
         public IAlgorithm Algorithm { get; private set; }
 
-        public AlgorithmCompiler(InstructionInfo[] Instructions, bool IsDecryptState)
+        public AlgorithmCompiler(bool IsDecryptState)
         {
             this.IsDecryptState = IsDecryptState;
             this.assemblyName = new AssemblyName();
@@ -38,27 +40,37 @@ namespace SecureSocketProtocol3.Encryptions.Compiler
 
             asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             modBuilder = asmBuilder.DefineDynamicModule(asmBuilder.GetName().Name);
+        }
 
-            
-            typeBuilder = modBuilder.DefineType("AlgoClass", TypeAttributes.Public |
-                                                             TypeAttributes.Class |
-                                                             TypeAttributes.AutoClass |
-                                                             TypeAttributes.AnsiClass |
-                                                             TypeAttributes.BeforeFieldInit |
-                                                             TypeAttributes.AutoLayout,
-                                                             typeof(object),
-                                                             new Type[] { typeof(IAlgorithm) });
+        public IAlgorithm Compile(InstructionInfo[] Instructions)
+        {
+            lock(modBuilder)
+            {
+                Stopwatch sw = Stopwatch.StartNew();
+                typeBuilder = modBuilder.DefineType("AlgoClass_" + CompiledClasses, TypeAttributes.Public |
+                                                                 TypeAttributes.Class |
+                                                                 TypeAttributes.AutoClass |
+                                                                 TypeAttributes.AnsiClass |
+                                                                 TypeAttributes.BeforeFieldInit |
+                                                                 TypeAttributes.AutoLayout,
+                                                                 typeof(object),
+                                                                 new Type[] { typeof(IAlgorithm) });
 
-            CreateConstructor(typeBuilder);
-            CreateDeconstructor(typeBuilder);
-            CreateUlongMethod(typeBuilder, Instructions);
-            //CreateByteMethod(typeBuilder);
+                CreateConstructor(typeBuilder);
+                CreateDeconstructor(typeBuilder);
+                CreateUlongMethod(typeBuilder, Instructions);
+                //CreateByteMethod(typeBuilder);
 
-            Type InitType = typeBuilder.CreateType();
-            Algorithm = (IAlgorithm)InitType.GetConstructor(new Type[] {  }).Invoke(new object[] {  });
+                Type InitType = typeBuilder.CreateType();
+                Algorithm = (IAlgorithm)InitType.GetConstructor(new Type[] {  }).Invoke(new object[] {  });
 
-            //asmBuilder.Save("Dderp.dll");
-            //ulong test = Algorithm.CalculateULong(1);
+                //asmBuilder.Save("Dderp.dll");
+                //ulong test = Algorithm.CalculateULong(1);
+
+                CompiledClasses++;
+                sw.Stop();
+                return Algorithm;
+            }
         }
 
         private ConstructorBuilder CreateConstructor(TypeBuilder typeBuilder)

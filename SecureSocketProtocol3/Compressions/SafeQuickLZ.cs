@@ -18,7 +18,7 @@ namespace SecureSocketProtocol3.Compressions
     //
     // Version: 1.5.0 final
 
-    public class QuickLZ
+    public class SafeQuickLZ
     {
         public const int QLZ_VERSION_MAJOR = 1;
         public const int QLZ_VERSION_MINOR = 5;
