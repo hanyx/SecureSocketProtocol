@@ -6,11 +6,11 @@ namespace SecureSocketProtocol3.Utils
 {
     public class RandomDecimal
     {
-        private Random random;
+        private FastRandom random;
 
         public RandomDecimal(int Seed)
         {
-            random = new Random(Seed);
+            random = new FastRandom(Seed);
         }
 
         private int NextInt32()

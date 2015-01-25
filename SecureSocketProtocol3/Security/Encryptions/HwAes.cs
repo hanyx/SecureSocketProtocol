@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace SecureSocketProtocol3.Encryptions
+namespace SecureSocketProtocol3.Security.Encryptions
 {
     /// <summary>
     /// HwAes (Hardware Accelerated AES) by using the AesCryptoServiceProvider

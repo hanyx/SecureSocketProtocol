@@ -1,5 +1,5 @@
-﻿using SecureSocketProtocol3.Encryptions;
-using SecureSocketProtocol3.Encryptions.Compiler;
+﻿using SecureSocketProtocol3.Security.Encryptions;
+using SecureSocketProtocol3.Security.Encryptions.Compiler;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

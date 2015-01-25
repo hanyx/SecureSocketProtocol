@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SecureSocketProtocol3.Encryptions.Compiler
+namespace SecureSocketProtocol3.Security.Encryptions.Compiler
 {
     [ProtoContract]
     public class InstructionInfo

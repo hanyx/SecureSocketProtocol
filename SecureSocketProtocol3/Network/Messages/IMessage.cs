@@ -31,7 +31,7 @@ namespace SecureSocketProtocol3.Network.Messages
             using (PayloadWriter pw = new PayloadWriter())
             {
                 Serializer.Serialize(ms, message);
-
+                
                 pw.WriteThreeByteInteger((int)ms.Length);
                 pw.WriteBytes(ms.ToArray());
                 return pw.ToByteArray();

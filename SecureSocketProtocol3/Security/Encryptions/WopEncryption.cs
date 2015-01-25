@@ -1,8 +1,9 @@
-﻿using System;
+﻿using SecureSocketProtocol3.Utils;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace SecureSocketProtocol3.Encryptions
+namespace SecureSocketProtocol3.Security.Encryptions
 {
     public class WopEncryption
     {
@@ -12,8 +13,8 @@ namespace SecureSocketProtocol3.Encryptions
         internal uint[] Salt_Dec;
         public const uint BLOCK_SIZE = 8;
         public bool UseDynamicKey { get; private set; }
-        private Random enc_random = new Random(int.MaxValue / 5);
-        private Random dec_random = new Random(int.MaxValue / 5);
+        private FastRandom enc_random = new FastRandom(int.MaxValue / 5);
+        private FastRandom dec_random = new FastRandom(int.MaxValue / 5);
 
         public readonly ulong[] BbqSauce = new ulong[]
         {

@@ -1,12 +1,12 @@
 ﻿using ProtoBuf;
-using SecureSocketProtocol3.Encryptions.Compiler;
+using SecureSocketProtocol3.Security.Encryptions.Compiler;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace SecureSocketProtocol3.Encryptions
+namespace SecureSocketProtocol3.Security.Encryptions
 {
     /// <summary>
     /// WopEx is a more advanced form of the WopEncryption

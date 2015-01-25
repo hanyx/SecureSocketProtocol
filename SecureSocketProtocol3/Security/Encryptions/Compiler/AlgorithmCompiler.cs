@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace SecureSocketProtocol3.Encryptions.Compiler
+namespace SecureSocketProtocol3.Security.Encryptions.Compiler
 {
     /// <summary>
     /// This Algorithm Compiler is mainly used for WopEx

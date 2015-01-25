@@ -5,7 +5,7 @@ using System.Net.Sockets;
 using System.Diagnostics;
 using SecureSocketProtocol3.Utils;
 using System.IO;
-using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Security.Encryptions;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.Messages;
 using SecureSocketProtocol3.Network.Messages.TCP;
@@ -15,6 +15,7 @@ using SecureSocketProtocol3.Network.MazingHandshake;
 using ProtoBuf;
 using SecureSocketProtocol3.Features;
 using SecureSocketProtocol3.Compressions;
+using SecureSocketProtocol3.Security.Obfuscators;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -115,6 +116,7 @@ namespace SecureSocketProtocol3.Network
         internal HwAes EncAES { get; private set; }
         internal int PrivateSeed { get; private set; }
         internal UnsafeQuickLZ QuickLZ { get; private set; }
+        private HeaderConfuser headerConfuser { get; set; }
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -167,6 +169,8 @@ namespace SecureSocketProtocol3.Network
             byte[] temp_iv = new byte[16];
             Array.Copy(InitialVector, temp_iv, 16);
             this.EncAES = new HwAes(privKey, temp_iv, 256, System.Security.Cryptography.CipherMode.CBC, System.Security.Cryptography.PaddingMode.PKCS7);
+
+            this.headerConfuser = new HeaderConfuser(PrivateSeed);
 
             this.QuickLZ = new UnsafeQuickLZ();
 
@@ -242,6 +246,7 @@ namespace SecureSocketProtocol3.Network
                     {
                         lock (HeaderEncryption)
                         {
+                            headerConfuser.Deobfuscate(ref Buffer, ReadOffset);
                             HeaderEncryption.Decrypt(Buffer, ReadOffset, HEADER_SIZE);
                         }
 
@@ -286,6 +291,7 @@ namespace SecureSocketProtocol3.Network
                         int DecryptedBuffLen = 0;
 
                         #region Encryption & Compression
+
                         if (EncAlgorithm.HwAES == (EncryptionAlgorithm & EncAlgorithm.HwAES))
                         {
                             lock (EncAES)
@@ -523,6 +529,9 @@ namespace SecureSocketProtocol3.Network
                         lock (HeaderEncryption)
                         {
                             HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
+
+                            byte[] temp = stream.GetBuffer();
+                            headerConfuser.Obfuscate(ref temp, ReadOffset);
                         }
                         /*lock (PayloadEncryption)
                         {
@@ -579,7 +588,7 @@ namespace SecureSocketProtocol3.Network
             lock (Requests)
             {
                 SyncObject syncObj = new SyncObject(this);
-                Random rnd = new Random();
+                FastRandom rnd = new FastRandom();
 
                 do 
                 {
@@ -636,7 +645,7 @@ namespace SecureSocketProtocol3.Network
                 decimal response = SyncNextRandomId.Wait<decimal>(0, 30000);
 
                 if (response == null)
-                    throw new Exception("A time out occured, ");
+                    throw new Exception("A time out occured");
 
                 return response;
             }

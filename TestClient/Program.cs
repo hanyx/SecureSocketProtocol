@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using System.IO;
 using SecureSocketProtocol3.Network;
-using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Security.Encryptions;
 using System.Threading;
 using SecureSocketProtocol3.Utils;
 using SecureSocketProtocol3.Network.Headers;

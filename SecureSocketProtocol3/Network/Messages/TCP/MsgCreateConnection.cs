@@ -1,5 +1,6 @@
 ﻿using ProtoBuf;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -45,7 +46,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                         lock (client.Connection.OperationalSockets)
                         {
-                            Random rnd = new Random();
+                            FastRandom rnd = new FastRandom();
                             OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);
                             while(client.Connection.OperationalSockets.ContainsKey(OpSocket.ConnectionId))
                                 OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);

@@ -1,4 +1,4 @@
-﻿using SecureSocketProtocol3.Encryptions;
+﻿using SecureSocketProtocol3.Security.Encryptions;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;

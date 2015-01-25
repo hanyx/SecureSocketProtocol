@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientProperties.cs" />
+    <Compile Include="Compressions\GzipCompression.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
     <Compile Include="Compressions\SafeQuickLZ.cs" />
     <Compile Include="Compressions\UnsafeQuickLZ.cs" />
@@ -63,12 +64,12 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
-    <Compile Include="Encryptions\Compiler\IAlgorithm.cs" />
-    <Compile Include="Encryptions\Compiler\InstructionInfo.cs" />
-    <Compile Include="Encryptions\HwAes.cs" />
-    <Compile Include="Encryptions\KeyEncryptor.cs" />
-    <Compile Include="Encryptions\WopEncryption.cs" />
-    <Compile Include="Encryptions\WopEx.cs" />
+    <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
+    <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
+    <Compile Include="Security\Encryptions\HwAes.cs" />
+    <Compile Include="Security\Encryptions\KeyEncryptor.cs" />
+    <Compile Include="Security\Encryptions\WopEncryption.cs" />
+    <Compile Include="Security\Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Features\Feature.cs" />
     <Compile Include="Hashers\CRC32.cs" />
@@ -184,7 +185,8 @@
     <Compile Include="ProtoBuf\ServiceModel\XmlProtoSerializer.cs" />
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
-    <Compile Include="Encryptions\Compiler\AlgorithmCompiler.cs" />
+    <Compile Include="Security\Encryptions\Compiler\AlgorithmCompiler.cs" />
+    <Compile Include="Security\Obfuscators\HeaderConfuser.cs" />
     <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\OptimizedPayloadStream.cs" />

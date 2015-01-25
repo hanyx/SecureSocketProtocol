@@ -158,7 +158,8 @@ namespace SecureSocketProtocol3.Utils
                     UnsafeQuickLZ quickLz = new UnsafeQuickLZ();
                     byte[] compressed = quickLz.compress(stream.GetBuffer(), (uint)Connection.HEADER_SIZE, (uint)stream.Length - Connection.HEADER_SIZE);
 
-                    if (compressed != null)
+                    if (compressed != null &&
+                        compressed.Length + Connection.HEADER_SIZE < stream.Length) //only apply compression if it's smaller then the original data
                     {
                         stream.Position = Connection.HEADER_SIZE;
                         stream.Write(compressed, 0, compressed.Length);
