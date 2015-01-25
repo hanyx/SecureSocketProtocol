@@ -47,12 +47,6 @@
     <Compile Include="Sockets\TestSocket.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SecureSocketProtocol3\SecureSocketProtocol3.csproj">
-      <Project>{4615f7f9-8ec2-4005-8e82-657b0f196051}</Project>
-      <Name>SecureSocketProtocol3</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <None Include="app.config" />
     <None Include="Data\PrivateKey1.dat">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -68,6 +62,12 @@
     <Content Include="Data\ReadMe.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SecureSocketProtocol3\SecureSocketProtocol3.csproj">
+      <Project>{4615f7f9-8ec2-4005-8e82-657b0f196051}</Project>
+      <Name>SecureSocketProtocol3</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

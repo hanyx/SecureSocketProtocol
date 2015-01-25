@@ -15,7 +15,7 @@ using SecureSocketProtocol3.Network.MazingHandshake;
 using ProtoBuf;
 using SecureSocketProtocol3.Features;
 using SecureSocketProtocol3.Compressions;
-using SecureSocketProtocol3.Security.Obfuscators;
+using SecureSocketProtocol3.Security.Obfuscation;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -531,7 +531,7 @@ namespace SecureSocketProtocol3.Network
                             HeaderEncryption.Encrypt(stream.GetBuffer(), 0, HEADER_SIZE);
 
                             byte[] temp = stream.GetBuffer();
-                            headerConfuser.Obfuscate(ref temp, ReadOffset);
+                            headerConfuser.Obfuscate(ref temp, 0);
                         }
                         /*lock (PayloadEncryption)
                         {
