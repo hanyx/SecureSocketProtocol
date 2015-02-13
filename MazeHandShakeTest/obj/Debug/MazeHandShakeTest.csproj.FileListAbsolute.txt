@@ -20,3 +20,15 @@ C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Deb
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.csprojResolveAssemblyReference.cache
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.exe
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\ReadMe.txt
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PrivateKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PrivateKey2.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\Data\PublicKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.csprojResolveAssemblyReference.cache
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe.config
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.pdb

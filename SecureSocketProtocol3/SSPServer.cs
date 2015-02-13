@@ -69,7 +69,10 @@ namespace SecureSocketProtocol3
                 }
                 client.Connection.StartReceiver();
             }
-            catch { }
+            catch(Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
             this.TcpServer.BeginAccept(AsyncAction, null);
         }
 
@@ -90,7 +93,11 @@ namespace SecureSocketProtocol3
                     Username = user.UsernameStr;
                     return true;
                 }
-                catch { return false; }
+                catch (Exception ex)
+                {
+                    SysLogger.Log(ex.Message, SysLogType.Error); 
+                    return false;
+                }
             }
         }
 

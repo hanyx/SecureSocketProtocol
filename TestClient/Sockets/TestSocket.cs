@@ -58,7 +58,7 @@ namespace TestClient.Sockets
 
         private int test = 0;
         FastRandom rnd = new FastRandom();
-        public byte[] testBytes = new byte[65550];
+        public byte[] testBytes = new byte[65535];
         public int SendStuff()
         {
             //testBytes = new byte[rnd.Next(0, 65535)];

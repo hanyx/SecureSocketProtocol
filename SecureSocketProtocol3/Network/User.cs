@@ -1,4 +1,5 @@
-﻿using SecureSocketProtocol3.Network.MazingHandshake;
+﻿using ProtoBuf;
+using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -95,15 +96,29 @@ namespace SecureSocketProtocol3.Network
             return new UserDbInfo(MazeHandshake.Username, MazeHandshake.Password, EncryptedHash, MazeHandshake.MazeKey, MazeHandshake.PrivateSalt, MazeHandshake.PublicKeyData, Username);
         }
 
+        [ProtoContract]
         public class UserDbInfo
         {
-            public string UsernameStr { get; private set; }
-            public BigInteger Username { get; private set; }
-            public BigInteger Password { get; private set; }
-            public string EncryptedHash { get; private set; }
-            public BigInteger Key { get; private set; }
-            public BigInteger PrivateSalt { get; private set; }
-            public byte[] PublicKey { get; private set; }
+            [ProtoMember(1)]
+            public string UsernameStr;
+
+            [ProtoMember(2, DynamicType = true)]
+            public BigInteger Username;
+
+            [ProtoMember(3, DynamicType = true)]
+            public BigInteger Password;
+
+            [ProtoMember(4)]
+            public string EncryptedHash;
+
+            [ProtoMember(5, DynamicType = true)]
+            public BigInteger Key;
+
+            [ProtoMember(6, DynamicType = true)]
+            public BigInteger PrivateSalt;
+
+            [ProtoMember(7)]
+            public byte[] PublicKey;
 
             /// <summary>
             /// 
@@ -123,43 +138,52 @@ namespace SecureSocketProtocol3.Network
                 this.UsernameStr = UsernameStr;
             }
 
+            internal UserDbInfo()
+            {
+
+            }
+
             /// <summary>
             /// serialize the UserDbInfo in a Base64 string
             /// </summary>
             /// <returns></returns>
-            public string Serialize()
+            public byte[] Serialize()
             {
-                using (PayloadWriter pw = new PayloadWriter())
+                using (MemoryStream ms = new MemoryStream())
                 {
-                    pw.WriteString(UsernameStr);
-                    pw.WriteString(EncryptedHash);
+                    Serializer.Serialize(ms, this);
+                    return ms.ToArray();
+                }
+            }
+            
+            /// <summary>
+            /// serialize the UserDbInfo in a Base64 string
+            /// </summary>
+            /// <returns></returns>
+            public string SerializeToString()
+            {
+                return Convert.ToBase64String(Serialize());
+            }
 
-                    pw.WriteBigInteger(Username);
-                    pw.WriteBigInteger(Password);
-                    pw.WriteBigInteger(Key);
-                    pw.WriteBigInteger(PrivateSalt);
-
-                    pw.WriteInteger(PublicKey.Length);
-                    pw.WriteBytes(PublicKey);
-
-                    return Convert.ToBase64String(pw.ToByteArray());
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="SerializedData">The data that contains the User Information</param>
+            public static UserDbInfo Deserialize(byte[] SerializedData)
+            {
+                using (MemoryStream ms = new MemoryStream(SerializedData))
+                {
+                    return Serializer.Deserialize(ms, typeof(UserDbInfo)) as UserDbInfo;
                 }
             }
 
-            public UserDbInfo Deserialize(string SerializedData)
+            /// <summary>
+            /// deserialize the UserDbInfo from a Base64 string
+            /// </summary>
+            /// <returns></returns>
+            public static UserDbInfo DeserializeFromString(string SerializedData)
             {
-                using(PayloadReader pr = new PayloadReader(Convert.FromBase64String(SerializedData)))
-                {
-                    string userStr = pr.ReadString();
-                    string EncryptedHashStr = pr.ReadString();
-                    BigInteger userInt = pr.ReadBigInteger();
-                    BigInteger passInt = pr.ReadBigInteger();
-                    BigInteger keyInt = pr.ReadBigInteger();
-                    BigInteger saltInt = pr.ReadBigInteger();
-                    byte[] pubKey = pr.ReadBytes(pr.ReadInteger());
-
-                    return new UserDbInfo(userInt, passInt, EncryptedHashStr, keyInt, saltInt, pubKey, userStr);
-                }
+                return Deserialize(Convert.FromBase64String(SerializedData));
             }
         }
     }

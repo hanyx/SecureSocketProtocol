@@ -60,6 +60,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         }
                         catch (Exception ex)
                         {
+                            SysLogger.Log(ex.Message, SysLogType.Error);
                             OpSocket.onException(ex, ErrorType.UserLand);
                         }
 
@@ -67,8 +68,10 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         SendedSuccess = true;
                         OpSocket.onConnect();
                     }
-                    catch
+                    catch (Exception ex)
                     {
+                        SysLogger.Log(ex.Message, SysLogType.Error);
+
                         if (!SendedSuccess)
                         {
                             client.Connection.SendMessage(new MsgCreateConnectionResponse(0, false), new RequestHeader(reqHeader.RequestId, true));

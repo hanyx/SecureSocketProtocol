@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ProtoBuf;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -136,6 +137,7 @@ using System.Text;
 
 namespace SecureSocketProtocol3.Utils
 {
+    [ProtoContract]
     public class BigInteger : IDisposable
     {
         // maximum length of the BigInteger in uint (4 bytes)
@@ -167,8 +169,10 @@ namespace SecureSocketProtocol3.Utils
 	    1801, 1811, 1823, 1831, 1847, 1861, 1867, 1871, 1873, 1877, 1879, 1889,
 	    1901, 1907, 1913, 1931, 1933, 1949, 1951, 1973, 1979, 1987, 1993, 1997, 1999 };
 
-
+        [ProtoMember(1, Options = MemberSerializationOptions.OverwriteList)]
         public uint[] data = null;             // stores bytes from the Big Integer
+
+        [ProtoMember(2)]
         public int dataLength;                 // number of actual chars used
 
 
@@ -725,7 +729,10 @@ namespace SecureSocketProtocol3.Utils
                     bi2Neg = true; bi2 = -bi2;
                 }
             }
-            catch (Exception) { }
+            catch (Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
 
             BigInteger result = new BigInteger();
 
@@ -751,8 +758,9 @@ namespace SecureSocketProtocol3.Utils
                         result.data[i + bi2.dataLength] = (uint)mcarry;
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SysLogger.Log(ex.Message, SysLogType.Error);
                 throw (new ArithmeticException("Multiplication overflow."));
             }
 
@@ -1531,7 +1539,10 @@ namespace SecureSocketProtocol3.Utils
                 {
                     a = -a;
                 }
-                catch (Exception) { }
+                catch (Exception ex)
+                {
+                    SysLogger.Log(ex.Message, SysLogType.Error);
+                }
             }
 
             BigInteger quotient = new BigInteger();
@@ -2510,8 +2521,9 @@ namespace SecureSocketProtocol3.Utils
             {       // exception if maxLength = 1
                 val |= (long)data[1] << 32;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                SysLogger.Log(ex.Message, SysLogType.Error);
                 if ((data[0] & 0x80000000) != 0) // negative
                     val = (int)data[0];
             }

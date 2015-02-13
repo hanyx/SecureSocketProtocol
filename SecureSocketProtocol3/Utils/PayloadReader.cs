@@ -18,7 +18,7 @@ namespace SecureSocketProtocol3.Utils
             this.stream = stream;
         }
 
-        public int Offset
+        public int Position
         {
             get { return (int)stream.Position; }
             set { stream.Position = (int)value; }
@@ -100,14 +100,15 @@ namespace SecureSocketProtocol3.Utils
             string result = "";
             try
             {
-                result = System.Text.Encoding.Unicode.GetString(Buffer, Offset, (int)stream.Length - Offset);
+                result = System.Text.Encoding.Unicode.GetString(Buffer, Position, (int)stream.Length - Position);
                 int idx = result.IndexOf((char)0x00);
                 if (!(idx == -1))
                     result = result.Substring(0, idx);
-                Offset += (result.Length * 2) + 2;
+                Position += (result.Length * 2) + 2;
             }
             catch (Exception ex)
             {
+                SysLogger.Log(ex.Message, SysLogType.Error);
                 throw new Exception(ex.StackTrace + "\r\n" + ex.Message);
             }
             return result;

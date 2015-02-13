@@ -144,7 +144,7 @@ namespace SecureSocketProtocol3.Utils
                 {
                     BinaryFormatter bf = new BinaryFormatter();
                     bf.Binder = new DeserializationBinder();
-                    return bf.Deserialize(new MemoryStream(pr.ReadBytes(pr.Length - pr.Offset)));
+                    return bf.Deserialize(new MemoryStream(pr.ReadBytes(pr.Length - pr.Position)));
                 }
                 case ObjectTypes.Byte: return pr.ReadByte();
                 case ObjectTypes.Short: return pr.ReadShort();
@@ -160,11 +160,11 @@ namespace SecureSocketProtocol3.Utils
                 case ObjectTypes.ByteArray: return pr.ReadBytes(pr.ReadInteger());
                 case ObjectTypes.Bitmap:
                 {
-                    using (MemoryStream stream = new MemoryStream(pr.Buffer, pr.Offset, pr.Length - pr.Offset))
+                    using (MemoryStream stream = new MemoryStream(pr.Buffer, pr.Position, pr.Length - pr.Position))
                     {
                         long oldPos = stream.Position;
                         Bitmap bmp = (Bitmap)Bitmap.FromStream(stream);
-                        pr.Offset += (int)(stream.Position - oldPos);
+                        pr.Position += (int)(stream.Position - oldPos);
                         return bmp;
                     }
                 }

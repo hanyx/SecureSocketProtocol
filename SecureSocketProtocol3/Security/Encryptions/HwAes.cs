@@ -13,14 +13,27 @@ namespace SecureSocketProtocol3.Security.Encryptions
     {
         private AesCryptoServiceProvider AES;
 
+        public byte[] Key
+        {
+            get { return AES.Key; }
+            set { AES.Key = value; }
+        }
+        public byte[] IV
+        {
+            get { return AES.IV; }
+            set { AES.IV = value; }
+        }
+
+        public bool DynamicKey { get; private set; }
+
         public HwAes(byte[] Key, byte[] IV, int KeySize, CipherMode cipherMode, PaddingMode padding)
         {
             this.AES = new AesCryptoServiceProvider();
             this.AES.Padding = padding;
             this.AES.Mode = cipherMode;
             this.AES.KeySize = KeySize;
-            this.AES.Key = KeyExtender(Key, 32);
-            this.AES.IV = IV;
+            this.DynamicKey = DynamicKey;
+            ApplyKey(Key, IV);
         }
 
         public byte[] Encrypt(byte[] Data, int Offset, int Length)
@@ -50,6 +63,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
             Array.Resize(ref Input, TargetLen);
             rnd.NextBytes(Input, oldLen, TargetLen);
             return Input;
+        }
+
+        public void ApplyKey(byte[] Key, byte[] IV)
+        {
+            this.AES.Key = KeyExtender(Key, 32);
+            this.AES.IV = IV;
         }
 
         public void Dispose()

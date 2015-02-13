@@ -25,3 +25,9 @@ C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csproj.GenerateResource.Cache
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.Controls.uTorrentProgressBar.resources
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.csproj.GenerateResource.Cache
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.dll
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\SecureSocketProtocol3\obj\Debug\SecureSocketProtocol3.pdb

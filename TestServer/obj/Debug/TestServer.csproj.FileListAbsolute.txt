@@ -49,3 +49,15 @@ C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\Secu
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.csprojResolveAssemblyReference.cache
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.exe
 C:\Users\Anguis\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\Data\ReadMe.txt
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\Data\PrivateKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\Data\PrivateKey2.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\Data\PublicKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\TestServer.exe.config
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\TestServer.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\TestServer.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.csprojResolveAssemblyReference.cache
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestServer\obj\Debug\TestServer.pdb

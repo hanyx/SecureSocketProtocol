@@ -103,7 +103,8 @@ namespace SecureSocketProtocol3
         Network = 2,
         HandShake = 3,
         PacketAnalyzes = 4,
-        Everything = 5
+        Error = 5,
+        Everything = 6,
     }
 
     public enum EncAlgorithm
@@ -124,6 +125,7 @@ namespace SecureSocketProtocol3
         /// Use no compression algorithm
         /// </summary>
         None = 0,
-        QuickLZ = 1
+        QuickLZ = 1,
+        Gzip = 2
     }
 }

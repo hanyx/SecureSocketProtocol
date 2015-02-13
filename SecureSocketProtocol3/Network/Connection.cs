@@ -52,28 +52,21 @@ namespace SecureSocketProtocol3.Network
         /// 
         /// The HeaderId is just a number to know which header is being used for a packet
         /// 
-        /// The Fragment Id is being used for if the packet is bigger then the MAX_PAYLOAD
-        /// If the Fragment Id contains the flag 0x80 (128), this means that it is the last fragment
-        /// If the FragmentId is bigger then 1 the Fragment is enabled
-        /// The fragment id should never exceed 128
-        /// 
         /// The checksum is all the information combined to a small hash of 1Byte
-        /// 
-        /// Fragment Full Size - Contains the full size for the packet
         /// 
         /// FeatureId - The Id of the Feature that has been used for additional features to add in the OperationalSocket
         /// </summary>
 
-        public const int HEADER_SIZE = 16; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Fragment (BYTE) + Checksum(BYTE) + FragmentFullSize(3Bytes) + FeatureId(INT)
+        public const int HEADER_SIZE = 13; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Checksum(BYTE) + FeatureId(INT)
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
-        public const int MAX_FRAGMENT_SIZE = (1024 * 1024) * 5; //5MB packet is max
+        public const int MAX_PACKET_SIZE = (1024 * 1024) * 1; //1MB
 
         public bool Connected { get; private set; }
         public decimal ClientId { get; internal set; }
         public SSPClient Client { get; private set; }
         private Socket Handle { get { return Client.Handle; } }
         private Stopwatch LastPacketSW = new Stopwatch();
-        private byte[] Buffer = new byte[HEADER_SIZE + MAX_PAYLOAD];
+        private byte[] Buffer = new byte[MAX_PACKET_SIZE];
         internal MessageHandler messageHandler { get; private set; }
         private TaskQueue<SystemPacket> SystemPackets;
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
@@ -96,17 +89,11 @@ namespace SecureSocketProtocol3.Network
         private int ReadableDataLen = 0;
         private int TotalReceived = 0;
 
-        //fragment information
-        private byte[] FragmentBuffer = null;
-        private int FragmentOffset = 0;
-        private int FragmentFullSize = 0;
-
         //header info
         private int PayloadLen = 0;
         private byte CurPacketId = 0;
         private ushort ConnectionId = 0;
         private ushort HeaderId = 0;
-        private byte FragmentId = 0;
         private byte HeaderChecksum = 0;
         private int FeatureId = 0;
 
@@ -182,6 +169,7 @@ namespace SecureSocketProtocol3.Network
             this.messageHandler.AddMessage(typeof(MsgInitOk), "INIT_OK");
             this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
             this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
+            this.messageHandler.AddMessage(typeof(MsgOpDisconnect), "OP_DISCONNECT");
 
             Headers.RegisterHeader(typeof(SystemHeader));
             Headers.RegisterHeader(typeof(ConnectionHeader));
@@ -208,8 +196,9 @@ namespace SecureSocketProtocol3.Network
                     return;
                 }
             }
-            catch
+            catch(Exception ex)
             {
+                SysLogger.Log(ex.Message, SysLogType.Error);
                 this.Connected = false;
                 return;
             }
@@ -250,26 +239,27 @@ namespace SecureSocketProtocol3.Network
                             HeaderEncryption.Decrypt(Buffer, ReadOffset, HEADER_SIZE);
                         }
 
-                        PayloadLen = BitConverter.ToUInt16(Buffer, ReadOffset);
-                        CurPacketId = Buffer[ReadOffset + 2];
-                        ConnectionId = BitConverter.ToUInt16(Buffer, ReadOffset + 3);
-                        HeaderId = BitConverter.ToUInt16(Buffer, ReadOffset + 5);
-                        FragmentId = Buffer[ReadOffset + 7];
-                        HeaderChecksum = Buffer[ReadOffset + 8];
-                        FragmentFullSize = (int)Buffer[ReadOffset + 9] | Buffer[ReadOffset + 10] << 8 | Buffer[ReadOffset + 11] << 16;
-                        FeatureId = BitConverter.ToInt32(Buffer, ReadOffset + 12);
+                        using(PayloadReader pr = new PayloadReader(Buffer))
+                        {
+                            pr.Position = ReadOffset;
+                            PayloadLen = pr.ReadThreeByteInteger();
+                            CurPacketId = pr.ReadByte();
+                            ConnectionId = pr.ReadUShort();
+                            HeaderId = pr.ReadUShort();
+                            HeaderChecksum = pr.ReadByte();
+                            FeatureId = pr.ReadInteger();
+                        }
 
                         byte ReChecksum = 0; //re-calculate the checksum
                         ReChecksum += (byte)PayloadLen;
-                        ReChecksum += FragmentId;
                         ReChecksum += CurPacketId;
                         ReChecksum += (byte)ConnectionId;
                         ReChecksum += (byte)HeaderId;
-                        ReChecksum += (byte)FragmentFullSize;
                         ReChecksum += (byte)FeatureId;
 
                         if (ReChecksum != HeaderChecksum ||
-                            FragmentFullSize > MAX_FRAGMENT_SIZE)
+                            PayloadLen >= MAX_PACKET_SIZE ||
+                            PayloadLen < 0)
                         {
                             Disconnect();
                             return;
@@ -287,168 +277,62 @@ namespace SecureSocketProtocol3.Network
                     if (ReadableDataLen >= PayloadLen)
                     {
                         byte[] DecryptedBuffer = null;
-                        int DecryptedBuffOffset = 0;
                         int DecryptedBuffLen = 0;
 
-                        #region Encryption & Compression
+                        messageHandler.DecryptMessage(this, Buffer, ReadOffset, PayloadLen, ref DecryptedBuffer, ref DecryptedBuffLen);
+                        TotalReceived += PayloadLen;
 
-                        if (EncAlgorithm.HwAES == (EncryptionAlgorithm & EncAlgorithm.HwAES))
+                        using (PayloadReader pr = new PayloadReader(DecryptedBuffer))
                         {
-                            lock (EncAES)
+                            OperationalSocket OpSocket = null;
+                            if (ConnectionId > 0)
                             {
-                                if (DecryptedBuffer != null)
+                                lock(OperationalSockets)
                                 {
-                                    DecryptedBuffer = EncAES.Decrypt(DecryptedBuffer, DecryptedBuffOffset, DecryptedBuffLen);
+                                    if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
+                                    {
+                                        //strange...
+                                        Disconnect();
+                                        return;
+                                    }
                                 }
-                                else
-                                {
-                                    DecryptedBuffer = EncAES.Decrypt(Buffer, ReadOffset, PayloadLen);
-                                }
-                                DecryptedBuffLen = DecryptedBuffer.Length;
                             }
-                        }
-                        if (EncAlgorithm.WopEx == (EncryptionAlgorithm & EncAlgorithm.WopEx))
-                        {
-                            lock (PayloadEncryption)
-                            {
-                                if (DecryptedBuffer != null)
-                                {
-                                    PayloadEncryption.Decrypt(DecryptedBuffer, DecryptedBuffOffset, DecryptedBuffLen);
-                                }
-                                else
-                                {
-                                    PayloadEncryption.Decrypt(Buffer, ReadOffset, PayloadLen);
-                                }
-                                DecryptedBuffer = Buffer;
-                                DecryptedBuffOffset = ReadOffset;
-                                DecryptedBuffLen = PayloadLen;
-                            }
-                        }
 
-                        if (CompressionAlgorithm.QuickLZ == (this.CompressionAlgorithm & SecureSocketProtocol3.CompressionAlgorithm.QuickLZ))
-                        {
-                            if (DecryptedBuffer != null)
+                            Type type = Headers.GetHeaderType(HeaderId);
+
+                            if (type != null)
                             {
-                                byte[] temp = QuickLZ.decompress(DecryptedBuffer, (uint)DecryptedBuffOffset);
-                                if (temp != null)
+                                Header header = Header.DeSerialize(type, pr);
+                                uint MessageId = pr.ReadUInteger();
+                                IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId) : messageHandler.DeSerialize(pr, MessageId);
+
+                                if (message != null)
                                 {
-                                    DecryptedBuffer = temp;
-                                    DecryptedBuffOffset = 0;
-                                    DecryptedBuffLen = temp.Length;
-                                    DataCompressedIn += (ulong)DecryptedBuffLen;
+                                    message.RawSize = TotalReceived;
+                                    message.Header = header;
+
+                                    if (message.GetType() == typeof(MsgHandshake))
+                                    {
+                                        //we must directly process this message because if the handshake ends the keys will change
+                                        //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                        message.ProcessPayload(Client, null);
+                                    }
+                                    else
+                                    {
+                                        lock (SystemPackets)
+                                        {
+                                            SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId));
+                                        }
+                                    }
                                 }
                             }
                             else
                             {
-                                byte[] temp = DecryptedBuffer = QuickLZ.decompress(Buffer, (uint)ReadOffset);
-                                if (temp != null)
-                                {
-                                    DecryptedBuffer = temp;
-                                    DecryptedBuffOffset = 0;
-                                    DecryptedBuffLen = temp.Length;
-                                    DataCompressedIn += (ulong)DecryptedBuffLen;
-                                }
-                            }
-                            DecryptedBuffLen = DecryptedBuffer.Length;
-                        }
-                        #endregion
-
-                        TotalReceived += PayloadLen;
-                        //check if Fragments are being used for big packets
-                        //we could improve the performance of Fragments by changing the buffer directly to the FragmentBuffer
-                        bool ProcessPacket = true;
-                        if (FragmentId > 0)
-                        {
-                            if (FragmentId != 1 && FragmentBuffer == null)
-                            {
-                                //strange client behavior
                                 Disconnect();
                                 return;
                             }
-
-                            if (FragmentBuffer == null)
-                            {
-                                //first Fragment, let's initialize the buffer
-                                FragmentBuffer = new byte[FragmentFullSize];
-                                FragmentOffset = 0;
-                            }
-
-                            Array.Copy(DecryptedBuffer, DecryptedBuffOffset, FragmentBuffer, FragmentOffset, DecryptedBuffLen); //here it will decrease performance
-                            FragmentOffset += DecryptedBuffLen;
-
-                            bool LastFragment = (FragmentId & 128) == 128;
-
-                            //Check LastFragment flag
-                            if (LastFragment)
-                            {
-
-                            }
-                            else
-                            {
-                                ProcessPacket = false;
-                            }
                         }
-
-                        if (ProcessPacket)
-                        {
-                            using (PayloadReader pr = new PayloadReader(FragmentBuffer != null ? FragmentBuffer : DecryptedBuffer))
-                            {
-                                if (FragmentBuffer == null)
-                                    pr.Offset = DecryptedBuffOffset;
-
-                                OperationalSocket OpSocket = null;
-                                if (ConnectionId > 0)
-                                {
-                                    lock(OperationalSockets)
-                                    {
-                                        if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
-                                        {
-                                            //strange...
-                                            Disconnect();
-                                            return;
-                                        }
-                                    }
-                                }
-
-                                Type type = Headers.GetHeaderType(HeaderId);
-
-                                if (type != null)
-                                {
-                                    Header header = Header.DeSerialize(type, pr);
-                                    uint MessageId = pr.ReadUInteger();
-                                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.HandleMessage(pr, MessageId) : messageHandler.HandleMessage(pr, MessageId);
-
-                                    if (message != null)
-                                    {
-                                        message.RawSize = TotalReceived;
-                                        message.Header = header;
-
-                                        if (message.GetType() == typeof(MsgHandshake))
-                                        {
-                                            //we must directly process this message because if the handshake ends the keys will change
-                                            //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
-                                            message.ProcessPayload(Client, null);
-                                        }
-                                        else
-                                        {
-                                            lock (SystemPackets)
-                                            {
-                                                SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId));
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    Disconnect();
-                                    return;
-                                }
-                            }
-
-                            //destroy FragmentBuffer if used
-                            FragmentBuffer = null;
-                            TotalReceived = 0;
-                        }
+                        TotalReceived = 0;
 
                         PacketsIn++;
                         ReadOffset += PayloadLen;
@@ -476,7 +360,16 @@ namespace SecureSocketProtocol3.Network
                 //so that the data is not split
                 WriteOffset += BytesTransferred;
             }
-            Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
+
+            if (Buffer.Length - WriteOffset > 0)
+            {
+                Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
+            }
+            else
+            {
+                //Shoudln't be even possible... very strange
+                Disconnect();
+            }
         }
 
         /// <summary>
@@ -495,14 +388,69 @@ namespace SecureSocketProtocol3.Network
                 if (Header == null)
                     throw new ArgumentException("Header cannot be null");
 
-                uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
-                byte[] SerializedHeader = Header.Serialize(Header);
                 ushort HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
+                byte[] SerializedHeader = Header.Serialize(Header);
 
-                if (SerializedHeader.Length >= MAX_FRAGMENT_SIZE)
-                    throw new ArgumentException("Header length cannot be greater then " + (MAX_PAYLOAD / 2));
+                uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
 
-                using (OptimizedPayloadStream ms = new OptimizedPayloadStream(SerializedHeader, HeaderId, feature, OpSocket))
+                if (SerializedHeader.Length >= MAX_PACKET_SIZE)
+                    throw new ArgumentException("Header length cannot be greater then " + MAX_PAYLOAD);
+
+                using (MemoryStream outStream = new MemoryStream())
+                using (PayloadWriter pw = new PayloadWriter(outStream))
+                {
+                    pw.WriteBytes(new byte[HEADER_SIZE], 0, HEADER_SIZE); //reserve space
+
+                    pw.WriteBytes(SerializedHeader);
+                    pw.WriteUInteger(messageId);
+
+                    int packetSize = messageHandler.EncryptMessage(this, Message, outStream);
+
+                    if (pw.Length > MAX_PACKET_SIZE)
+                        throw new OverflowException("Message size cannot be greater then " + MAX_PACKET_SIZE);
+
+                    int PayloadLength = pw.Length - Connection.HEADER_SIZE;
+                    byte CurPacketId = 0;
+                    int FeatureId = feature != null ? feature.GetFeatureId() : -1;
+                    ushort ConnectionId = OpSocket != null ? OpSocket.ConnectionId : (ushort)0;
+
+                    byte checksum = 0;
+                    checksum += (byte)PayloadLength;
+                    checksum += CurPacketId;
+                    checksum += (byte)ConnectionId;
+                    checksum += (byte)HeaderId;
+                    checksum += (byte)FeatureId;
+
+                    pw.Position = 0;
+                    pw.WriteThreeByteInteger(PayloadLength); //length
+                    pw.WriteByte(CurPacketId); //cur packet id
+                    pw.WriteUShort(ConnectionId); //Connection Id
+                    pw.WriteUShort(HeaderId); //Header Id
+                    pw.WriteByte(checksum);
+                    pw.WriteInteger(FeatureId);
+
+                    //encrypt the header
+                    lock (HeaderEncryption)
+                    {
+                        HeaderEncryption.Encrypt(pw.GetBuffer(), 0, HEADER_SIZE);
+
+                        byte[] temp = pw.GetBuffer();
+                        headerConfuser.Obfuscate(ref temp, 0);
+                    }
+
+                    for (int i = 0; i < outStream.Length; )
+                    {
+                        int len = i + 65535 < outStream.Length ? 65535 : (int)outStream.Length - i;
+                        Handle.Send(outStream.GetBuffer(), i, len, SocketFlags.None);
+                        i += len;
+                    }
+
+                    PacketsOut++;
+                    DataOut += (ulong)outStream.Length;
+                }
+
+
+                /*using (OptimizedPayloadStream ms = new OptimizedPayloadStream(SerializedHeader, HeaderId, feature, OpSocket))
                 {
                     ms.Write(BitConverter.GetBytes(messageId), 0, 4);
 
@@ -533,14 +481,14 @@ namespace SecureSocketProtocol3.Network
                             byte[] temp = stream.GetBuffer();
                             headerConfuser.Obfuscate(ref temp, 0);
                         }
-                        /*lock (PayloadEncryption)
-                        {
-                            PayloadEncryption.Encrypt(stream.GetBuffer(), HEADER_SIZE, (int)stream.Length - HEADER_SIZE);
-                        }*/
+                        //lock (PayloadEncryption)
+                        //{
+                        //    PayloadEncryption.Encrypt(stream.GetBuffer(), HEADER_SIZE, (int)stream.Length - HEADER_SIZE);
+                        //}
 
                         Handle.Send(stream.GetBuffer(), 0, (int)stream.Length, SocketFlags.None);
                     }
-                }
+                }*/
             }
         }
 
@@ -581,6 +529,9 @@ namespace SecureSocketProtocol3.Network
 
             mazeHandshake.ApplyKey(this.PayloadEncryption, key);
             mazeHandshake.ApplyKey(this.PayloadEncryption, salt);
+
+            mazeHandshake.ApplyKey(this.EncAES, key);
+            mazeHandshake.ApplyKey(this.EncAES, salt);
         }
 
         internal SyncObject RegisterRequest(ref int RequestId)
@@ -642,12 +593,12 @@ namespace SecureSocketProtocol3.Network
 
                 SendMessage(new MsgGetNextId(), new RequestHeader(ReqId, false));
 
-                decimal response = SyncNextRandomId.Wait<decimal>(0, 30000);
+                decimal? response = SyncNextRandomId.Wait<decimal?>(null, 30000);
 
-                if (response == null)
+                if (!response.HasValue)
                     throw new Exception("A time out occured");
 
-                return response;
+                return response.Value;
             }
         }
 
@@ -657,7 +608,10 @@ namespace SecureSocketProtocol3.Network
             {
                 Handle.Close();
             }
-            catch { }
+            catch(Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
         }
     }
 }

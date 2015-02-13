@@ -1,3 +1,5 @@
+using SecureSocketProtocol3;
+using SecureSocketProtocol3.Utils;
 using System;
 
 // Wiktor Zychla, 19.VII.2002
@@ -18,8 +20,9 @@ namespace vicMazeGen
 				int i = int.Parse( s );
 				return true;
 			}
-			catch 
+			catch(Exception ex)
 			{
+                SysLogger.Log(ex.Message, SysLogType.Error);
 				return false;
 			}
 		}

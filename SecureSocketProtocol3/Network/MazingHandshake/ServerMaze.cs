@@ -70,7 +70,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
                     if (onFindKeyInDatabase(EncHashedMsg, ref _key, ref _salt, ref _publicKey, ref _userName))
                     {
-                        _publicKey = TrimArray(_publicKey, Mazing.MAX_KEY_SIZE);
+                        this.PublicKeyData = TrimArray(_publicKey, Mazing.MAX_KEY_SIZE);
                         this.wopEx = base.GetWopEncryption(_key, _salt);
 
                         base.FinalKey = _key;
@@ -117,13 +117,13 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 {
                     //response back from client with his prime number
                     wopEx.Decrypt(Data, 0, Data.Length);
-
+                    
                     this.client_Prime = new BigInteger(Data);
                     if (this.client_Prime.isProbablePrime())
                     {
                         //verify the prime from the client
                         BigInteger client_Prime_test = BigInteger.genPseudoPrime(256, 50, new Random(this.server_Prime.IntValue()));
-
+                        
                         if (this.client_Prime != client_Prime_test)
                         {
                             //Attacker detected ?

@@ -1,6 +1,7 @@
 ﻿using ProtoBuf;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -61,6 +62,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         }
                         catch (Exception ex)
                         {
+                            SysLogger.Log(ex.Message, SysLogType.Error);
                             client.onException(ex, ErrorType.UserLand);
                             return; //don't send that we're ready since we're clearly not at this point
                         }
@@ -73,6 +75,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         }
                         catch (Exception ex)
                         {
+                            SysLogger.Log(ex.Message, SysLogType.Error);
                             client.onException(ex, ErrorType.UserLand);
                             return; //don't send that we're ready since we're clearly not at this point
                         }

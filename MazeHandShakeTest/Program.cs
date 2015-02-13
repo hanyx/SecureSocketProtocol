@@ -1,5 +1,4 @@
-﻿using SecureSocketProtocol3.Encryptions;
-using SecureSocketProtocol3.Network.MazingHandshake;
+﻿using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -17,7 +16,7 @@ namespace MazeHandShakeTest
         /// </summary>
         private static List<User> Server_Users;
 
-        private static Random Random = new Random();
+        private static Random Random = new Random(452354453);
         private static byte[] GetRandomBytes(int length)
         {
             byte[] temp = new byte[length];
@@ -42,6 +41,9 @@ namespace MazeHandShakeTest
                     temp_user.Username = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
                     temp_user.Password = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
                     temp_user.PublicKey = GetRandomBytes(128 * multiplier); //File.ReadAllBytes("./Data/PublicKey1.dat"));
+
+                    //for (int i = 0; i < temp_user.PublicKey.Length; i++)
+                    //    temp_user.PublicKey[i] = (byte)(i % 100);
 
                     temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //File.ReadAllBytes("./Data/PrivateKey1.dat"));
                     temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //(File.ReadAllBytes("./Data/PrivateKey2.dat"));
@@ -133,7 +135,7 @@ namespace MazeHandShakeTest
             catch { }
         }
 
-        static bool server_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey)
+        static bool server_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
         {
             foreach (User user in Server_Users)
             {
@@ -142,6 +144,7 @@ namespace MazeHandShakeTest
                     Key = user.ServerHandshake.MazeKey.getBytes();
                     Salt = user.ServerHandshake.PrivateSalt.getBytes();
                     PublicKey = user.PublicKey;
+                    Username = user.Username;
                     return true;
                 }
             }

@@ -45,10 +45,16 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         public byte[] PublicKeyData
         {
             get { return _publicKeyData; }
-            private set { _publicKeyData = value; }
+            internal set { _publicKeyData = value; }
         }
 
-        public BigInteger PrivateSalt { get; private set; }
+        private BigInteger _privateSalt;
+        public BigInteger PrivateSalt
+        {
+            get { return _privateSalt; }
+            private set { _privateSalt = value; }
+        }
+
         public BigInteger Username { get; private set; }
         public BigInteger Password { get; private set; }
 
@@ -134,6 +140,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 int privHashNr_1 = BitConverter.ToInt32(privHash, 26);
                 int privHashNr_2 = BitConverter.ToInt32(privHash, 32);
                 PrivateSalt = cubicEqu(PrivateKeyData.Count, PrivateKeyToSalt(tempPrivKey), privHashNr_1, privHashNr_1, privHashNr_2, PrivateSalt);
+                //PatchKey(ref _privateSalt);
             }
 
             this.Username = new BigInteger(hasher.ComputeHash(UnicodeEncoding.Unicode.GetBytes(Username))) ^ PrivateSalt;
@@ -283,6 +290,15 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             }
         }
 
+        internal void ApplyKey(HwAes aes, byte[] key)
+        {
+            for (int i = 0; i < aes.Key.Length + (key.Length * 3); i++)
+            {
+                aes.Key[i % aes.Key.Length] += key[i % key.Length];
+                aes.IV[i % aes.IV.Length] += key[(i + 2) % key.Length];
+            }
+        }
+
         internal void ApplyKey(WopEx wopEx, BigInteger prime)
         {
             PatchKey(ref prime);
@@ -310,9 +326,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             if (Input.Length < newLength)
             {
                 //copy array just to be safe for futher calculations
-                byte[] temp = new byte[Input.Length];
-                Array.Copy(Input, Input, temp.Length);
-                return temp;
+                return CloneByteArray(Input);
             }
 
             byte[] newArray = new byte[Input.Length];
@@ -346,8 +360,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             {
                 InversedInt = PrivateSalt.modInverse(this.Username);
             }
-            catch
+            catch (Exception ex)
             {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+
                 //no inverse could be found
                 InversedInt = PrivateSalt + this.Username;
             }

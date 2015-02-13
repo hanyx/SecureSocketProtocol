@@ -6,6 +6,7 @@ using System.Data;
 using System.Text;
 using System.Windows.Forms;
 using System.Drawing.Drawing2D;
+using SecureSocketProtocol3.Utils;
 
 namespace SecureSocketProtocol3.Controls
 {
@@ -244,9 +245,9 @@ namespace SecureSocketProtocol3.Controls
                 DrawBackgroundAndGrid(e.Graphics);
                 DrawChart(e.Graphics);
             }
-            catch
+            catch(Exception ex)
             {
-
+                SysLogger.Log(ex.Message, SysLogType.Error);
             }
         }
 

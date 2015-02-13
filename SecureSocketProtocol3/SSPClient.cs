@@ -103,7 +103,11 @@ namespace SecureSocketProtocol3
                     {
                         this.Handle.EndConnect(ar);
                     }
-                    catch { /* Will throw a error if connection couldn't be made */ }
+                    catch (Exception ex)
+                    {
+                        /* Will throw a error if connection couldn't be made */
+                        SysLogger.Log(ex.Message, SysLogType.Error);
+                    }
                 }, null);
 
                 Stopwatch sw = Stopwatch.StartNew();
@@ -196,8 +200,14 @@ namespace SecureSocketProtocol3
 
         public void Dispose()
         {
-            try { Handle.Close(); }
-            catch { }
+            try
+            {
+                Handle.Close();
+            }
+            catch (Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
 
             this.Connection = null;
             this.Properties = null;

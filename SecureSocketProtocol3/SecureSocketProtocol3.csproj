@@ -34,9 +34,6 @@
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
-  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -64,6 +61,7 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Network\Messages\TCP\MsgOpDisconnect.cs" />
     <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
     <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
     <Compile Include="Security\Encryptions\HwAes.cs" />

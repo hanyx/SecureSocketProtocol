@@ -218,3 +218,10 @@ pip-log.txt
 Plugins/
 *.dll
 *.exe
+*.userprefs
+*.jrs
+*.ide
+*.dll
+*.pdb
+*.exe
+*.cache

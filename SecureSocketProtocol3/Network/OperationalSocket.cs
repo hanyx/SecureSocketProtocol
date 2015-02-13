@@ -14,7 +14,7 @@ namespace SecureSocketProtocol3.Network
     /// A Operational Socket is a virtual Socket
     /// All the functionality should be written in here
     /// </summary>
-    public abstract class OperationalSocket
+    public abstract class OperationalSocket : IDisposable
     {
         public abstract void onReceiveMessage(IMessage Message, Header header);
 
@@ -24,7 +24,7 @@ namespace SecureSocketProtocol3.Network
         public abstract void onException(Exception ex, ErrorType errorType);
 
         public SSPClient Client { get; private set; }
-        internal TaskQueue<PayloadInfo> PacketQueue;
+        internal TaskQueue<PayloadInfo> PacketQueue { get; private set; }
         internal ushort ConnectionId { get; set; }
         public MessageHandler MessageHandler { get; private set; }
         public HeaderList Headers { get; private set; }
@@ -93,7 +93,7 @@ namespace SecureSocketProtocol3.Network
                 throw new Exception("No success in creating the Operational Socket, too many connections or server-sided error ?");
 
             if (Client.Connection.OperationalSockets.ContainsKey(response.ConnectionId))
-                throw new Exception("Connection Id Conflict detected, An attacker ?");
+                throw new Exception("Connection Id Conflict detected");
 
             Client.Connection.OperationalSockets.Add(response.ConnectionId, this);
             this.ConnectionId = response.ConnectionId;
@@ -120,6 +120,11 @@ namespace SecureSocketProtocol3.Network
             Array.Copy(version, 0, temp, 4, 4);
 
             return BitConverter.ToUInt64(temp, 0);
+        }
+
+        public void Dispose()
+        {
+            Disconnect();
         }
     }
 }

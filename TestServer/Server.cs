@@ -17,7 +17,7 @@ namespace TestServer
 
         public override SSPClient GetNewClient()
         {
-            ///register users if there aren't any, please use a datbase and not this way
+            //register users if there aren't any, please use a datbase and not this way
             if (Program.Users.Count == 0)
             {
                 List<Stream> keys = new List<Stream>();
