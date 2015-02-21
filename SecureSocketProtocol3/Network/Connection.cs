@@ -145,13 +145,15 @@ namespace SecureSocketProtocol3.Network
             for (int i = 0; i < SaltKey.Length; i++)
                 SaltKey[i] += (byte)PrivateSeed;
             
+
+            uint CipherRounds = client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds;
             byte[] encCode = new byte[0];
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(PrivateSeed, 5, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, false);
+            this.HeaderEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.GenerateNewAlgorithm, CipherRounds, false);
 
             WopEx.GenerateCryptoCode(PrivateSeed << 3, 15, ref encCode, ref decCode);
-            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.Simple, client.Server != null ? client.Server.serverProperties.Cipher_Rounds : client.Properties.Cipher_Rounds, true);
+            this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.Simple, CipherRounds, true);
 
             byte[] temp_iv = new byte[16];
             Array.Copy(InitialVector, temp_iv, 16);

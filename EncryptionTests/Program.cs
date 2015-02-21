@@ -1,5 +1,5 @@
 ﻿using SecureSocketProtocol3;
-using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Security.Encryptions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,8 +21,8 @@ namespace EncryptionTests
             byte[] EncryptCode = new byte[0];
             byte[] DecryptCode = new byte[0];
             WopEx.GenerateCryptoCode(12345678, 20, ref EncryptCode, ref DecryptCode);
-            wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
-            wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm);
+            wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, false);
+            wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, false);
 
             if (File.Exists("./temp.txt"))
                 File.Delete("./temp.txt");

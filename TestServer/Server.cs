@@ -67,7 +67,7 @@ namespace TestServer
 
             public override uint Cipher_Rounds
             {
-                get { return 1; }
+                get { return 100; }
             }
 
             public override EncAlgorithm EncryptionAlgorithm
