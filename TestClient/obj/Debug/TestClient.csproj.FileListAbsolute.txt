@@ -63,3 +63,15 @@ C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debu
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.dll
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestClient\bin\Debug\SecureSocketProtocol3.pdb
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol3\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\Data\ReadMe.txt
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\Data\PrivateKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\Data\PrivateKey2.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\Data\PublicKey1.dat
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestClient.exe.config
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestClient.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestClient.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.exe
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.pdb

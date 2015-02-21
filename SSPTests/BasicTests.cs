@@ -56,6 +56,16 @@ namespace SSPTests
             {
                 get { return 3; }
             }
+
+            public override CompressionAlgorithm CompressionAlgorithm
+            {
+                get { throw new NotImplementedException(); }
+            }
+
+            public override EncAlgorithm EncryptionAlgorithm
+            {
+                get { return EncAlgorithm.HwAES; }
+            }
         }
 
         public class ServerCertificate : CertificateInfo

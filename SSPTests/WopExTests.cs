@@ -1,5 +1,5 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using SecureSocketProtocol3.Encryptions;
+using SecureSocketProtocol3.Security.Encryptions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,7 +22,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1, false);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
 
@@ -59,7 +59,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm, 1);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.GenerateNewAlgorithm, 1, false);
 
             Random rnd = new Random(12345678);
 
@@ -98,7 +98,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1, false);
 
             Random rnd = new Random(12345678);
 
@@ -138,7 +138,7 @@ namespace SSPTests
             byte[] decCode = new byte[0];
             WopEx.GenerateCryptoCode(123456, 15, ref encCode, ref decCode);
 
-            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.ShuffleInstructions, 1);
+            WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.ShuffleInstructions, 1, false);
 
             Random rnd = new Random(DateTime.Now.Millisecond);
 
