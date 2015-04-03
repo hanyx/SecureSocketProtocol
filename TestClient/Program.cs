@@ -71,6 +71,16 @@ namespace TestClient
                 }
             }*/
 
+            while (true)
+            {
+                using (TestSocket testSock2 = new TestSocket(this))
+                {
+                    testSock2.Connect();
+                    testSock2.Disconnect();
+                }
+                //Thread.Sleep(5000);
+            }
+
             TestSocket testSock = new TestSocket(this);
             testSock.Connect();
 

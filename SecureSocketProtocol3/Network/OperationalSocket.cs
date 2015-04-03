@@ -63,6 +63,11 @@ namespace SecureSocketProtocol3.Network
             Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), null, this);
         }
 
+        internal void InternalSendMessage(IMessage Message, Header Header)
+        {
+            Client.Connection.SendMessage(Message, Header);
+        }
+
         private void onPacketQueue(PayloadInfo inf)
         {
 
@@ -87,15 +92,19 @@ namespace SecureSocketProtocol3.Network
 
             MsgCreateConnectionResponse response = syncObj.Wait<MsgCreateConnectionResponse>(null, 100000);
             if (response == null)
-                throw new Exception("A server time-out occured");
+                throw new Exception("A time-out occured");
 
             if (!response.Success)
                 throw new Exception("No success in creating the Operational Socket, too many connections or server-sided error ?");
 
-            if (Client.Connection.OperationalSockets.ContainsKey(response.ConnectionId))
-                throw new Exception("Connection Id Conflict detected");
+            lock (Client.Connection.OperationalSockets)
+            {
+                if (Client.Connection.OperationalSockets.ContainsKey(response.ConnectionId))
+                    throw new Exception("Connection Id Conflict detected");
 
-            Client.Connection.OperationalSockets.Add(response.ConnectionId, this);
+                Client.Connection.OperationalSockets.Add(response.ConnectionId, this);
+            }
+
             this.ConnectionId = response.ConnectionId;
             this.isConnected = true;
             onConnect();
@@ -106,7 +115,38 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         public void Disconnect()
         {
+            if (!isConnected)
+                return;
 
+            int RequestId = 0;
+            SyncObject syncObj = Client.Connection.RegisterRequest(ref RequestId);
+
+            Client.Connection.SendMessage(new MsgOpDisconnect(this.ConnectionId), new RequestHeader(RequestId, false));
+
+            MsgOpDisconnectResponse response = syncObj.Wait<MsgOpDisconnectResponse>(null, 5000);
+            if (response == null)
+            {
+                throw new Exception("A time-out occured");
+            }
+
+            isConnected = false;
+
+            lock (Client.Connection.OperationalSockets)
+            {
+                if (Client.Connection.OperationalSockets.ContainsKey(ConnectionId))
+                {
+                    Client.Connection.OperationalSockets.Remove(ConnectionId);
+                }
+            }
+
+            try
+            {
+                onDisconnect(DisconnectReason.UserDisconnection);
+            }
+            catch(Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
         }
 
         internal ulong GetIdentifier()
