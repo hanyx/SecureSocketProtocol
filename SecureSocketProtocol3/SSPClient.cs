@@ -20,6 +20,10 @@ namespace SecureSocketProtocol3
         public abstract void onDisconnect(DisconnectReason Reason);
         public abstract void onException(Exception ex, ErrorType errorType);
 
+        public abstract void onOperationalSocket_BeforeConnect(OperationalSocket OPSocket);
+        public abstract void onOperationalSocket_Connected(OperationalSocket OPSocket);
+        public abstract void onOperationalSocket_Disconnected(OperationalSocket OPSocket, DisconnectReason Reason);
+
         public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
         public decimal ClientId { get { return Connection.ClientId; } }

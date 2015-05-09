@@ -58,6 +58,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         try
                         {
                             OpSocket.onBeforeConnect();
+                            client.onOperationalSocket_BeforeConnect(OpSocket);
                         }
                         catch (Exception ex)
                         {
@@ -68,6 +69,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         client.Connection.SendMessage(new MsgCreateConnectionResponse(OpSocket.ConnectionId, true), new RequestHeader(reqHeader.RequestId, true));
                         SendedSuccess = true;
                         OpSocket.onConnect();
+                        client.onOperationalSocket_Connected(OpSocket);
                     }
                     catch (Exception ex)
                     {

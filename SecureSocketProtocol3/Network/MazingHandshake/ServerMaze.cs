@@ -44,12 +44,18 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 {
                     //step 2
                     if (Data.Length != Mazing.ByteCode.Length)
+                    {
+                        SysLogger.Log("[MazeHandShake][Server] ByteCode Length Missmatch", SysLogType.Debug);
                         return MazeErrorCode.WrongByteCode;
+                    }
 
                     for (int i = 0; i < Mazing.ByteCode.Length; i++)
                     {
                         if (Mazing.ByteCode[i] != Data[i])
+                        {
+                            SysLogger.Log("[MazeHandShake][Server] WrongByteCode from client", SysLogType.Debug);
                             return MazeErrorCode.WrongByteCode;
+                        }
                     }
                     Step++;
                     break;
@@ -58,6 +64,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 {
                     if (onFindKeyInDatabase == null) //programmer error
                     {
+                        SysLogger.Log("[MazeHandShake][Server] onFindKeyInDatabase is null", SysLogType.Debug);
                         ResponseData = GetFailResponseData(); //not encrypted, client knows this will fail
                         return MazeErrorCode.Error;
                     }
@@ -81,6 +88,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
                         if (Data.Length != _publicKey.Length)
                         {
+                            SysLogger.Log("[MazeHandShake][Server] Public key length missmatch", SysLogType.Debug);
                             //key size not the same... strange
                             ResponseData = GetFailResponseData();
                             return MazeErrorCode.Error;
@@ -90,6 +98,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         {
                             if (Data[i] != _publicKey[i])
                             {
+                                SysLogger.Log("[MazeHandShake][Server] Public key missmatch", SysLogType.Debug);
                                 //public key did not match... strange
                                 ResponseData = GetFailResponseData();
                                 return MazeErrorCode.Error;
@@ -108,6 +117,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     }
                     else
                     {
+                        SysLogger.Log("[MazeHandShake][Server] No user key found in database", SysLogType.Debug);
                         ResponseData = GetFailResponseData();
                         return MazeErrorCode.UserKeyNotFound;
                     }
@@ -127,6 +137,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         if (this.client_Prime != client_Prime_test)
                         {
                             //Attacker detected ?
+                            SysLogger.Log("[MazeHandShake][Server] Man-In-The-Middle detected", SysLogType.Debug);
                             return MazeErrorCode.Error;
                         }
 
@@ -137,6 +148,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     }
                     else
                     {
+                        SysLogger.Log("[MazeHandShake][Server] Invalid response", SysLogType.Debug);
                         return MazeErrorCode.Error;
                     }
                 }

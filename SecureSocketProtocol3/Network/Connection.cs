@@ -589,13 +589,13 @@ namespace SecureSocketProtocol3.Network
         /// <returns>A random decimal number</returns>
         public decimal GetNextRandomDecimal()
         {
-            if (Client.IsServerSided)
-            {
-                return Client.Server.randomDecimal.NextDecimal();
-            }
-
             lock (NextRandomIdLock)
             {
+                if (Client.IsServerSided)
+                {
+                    return Client.Server.randomDecimal.NextDecimal();
+                }
+
                 int ReqId = 0;
                 SyncObject SyncNextRandomId = RegisterRequest(ref ReqId);
 
@@ -612,14 +612,7 @@ namespace SecureSocketProtocol3.Network
 
         public void Disconnect()
         {
-            try
-            {
-                Handle.Close();
-            }
-            catch(Exception ex)
-            {
-                SysLogger.Log(ex.Message, SysLogType.Error);
-            }
+            Client.Disconnect();
         }
     }
 }

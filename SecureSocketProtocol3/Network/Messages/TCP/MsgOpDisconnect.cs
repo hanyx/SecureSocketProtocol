@@ -58,6 +58,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                 try
                 {
                     OpSocket.onDisconnect(DisconnectReason.UserDisconnection);
+                    client.onOperationalSocket_Disconnected(OpSocket, DisconnectReason.UserDisconnection);
                 }
                 catch (Exception ex)
                 {

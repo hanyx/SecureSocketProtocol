@@ -125,6 +125,21 @@ namespace TestClient
             base.RegisterOperationalSocket(new TestSocket(this));
         }
 
+        public override void onOperationalSocket_Connected(OperationalSocket OPSocket)
+        {
+
+        }
+
+        public override void onOperationalSocket_BeforeConnect(OperationalSocket OPSocket)
+        {
+
+        }
+
+        public override void onOperationalSocket_Disconnected(OperationalSocket OPSocket, DisconnectReason Reason)
+        {
+
+        }
+
         private class ClientProps : ClientProperties
         {
 

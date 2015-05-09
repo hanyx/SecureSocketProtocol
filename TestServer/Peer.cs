@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3;
+using SecureSocketProtocol3.Network;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,6 +36,21 @@ namespace TestServer
         public override void onBeforeConnect()
         {
             base.RegisterOperationalSocket(new TestSocket(this));
+        }
+
+        public override void onOperationalSocket_Connected(OperationalSocket OPSocket)
+        {
+
+        }
+
+        public override void onOperationalSocket_BeforeConnect(OperationalSocket OPSocket)
+        {
+
+        }
+
+        public override void onOperationalSocket_Disconnected(OperationalSocket OPSocket, DisconnectReason Reason)
+        {
+
         }
     }
 }

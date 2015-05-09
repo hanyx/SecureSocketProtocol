@@ -84,6 +84,7 @@ namespace SecureSocketProtocol3.Network
                 throw new Exception("Register the Operational Socket first");
 
             onBeforeConnect();
+            Client.onOperationalSocket_BeforeConnect(this);
 
             int RequestId = 0;
             SyncObject syncObj = Client.Connection.RegisterRequest(ref RequestId);
@@ -108,6 +109,7 @@ namespace SecureSocketProtocol3.Network
             this.ConnectionId = response.ConnectionId;
             this.isConnected = true;
             onConnect();
+            Client.onOperationalSocket_Connected(this);
         }
 
         /// <summary>
@@ -142,6 +144,7 @@ namespace SecureSocketProtocol3.Network
             try
             {
                 onDisconnect(DisconnectReason.UserDisconnection);
+                Client.onOperationalSocket_Disconnected(this, DisconnectReason.UserDisconnection);
             }
             catch(Exception ex)
             {

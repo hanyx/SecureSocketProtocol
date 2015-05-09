@@ -27,6 +27,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 {
                     if (Data.Length != 32)
                     {
+                        SysLogger.Log("[MazeHandShake][Server] Receive Length missmatch", SysLogType.Debug);
                         return MazeErrorCode.Error;
                     }
 
@@ -42,6 +43,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         if (server_prime != server_Prime_test)
                         {
                             //Attacker detected ?
+                            SysLogger.Log("[MazeHandShake][Server] Man-In-The-Middle detected", SysLogType.Debug);
                             return MazeErrorCode.Error;
                         }
 
@@ -66,6 +68,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     else
                     {
                         //connection failed, using old keys ?
+                        SysLogger.Log("[MazeHandShake][Server] Invalid received data", SysLogType.Debug);
                         return MazeErrorCode.Error;
                     }
                 }
