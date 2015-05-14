@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -21,6 +22,8 @@ namespace SecureSocketProtocol3
         public ServerProperties serverProperties { get; private set; }
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
         internal RandomDecimal randomDecimal { get; private set; }
+
+
 
         private object FindKeyLock = new object();
 
@@ -56,8 +59,9 @@ namespace SecureSocketProtocol3
                 client.Server = this;
                 client.Connection = new Network.Connection(client);
                 client.Connection.ClientId = randomDecimal.NextDecimal();
+
+                client.serverHS = new ServerMaze(serverProperties.Handshake_Maze_Size, serverProperties.Handshake_MazeCount, serverProperties.Handshake_StepSize);
                 client.serverHS.onFindKeyInDatabase += serverHS_onFindKeyInDatabase;
-                client.Certificate = serverProperties.ServerCertificate;
 
                 SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
 
@@ -73,7 +77,12 @@ namespace SecureSocketProtocol3
             {
                 SysLogger.Log(ex.Message, SysLogType.Error);
             }
-            this.TcpServer.BeginAccept(AsyncAction, null);
+
+            try
+            {
+                this.TcpServer.BeginAccept(AsyncAction, null);
+            }
+            catch { }
         }
 
         private bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
@@ -111,13 +120,31 @@ namespace SecureSocketProtocol3
         public User RegisterUser(string Username, string Password, List<Stream> PrivateKeys, Stream PublicKey)
         {
             User user = new User(Username, Password, PrivateKeys, PublicKey);
-            user.GenKey(SessionSide.Server);
+            user.GenKey(SessionSide.Server, serverProperties.Handshake_Maze_Size, serverProperties.Handshake_MazeCount, serverProperties.Handshake_StepSize);
             return user;
+        }
+
+        public SSPClient[] GetClients()
+        {
+            lock (Clients)
+            {
+                SSPClient[] clients = new SSPClient[Clients.Count];
+                Clients.Values.CopyTo(clients, 0);
+                return clients;
+            }
         }
 
         public void Dispose()
         {
+            TcpServer.Close();
 
+            lock(Clients)
+            {
+                foreach(SSPClient client in Clients.Values)
+                {
+                    client.Disconnect();
+                }
+            }
         }
     }
 }

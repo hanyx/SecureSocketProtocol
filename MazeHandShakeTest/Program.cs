@@ -57,10 +57,10 @@ namespace MazeHandShakeTest
                     foreach (User User in Server_Users)
                     {
                         Stopwatch sw = Stopwatch.StartNew();
-                        ClientMaze client = new ClientMaze();
-                        ServerMaze server = new ServerMaze();
+                        ClientMaze client = new ClientMaze(new System.Drawing.Size(128, 128), 1, 5);
+                        ServerMaze server = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
                         server.onFindKeyInDatabase += server_onFindKeyInDatabase;
-
+                        
 
                         byte[] ClientResponseData = new byte[0];
                         byte[] ServerResponseData = new byte[0];
@@ -81,6 +81,7 @@ namespace MazeHandShakeTest
                             Console.WriteLine("[Server] ByteCode is not correct, disconnecting...");
                         }
 
+
                         //in this example we will simply keep this simple, so no additional encryption(s) will be used here except the one that is being used by the handshake it self
                         Console.WriteLine("[Client] Setting login data... username:" + User.Username);
                         client.SetLoginData(User.Username, User.Password, User.PrivateKeys, User.PublicKey);
@@ -89,9 +90,9 @@ namespace MazeHandShakeTest
                         Console.WriteLine("[Client] Calculating the key");
                         BigInteger mazeKey = client.SetMazeKey();
 
+
                         Console.WriteLine("[Client] Encrypting the public key & sending public key");
                         byte[] encryptedPublicKey = client.GetEncryptedPublicKey();
-
 
 
                         Console.WriteLine("[Server] Received encrypted public key");
@@ -121,10 +122,10 @@ namespace MazeHandShakeTest
                         Console.WriteLine("[Client] Applied the key to the encryption");
                         Console.WriteLine("[Server] Applied the key to the encryption");
 
-                        Console.WriteLine("[Client-Key] " + BitConverter.ToString(client.wopEx.Key) + "\r\n");
-                        Console.WriteLine("[Client-Salt] " + BitConverter.ToString(client.wopEx.Salt) + "\r\n\r\n");
-                        Console.WriteLine("[Server-Key] " + BitConverter.ToString(server.wopEx.Key) + "\r\n");
-                        Console.WriteLine("[Server-Salt] " + BitConverter.ToString(server.wopEx.Salt));
+                        Console.WriteLine("[Client-Key] " + BitConverter.ToString(client.wopEx.Key).Substring(0, 50) + "....");
+                        Console.WriteLine("[Client-Salt] " + BitConverter.ToString(client.wopEx.Salt).Substring(0, 50) + "....");
+                        Console.WriteLine("[Server-Key] " + BitConverter.ToString(server.wopEx.Key).Substring(0, 50) + "....");
+                        Console.WriteLine("[Server-Salt] " + BitConverter.ToString(server.wopEx.Salt).Substring(0, 50));
 
                         sw.Stop();
                         Console.WriteLine("Done... Authenticated without sending login data, completed in " + sw.Elapsed);
@@ -175,7 +176,7 @@ namespace MazeHandShakeTest
 
             public void GenServerKey()
             {
-                ServerHandshake = new ServerMaze();
+                ServerHandshake = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
 
                 Console.WriteLine("[Server] Setting up login data for user, ");// + Username);
                 ServerHandshake.SetLoginData(Username, Password, PrivateKeys, PublicKey);

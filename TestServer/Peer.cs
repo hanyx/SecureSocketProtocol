@@ -18,7 +18,7 @@ namespace TestServer
 
         public override void onConnect()
         {
-            Console.WriteLine("User \"" + base.Username + "\" connected, Peer connected " + base.RemoteIp);
+            Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] User \"" + base.Username + "\" connected, Peer connected " + base.RemoteIp);
             //TestSocket testSock = new TestSocket(this);
             //testSock.Connect();
         }
@@ -30,7 +30,7 @@ namespace TestServer
 
         public override void onException(Exception ex, ErrorType errorType)
         {
-
+            Console.WriteLine(ex.Message);
         }
 
         public override void onBeforeConnect()

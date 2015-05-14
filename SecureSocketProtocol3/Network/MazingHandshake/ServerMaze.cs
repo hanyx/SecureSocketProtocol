@@ -22,8 +22,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
         public string Username { get; private set; }
 
-        public ServerMaze()
-            : base(new Size(512, 512), 10, 30)
+        public ServerMaze(Size size, int MazeCount, int MazeSteps)
+            : base(size, MazeCount, MazeSteps)
         {
 
         }

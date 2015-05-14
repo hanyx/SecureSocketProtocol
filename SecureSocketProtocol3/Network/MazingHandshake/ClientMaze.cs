@@ -12,8 +12,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
     {
         public WopEx wopEx;
 
-        public ClientMaze()
-            : base(new Size(512, 512), 10, 30)
+        public ClientMaze(Size size, int MazeCount, int MazeSteps)
+            : base(size, MazeCount, MazeSteps)
         {
 
         }

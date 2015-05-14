@@ -18,6 +18,18 @@ namespace SSPTests
             basicServer.Dispose();
         }
 
+        [TestMethod]
+        public void Test_ManyConnections()
+        {
+            //should able to run just fine, might throw error if port is already in use
+            using(BasicServer basicServer = new BasicServer())
+            {
+                for(int i = 0; i < 100; i++)
+                {
+                    BasicPeer peer = new BasicPeer("127.0.0.1", 444);
+                }
+            }
+        }
 
 
 
@@ -37,16 +49,6 @@ namespace SSPTests
                 get { return "0.0.0.0"; }
             }
 
-            public override CertificateInfo ServerCertificate
-            {
-                get { return new ServerCertificate(); }
-            }
-
-            public override bool UserPassAuthenication
-            {
-                get { return false; }
-            }
-
             public override Stream[] KeyFiles
             {
                 get { return new Stream[0]; }
@@ -54,92 +56,32 @@ namespace SSPTests
 
             public override uint Cipher_Rounds
             {
-                get { return 3; }
+                get { return 1; }
             }
 
             public override CompressionAlgorithm CompressionAlgorithm
             {
-                get { throw new NotImplementedException(); }
+                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
             }
 
             public override EncAlgorithm EncryptionAlgorithm
             {
                 get { return EncAlgorithm.HwAES; }
             }
-        }
 
-        public class ServerCertificate : CertificateInfo
-        {
-            private DateTime validDate = DateTime.Now;
-
-            public ServerCertificate()
+            public override System.Drawing.Size Handshake_Maze_Size
             {
-
+                get { return new System.Drawing.Size(128, 128); }
             }
 
-            public override string CommonName
+            public override ushort Handshake_StepSize
             {
-                get { return "Secure Socket Protocol 3"; }
+                get { return 5; }
             }
 
-            public override string Country
+            public override ushort Handshake_MazeCount
             {
-                get { return "Unknown"; }
-            }
-
-            public override string State
-            {
-                get { return "Unknown"; }
-            }
-
-            public override string Locality
-            {
-                get { return "Unknown"; }
-            }
-
-            public override DateTime ValidTo
-            {
-                get { return DateTime.Now.AddDays(1); }
-            }
-
-            public override DateTime ValidFrom
-            {
-                get { return validDate; }
-            }
-
-            public override string Organization
-            {
-                get { return "Unknown"; }
-            }
-
-            public override string Unit
-            {
-                get { return "Unknown"; }
-            }
-
-            public override string IssuerCommonName
-            {
-                get { return "Unknown"; }
-            }
-
-            public override string IssuerOrganization
-            {
-                get { return "Unknown"; }
-            }
-
-            public override string IssuerCountry
-            {
-                get { return "Unknown"; }
-            }
-
-            public override bool ShowProtectionMethods
-            {
-                get { return false; }
-            }
-
-            public override ChecksumHash Checksum
-            {
-                get { return ChecksumHash.SHA512; }
+                get { return 1; }
             }
 
             public override byte[] NetworkKey
@@ -154,6 +96,11 @@ namespace SSPTests
                         218, 155
                     };
                 }
+            }
+
+            public override TimeSpan ClientTimeConnected
+            {
+                get { return new TimeSpan(1, 0, 0, 0); }
             }
         }
     }

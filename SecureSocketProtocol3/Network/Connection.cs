@@ -60,13 +60,14 @@ namespace SecureSocketProtocol3.Network
         public const int HEADER_SIZE = 13; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Checksum(BYTE) + FeatureId(INT)
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
         public const int MAX_PACKET_SIZE = (1024 * 1024) * 1; //1MB
+        public const int START_BUFFER_SIZE = 8192; //8KB
 
         public bool Connected { get; private set; }
         public decimal ClientId { get; internal set; }
         public SSPClient Client { get; private set; }
         private Socket Handle { get { return Client.Handle; } }
         private Stopwatch LastPacketSW = new Stopwatch();
-        private byte[] Buffer = new byte[MAX_PACKET_SIZE];
+        private byte[] Buffer = new byte[START_BUFFER_SIZE];
         internal MessageHandler messageHandler { get; private set; }
         private TaskQueue<SystemPacket> SystemPackets;
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
@@ -132,7 +133,7 @@ namespace SecureSocketProtocol3.Network
             this.CompressionAlgorithm = client.Server != null ? client.Server.serverProperties.CompressionAlgorithm : client.Properties.CompressionAlgorithm;
 
             //generate the header encryption
-            byte[] privKey = client.Server != null ? client.Server.serverProperties.ServerCertificate.NetworkKey : client.Properties.NetworkKey;
+            byte[] privKey = client.Server != null ? client.Server.serverProperties.NetworkKey : client.Properties.NetworkKey;
 
             PrivateSeed = privKey.Length >= 4 ? BitConverter.ToInt32(privKey, 0) : 0xBEEF;
 
@@ -209,17 +210,11 @@ namespace SecureSocketProtocol3.Network
 
 
             //let's check the certificate
-            if (Client.Certificate != null)
+            if (Client.Server != null && Client.Server.serverProperties != null)
             {
-                if (Client.Certificate.ValidFrom > DateTime.Now)
+                if (Client.ConnectionTime > Client.Server.serverProperties.ClientTimeConnected)
                 {
                     //we need to wait till the time is right
-                    Client.Disconnect();
-                    return;
-                }
-                if (Client.Certificate.ValidTo < DateTime.Now)
-                {
-                    //certificate is not valid anymore
                     Client.Disconnect();
                     return;
                 }
@@ -267,6 +262,11 @@ namespace SecureSocketProtocol3.Network
                         {
                             Disconnect();
                             return;
+                        }
+
+                        if(PayloadLen > Buffer.Length)
+                        {
+                            ResizeBuffer(PayloadLen);
                         }
 
                         TotalReceived = HEADER_SIZE;
@@ -494,6 +494,14 @@ namespace SecureSocketProtocol3.Network
                     }
                 }*/
             }
+        }
+
+        private void ResizeBuffer(int NewLength)
+        {
+            if (NewLength > MAX_PACKET_SIZE)
+                NewLength = MAX_PACKET_SIZE;
+
+            Array.Resize(ref Buffer, NewLength);
         }
 
         private void onSystemPacket(SystemPacket systemPacket)

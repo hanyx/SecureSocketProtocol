@@ -21,7 +21,7 @@ namespace SSPTests
             MazeErrorCode serverError = MazeErrorCode.Error;
 
             List<User> Server_Users = new List<User>();
-
+            
             //create users
             User temp_user = new User();
             temp_user.Username = "";
@@ -39,8 +39,8 @@ namespace SSPTests
             foreach (User User in Server_Users)
             {
                 Stopwatch sw = Stopwatch.StartNew();
-                ClientMaze client = new ClientMaze();
-                ServerMaze server = new ServerMaze();
+                ClientMaze client = new ClientMaze(new System.Drawing.Size(512, 512), 10, 30);
+                ServerMaze server = new ServerMaze(new System.Drawing.Size(512, 512), 10, 30);
                 server.onFindKeyInDatabase += (string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username) =>
                 {
                     foreach (User user in Server_Users)
@@ -122,7 +122,7 @@ namespace SSPTests
 
             public void GenServerKey()
             {
-                ServerHandshake = new ServerMaze();
+                ServerHandshake = new ServerMaze(new System.Drawing.Size(512, 512), 10, 30);
                 ServerHandshake.SetLoginData(Username, Password, PrivateKeys, PublicKey);
                 ServerHandshake.SetMazeKey();
 

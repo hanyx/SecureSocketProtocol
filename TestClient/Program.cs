@@ -30,14 +30,29 @@ namespace TestClient
             WopEx wopEx = new WopEx(TestKey, TestSalt, TestIV, encCode, decCode, SecureSocketProtocol3.WopEncMode.Simple, 1);
             */
 
-
-
-
-
             //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
+            //Client client = new Client();
 
-            Client client = new Client();
+            /*int connections = 0;
+            while(true)
+            {
+                new Client();
+                Console.WriteLine("Connections: " + ++connections);
+            }*/
+
+            /**/
+            for(int i = 0; i < 4; i++)
+            {
+                new Thread(new ThreadStart(() =>
+                {
+                    while (true)
+                    {
+                        new Client();
+                    }
+                })).Start();
+            }
+            
             Process.GetCurrentProcess().WaitForExit();
         }
 
@@ -58,7 +73,7 @@ namespace TestClient
         public override void onConnect()
         {
             Console.WriteLine("Client successfully connected");
-
+            return;
 
             /*Benchmark bench = new Benchmark();
             while (true)
@@ -71,7 +86,7 @@ namespace TestClient
                 }
             }*/
 
-            while (true)
+            while (false)
             {
                 using (TestSocket testSock2 = new TestSocket(this))
                 {
@@ -214,6 +229,21 @@ namespace TestClient
             public override CompressionAlgorithm CompressionAlgorithm
             {
                 get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
+            }
+
+            public override System.Drawing.Size Handshake_Maze_Size
+            {
+                get { return new System.Drawing.Size(128, 128); }
+            }
+
+            public override ushort Handshake_StepSize
+            {
+                get { return 5; }
+            }
+
+            public override ushort Handshake_MazeCount
+            {
+                get { return 1; }
             }
         }
     }

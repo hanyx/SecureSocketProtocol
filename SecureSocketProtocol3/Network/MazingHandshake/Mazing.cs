@@ -3,6 +3,7 @@ using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Security.Cryptography;
@@ -78,8 +79,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         {
             if (size.Width < 128 || size.Height < 128)
                 throw new ArgumentException("The size for the maze should be atleast 128x128");
-            if (MazeCount < 5)
-                throw new ArgumentException("There must be atleast 5 maze's we should generate");
+            if (MazeCount < 1)
+                throw new ArgumentException("There must be atleast 1 maze we should generate");
             //if ((MazeSteps * MazeCount) < (size.Width * size.Height))
             //    throw new Exception("");
 
@@ -170,6 +171,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         /// <returns></returns>
         public BigInteger SetMazeKey()
         {
+            Stopwatch SW_Timer = Stopwatch.StartNew();
+
             //Step 5/6 - Walking the Maze
             int beginPosX = equK(Username, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Width / 2) + 3;
             int beginPosY = equK(Password, (BigInteger)Username.IntValue(), PrivateSalt.IntValue()).IntValue() % (this.MazeSize.Height / 2) + 3;
@@ -213,8 +216,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             }
 
             PatchKey(ref this._mazeKey);
-
+            SW_Timer.Stop();
             return this.MazeKey;
+
+
         }
 
         /// <summary>

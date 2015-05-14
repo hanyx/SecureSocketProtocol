@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Text;
 
@@ -23,6 +24,10 @@ namespace SecureSocketProtocol3
 
         public abstract EncAlgorithm EncryptionAlgorithm { get; }
         public abstract CompressionAlgorithm CompressionAlgorithm { get; }
+
+        public abstract Size Handshake_Maze_Size { get; }
+        public abstract ushort Handshake_StepSize { get; }
+        public abstract ushort Handshake_MazeCount { get; }
 
         public ClientProperties()
         {

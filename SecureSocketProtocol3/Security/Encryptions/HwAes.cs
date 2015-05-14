@@ -20,11 +20,19 @@ namespace SecureSocketProtocol3.Security.Encryptions
         }
         public byte[] IV
         {
-            get { return AES.IV; }
-            set { AES.IV = value; }
+            get
+            {
+                return AES.IV;
+            }
+            set
+            {
+                AES.IV = value;
+            }
         }
 
         public bool DynamicKey { get; private set; }
+        private FastRandom Rnd = new FastRandom(DateTime.Now.Millisecond);
+
 
         public HwAes(byte[] Key, byte[] IV, int KeySize, CipherMode cipherMode, PaddingMode padding)
         {
@@ -68,7 +76,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
         public void ApplyKey(byte[] Key, byte[] IV)
         {
             this.AES.Key = KeyExtender(Key, 32);
-            this.AES.IV = IV;
+            this.IV = IV;
         }
 
         public void Dispose()

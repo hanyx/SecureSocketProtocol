@@ -3,6 +3,7 @@ using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -72,12 +73,12 @@ namespace SecureSocketProtocol3.Network
         /// <summary>
         /// Generate the keys to identify the user and encrypt the network session
         /// </summary>
-        public void GenKey(SessionSide side)
+        public void GenKey(SessionSide side, Size size, int MazeCount, int MazeSteps)
         {
             if(side == SessionSide.Server)
-                MazeHandshake = new ServerMaze();
+                MazeHandshake = new ServerMaze(size, MazeCount, MazeSteps);
             else
-                MazeHandshake = new ClientMaze();
+                MazeHandshake = new ClientMaze(size, MazeCount, MazeSteps);
 
             MazeHandshake.SetLoginData(Username, Password, PrivateKeys, PublicKey);
             MazeHandshake.SetMazeKey();

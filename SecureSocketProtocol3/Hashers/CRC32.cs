@@ -23,6 +23,7 @@ namespace SecureSocketProtocol3.Hashers
         /// <remarks>The polynomical should be supplied in its bit-reflected form. <see cref="DefaultPolynomial"/>.</remarks>
         public CRC32(uint polynomial)
         {
+            _crc32TablesCache = Hashtable.Synchronized(new Hashtable());
             HashSizeValue = 32;
             _crc32Table = (uint[])_crc32TablesCache[polynomial];
             if (_crc32Table == null)
@@ -36,7 +37,6 @@ namespace SecureSocketProtocol3.Hashers
         // static constructor
         static CRC32()
         {
-            _crc32TablesCache = Hashtable.Synchronized(new Hashtable());
             _defaultCRC = new CRC32();
         }
         #endregion
@@ -150,7 +150,7 @@ namespace SecureSocketProtocol3.Hashers
         #region PRIVATE SECTION
         private static uint _allOnes = 0xffffffff;
         private static CRC32 _defaultCRC;
-        private static Hashtable _crc32TablesCache;
+        private Hashtable _crc32TablesCache;
         private uint[] _crc32Table;
         private uint _crc;
 

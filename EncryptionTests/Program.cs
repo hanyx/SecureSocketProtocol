@@ -14,32 +14,39 @@ namespace EncryptionTests
         private static WopEx wop_dec;
         static void Main(string[] args)
         {
-            byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
-            byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, };
-            byte[] IV = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
 
-            byte[] EncryptCode = new byte[0];
-            byte[] DecryptCode = new byte[0];
-            WopEx.GenerateCryptoCode(12345678, 20, ref EncryptCode, ref DecryptCode);
-            wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, false);
-            wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, false);
 
-            if (File.Exists("./temp.txt"))
-                File.Delete("./temp.txt");
+            while(true)
+            {
+                byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
+                byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, };
+                byte[] IV = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
 
-            Log("WopEx Algorithm with Shuffle algorithm enabled");
-            Log("Key:  " + BitConverter.ToString(Key));
-            Log("Salt: " + BitConverter.ToString(Salt));
-            Log();
+                byte[] EncryptCode = new byte[0];
+                byte[] DecryptCode = new byte[0];
+                WopEx.GenerateCryptoCode(12345678, 20, ref EncryptCode, ref DecryptCode);
+                wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, true);
+                wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, true);
 
-            Log("Encryption Algorithm:");
-            ShowAlgorithm(wop_enc);
+                //if (File.Exists("./temp.txt"))
+                //    File.Delete("./temp.txt");
 
-            byte[] Data = new byte[] { 1, 3, 3, 7 };
+                Log("WopEx Algorithm with Shuffle algorithm enabled");
+                Log("Key:  " + BitConverter.ToString(Key));
+                Log("Salt: " + BitConverter.ToString(Salt));
+                Log();
 
-            for(int i = 0; i < 256; i++)
-                EncDec(Data);
+                Log("Encryption Algorithm:");
+                ShowAlgorithm(wop_enc);
 
+                byte[] Data = new byte[] { 1, 3, 3, 7 };
+
+                //while(true)
+                {
+                    EncDec(Data);
+                }
+
+            }
             Process.GetCurrentProcess().WaitForExit();
         }
 
@@ -82,19 +89,16 @@ namespace EncryptionTests
 
         private static void EncDec(byte[] Data)
         {
-            Log("=============================== Encrypting data ===============================");
-            Log("Original Data:" + BitConverter.ToString(Data).Replace("-", " "));
+            //Log("=============================== Encrypting data ===============================");
+            //Log("Original Data:" + BitConverter.ToString(Data).Replace("-", " "));
             wop_enc.Encrypt(Data, 0, Data.Length);
-            Log("Encrypted Data:" + BitConverter.ToString(Data).Replace("-", " "));
+            //Log("Encrypted Data:" + BitConverter.ToString(Data).Replace("-", " "));
 
-            Log("\r\n\r\n====================New Encryption Algorithm: ====================");
+            //Log("\r\n\r\n====================New Encryption Algorithm: ====================");
             ShowAlgorithm(wop_enc);
 
             wop_dec.Decrypt(Data, 0, Data.Length);
-            Log("Decrypted data: " + BitConverter.ToString(Data).Replace("-", " "));
-
-            for(int i = 0; i < 10; i++)
-                Log("\r\n");
+            //Log("Decrypted data: " + BitConverter.ToString(Data).Replace("-", " "));
         }
     }
 }

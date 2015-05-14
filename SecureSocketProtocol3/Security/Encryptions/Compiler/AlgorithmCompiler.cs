@@ -14,12 +14,12 @@ namespace SecureSocketProtocol3.Security.Encryptions.Compiler
     {
         private static object GlobalLock = new object();
         private static ulong GlobalInitialized = 0;
-        private ulong CompiledClasses = 0;
+        private static ulong CompiledClasses = 0;
 
-        private ModuleBuilder modBuilder;
-        private TypeBuilder typeBuilder;
-        private AssemblyName assemblyName;
-        private AssemblyBuilder asmBuilder;
+        private static ModuleBuilder modBuilder;
+        private static TypeBuilder typeBuilder;
+        private static AssemblyName assemblyName;
+        private static AssemblyBuilder asmBuilder;
 
         public bool IsDecryptState { get; private set; }
 
@@ -31,20 +31,22 @@ namespace SecureSocketProtocol3.Security.Encryptions.Compiler
         public AlgorithmCompiler(bool IsDecryptState)
         {
             this.IsDecryptState = IsDecryptState;
-            this.assemblyName = new AssemblyName();
 
             lock (GlobalLock)
             {
-                assemblyName.Name = "__AlgorithmCompiler__" + GlobalInitialized++;
+                if(assemblyName == null)
+                {
+                    assemblyName = new AssemblyName();
+                    assemblyName.Name = "__AlgorithmCompiler__" + GlobalInitialized++;
+                    asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+                    modBuilder = asmBuilder.DefineDynamicModule(asmBuilder.GetName().Name);
+                }
             }
-
-            asmBuilder = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
-            modBuilder = asmBuilder.DefineDynamicModule(asmBuilder.GetName().Name);
         }
 
         public IAlgorithm Compile(InstructionInfo[] Instructions)
         {
-            lock(modBuilder)
+            lock (GlobalLock)
             {
                 Stopwatch sw = Stopwatch.StartNew();
                 typeBuilder = modBuilder.DefineType("AlgoClass_" + CompiledClasses, TypeAttributes.Public |

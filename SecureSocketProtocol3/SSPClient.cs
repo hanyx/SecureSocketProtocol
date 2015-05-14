@@ -32,16 +32,19 @@ namespace SecureSocketProtocol3
         public ClientProperties Properties { get; private set; }
         internal Socket Handle { get; set; }
         internal SSPServer Server;
-        internal Mazing clientHS { get; private set; }
-        internal ServerMaze serverHS { get; private set; }
 
-        /// <summary>
-        /// Currently only available on server-side
-        /// </summary>
-        public CertificateInfo Certificate { get; internal set; }
+        internal Mazing clientHS { get; private set; }
+        internal ServerMaze serverHS { get; set; }
 
         private object Locky = new object();
         internal bool IsServerSided { get { return Server != null; } }
+
+        private Stopwatch _connectionTime;
+
+        /// <summary>
+        /// Get the time how long a client is connected for
+        /// </summary>
+        public TimeSpan ConnectionTime { get { return _connectionTime.Elapsed; } }
 
         /// <summary>
         /// The name of the logged in person
@@ -50,7 +53,7 @@ namespace SecureSocketProtocol3
 
         public SSPClient()
         {
-            serverHS = new ServerMaze();
+            _connectionTime = Stopwatch.StartNew();
         }
 
         /// <summary>
@@ -142,7 +145,7 @@ namespace SecureSocketProtocol3
 
             //let's begin the handshake
             User user = new User(Properties.Username, Properties.Password, new List<Stream>(Properties.PrivateKeyFiles), Properties.PublicKeyFile);
-            user.GenKey(SessionSide.Client);
+            user.GenKey(SessionSide.Client, Properties.Handshake_Maze_Size, Properties.Handshake_MazeCount, Properties.Handshake_StepSize);
 
             this.clientHS = user.MazeHandshake;
             byte[] encryptedPublicKey = clientHS.GetEncryptedPublicKey();
