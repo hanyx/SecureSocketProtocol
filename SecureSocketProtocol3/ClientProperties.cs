@@ -33,7 +33,5 @@ namespace SecureSocketProtocol3
         {
 
         }
-
-
     }
 }

@@ -225,5 +225,4 @@ Plugins/
 *.pdb
 *.exe
 *.cache
-*.exe
-*.pdb
+SecureSocketProtocol3/obj/Debug/SecureSocketProtocol3.csproj.FileListAbsolute.txt

@@ -58,9 +58,14 @@ namespace SecureSocketProtocol3.Utils
 
         public byte[] ReadBytes(int Length)
         {
-            byte[] result = new byte[Length];
-            stream.Read(result, 0, result.Length);
-            return result;
+            //don't just allocate all the memory, check the stream
+            if (stream.Position + Length <= stream.Length)
+            {
+                byte[] result = new byte[Length];
+                stream.Read(result, 0, result.Length);
+                return result;
+            }
+            throw new OverflowException("Unable to read/allocate " + Length + " bytes from stream");
         }
 
         public short ReadShort()

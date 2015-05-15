@@ -32,16 +32,15 @@ namespace TestClient
 
             //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
-            //Client client = new Client();
+            Client client = new Client();
 
             /*int connections = 0;
             while(true)
             {
                 new Client();
                 Console.WriteLine("Connections: " + ++connections);
-            }*/
+            }
 
-            /**/
             for(int i = 0; i < 4; i++)
             {
                 new Thread(new ThreadStart(() =>
@@ -51,7 +50,7 @@ namespace TestClient
                         new Client();
                     }
                 })).Start();
-            }
+            }*/
             
             Process.GetCurrentProcess().WaitForExit();
         }
@@ -73,7 +72,7 @@ namespace TestClient
         public override void onConnect()
         {
             Console.WriteLine("Client successfully connected");
-            return;
+            //return;
 
             /*Benchmark bench = new Benchmark();
             while (true)
