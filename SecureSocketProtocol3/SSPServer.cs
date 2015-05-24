@@ -71,6 +71,17 @@ namespace SecureSocketProtocol3
                         client.Connection.ClientId = randomDecimal.NextDecimal();
                     Clients.Add(client.Connection.ClientId, client);
                 }
+
+                try
+                {
+                    client.onBeforeConnect();
+                }
+                catch (Exception ex)
+                {
+                    SysLogger.Log(ex.Message, SysLogType.Error);
+                    client.onException(ex, ErrorType.UserLand);
+                }
+
                 client.Connection.StartReceiver();
             }
             catch(Exception ex)

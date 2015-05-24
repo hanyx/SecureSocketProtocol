@@ -7,7 +7,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
-    public class MsgGetNextId : IMessage
+    internal class MsgGetNextId : IMessage
     {
         public MsgGetNextId()
             : base()

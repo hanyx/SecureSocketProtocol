@@ -36,6 +36,9 @@ namespace TestServer
         public override void onBeforeConnect()
         {
             base.RegisterOperationalSocket(new TestSocket(this));
+
+            //Timing configuration is enabled as default, just showing users it's there
+            base.TimingConfiguration.Enable_Timing = true;
         }
 
         public override void onOperationalSocket_Connected(OperationalSocket OPSocket)

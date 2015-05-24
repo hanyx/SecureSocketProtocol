@@ -113,7 +113,7 @@ namespace SecureSocketProtocol3.Network.Messages
 
             #region Security
             //compress data
-            /*if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & CompressionAlgorithm.QuickLZ))
+            if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & CompressionAlgorithm.QuickLZ))
             {
                 UnsafeQuickLZ quickLz = new UnsafeQuickLZ();
                 byte[] compressed = quickLz.compress(TargetStream.GetBuffer(), (uint)Connection.HEADER_SIZE, (uint)TargetStream.Length - Connection.HEADER_SIZE);
@@ -127,7 +127,7 @@ namespace SecureSocketProtocol3.Network.Messages
                     if (TargetStream.Length != compressed.Length + Connection.HEADER_SIZE)
                         TargetStream.SetLength(compressed.Length + Connection.HEADER_SIZE);
                 }
-            }*/
+            }
 
             //encrypt all the data
             if (EncAlgorithm.HwAES == (conn.EncryptionAlgorithm & EncAlgorithm.HwAES))
@@ -170,52 +170,47 @@ namespace SecureSocketProtocol3.Network.Messages
                     OutLen = OutData.Length;
                 }
             }
-            /*if (EncAlgorithm.WopEx == (EncryptionAlgorithm & EncAlgorithm.WopEx))
+            if (EncAlgorithm.WopEx == (conn.EncryptionAlgorithm & EncAlgorithm.WopEx))
             {
-                lock (PayloadEncryption)
+                lock (conn.PayloadEncryption)
                 {
-                    if (DecryptedBuffer != null)
+                    if (OutData != null)
                     {
-                        PayloadEncryption.Decrypt(DecryptedBuffer, DecryptedBuffOffset, DecryptedBuffLen);
+                        conn.PayloadEncryption.Decrypt(OutData, 0, OutLen);
                     }
                     else
                     {
-                        PayloadEncryption.Decrypt(Buffer, ReadOffset, PayloadLen);
+                        conn.PayloadEncryption.Decrypt(InData, InOffset, inLen);
+                        OutLen = inLen;
                     }
-                    DecryptedBuffer = Buffer;
-                    DecryptedBuffOffset = ReadOffset;
-                    DecryptedBuffLen = PayloadLen;
                 }
-            }*/
+            }
             #endregion
 
             #region Compression
-            /*if (CompressionAlgorithm.QuickLZ == (this.CompressionAlgorithm & SecureSocketProtocol3.CompressionAlgorithm.QuickLZ))
+            if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & SecureSocketProtocol3.CompressionAlgorithm.QuickLZ))
             {
-                if (DecryptedBuffer != null)
+                if (OutData != null)
                 {
-                    byte[] temp = QuickLZ.decompress(DecryptedBuffer, (uint)DecryptedBuffOffset);
+                    byte[] temp = conn.QuickLZ.decompress(OutData, 0);
                     if (temp != null)
                     {
-                        DecryptedBuffer = temp;
-                        DecryptedBuffOffset = 0;
-                        DecryptedBuffLen = temp.Length;
-                        DataCompressedIn += (ulong)DecryptedBuffLen;
+                        OutData = temp;
+                        OutLen = temp.Length;
+                        OutLen = OutData.Length;
                     }
                 }
                 else
                 {
-                    byte[] temp = DecryptedBuffer = QuickLZ.decompress(Buffer, (uint)ReadOffset);
+                    byte[] temp = conn.QuickLZ.decompress(InData, (uint)InOffset);
                     if (temp != null)
                     {
-                        DecryptedBuffer = temp;
-                        DecryptedBuffOffset = 0;
-                        DecryptedBuffLen = temp.Length;
-                        DataCompressedIn += (ulong)DecryptedBuffLen;
+                        OutData = temp;
+                        OutLen = temp.Length;
+                        OutLen = OutData.Length;
                     }
                 }
-                DecryptedBuffLen = DecryptedBuffer.Length;
-            }*/
+            }
             #endregion
         }
 

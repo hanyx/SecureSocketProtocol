@@ -7,7 +7,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
-    public class MsgGetNextIdResponse : IMessage
+    internal class MsgGetNextIdResponse : IMessage
     {
         [ProtoMember(1)]
         public decimal Number;

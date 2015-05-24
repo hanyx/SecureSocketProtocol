@@ -8,7 +8,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
-    public class MsgCreateConnectionResponse : IMessage
+    internal class MsgCreateConnectionResponse : IMessage
     {
         [ProtoMember(1)]
         public ushort ConnectionId;

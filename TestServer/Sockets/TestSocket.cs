@@ -42,7 +42,7 @@ namespace TestServer.Sockets
 
         public override void onReceiveMessage(IMessage Message, Header header)
         {
-            //base.SendMessage(new TestMessage() { Buffer = new byte[] { 1, 3, 3, 7 } }, header);
+            base.SendMessage(new TestMessage() { Buffer = new byte[] { 1, 3, 3, 7 } }, header);
         }
 
         public override void onBeforeConnect()

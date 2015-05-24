@@ -31,6 +31,8 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         public Mazing MazeHandshake { get; private set; }
 
+        public SSPClient Client { get; private set; }
+
         internal User()
         {
             Username = "";
@@ -68,6 +70,15 @@ namespace SecureSocketProtocol3.Network
                 writeOffset += read;
             }
             return temp;
+        }
+
+        /// <summary>
+        /// Generate the keys to identify the user and encrypt the network session
+        /// </summary>
+        public void GenKey(SSPClient Client, SessionSide side, Size size, int MazeCount, int MazeSteps)
+        {
+            this.Client = Client;
+            GenKey(side, size, MazeCount, MazeSteps);
         }
 
         /// <summary>

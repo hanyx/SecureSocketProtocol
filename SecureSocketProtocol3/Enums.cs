@@ -128,4 +128,13 @@ namespace SecureSocketProtocol3
         QuickLZ = 1,
         Gzip = 2
     }
+
+    public enum TimingVar
+    {
+        /// <summary>
+        /// The time will use a fixed amount of time
+        /// </summary>
+        Fixed,
+        Variable
+    }
 }

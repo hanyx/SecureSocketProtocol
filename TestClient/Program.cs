@@ -85,6 +85,8 @@ namespace TestClient
                 }
             }*/
 
+            
+
             while (false)
             {
                 using (TestSocket testSock2 = new TestSocket(this))
@@ -121,7 +123,7 @@ namespace TestClient
 
         private void onBenchEvent()
         {
-            int number = base.Connection.GetNextRandomInteger();
+            int number = base.GetNextRandomInteger();
         }
 
         public override void onDisconnect(DisconnectReason Reason)

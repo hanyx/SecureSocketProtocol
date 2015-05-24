@@ -2,6 +2,7 @@
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Network.Messages.TCP;
+using SecureSocketProtocol3.Security.Configurations;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -27,7 +28,16 @@ namespace SecureSocketProtocol3
         public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
         public decimal ClientId { get { return Connection.ClientId; } }
-        public bool Connected { get { return Connection.Connected; } }
+
+        public bool Connected
+        {
+            get
+            {
+                if (Connection == null)
+                    return false;
+                return Connection.Connected;
+            }
+        }
 
         public ClientProperties Properties { get; private set; }
         internal Socket Handle { get; set; }
@@ -51,9 +61,15 @@ namespace SecureSocketProtocol3
         /// </summary>
         public string Username { get; internal set; }
 
+        public TimingConfig TimingConfiguration { get; private set; }
+
+        private System.Timers.Timer KeepAliveTimer;
+        private FastRandom KeepAliveRandom = new FastRandom();
+
         public SSPClient()
         {
             _connectionTime = Stopwatch.StartNew();
+            this.TimingConfiguration = new TimingConfig();
         }
 
         /// <summary>
@@ -145,7 +161,7 @@ namespace SecureSocketProtocol3
 
             //let's begin the handshake
             User user = new User(Properties.Username, Properties.Password, new List<Stream>(Properties.PrivateKeyFiles), Properties.PublicKeyFile);
-            user.GenKey(SessionSide.Client, Properties.Handshake_Maze_Size, Properties.Handshake_MazeCount, Properties.Handshake_StepSize);
+            user.GenKey(this, SessionSide.Client, Properties.Handshake_Maze_Size, Properties.Handshake_MazeCount, Properties.Handshake_StepSize);
 
             this.clientHS = user.MazeHandshake;
             byte[] encryptedPublicKey = clientHS.GetEncryptedPublicKey();
@@ -179,7 +195,25 @@ namespace SecureSocketProtocol3
 
             this.Username = Properties.Username;
 
+            this.KeepAliveTimer = new System.Timers.Timer();
+            this.KeepAliveTimer.Interval = 5000;
+            this.KeepAliveTimer.Elapsed += KeepAliveTimer_Elapsed;
+            this.KeepAliveTimer.Enabled = true;
+
             onConnect();
+        }
+
+        void KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
+        {
+            if (!Connected)
+                return;
+
+            if (Connection.LastPacketSendElapsed.TotalSeconds > 5)
+            {
+                //Make the Keep-Alive go a bit random to confuse time attacks with real traffic
+                this.KeepAliveTimer.Interval = KeepAliveRandom.Next(2000, 8000);
+                Connection.SendMessage(new MsgKeepAlive(), new SystemHeader());
+            }
         }
 
         public void Disconnect()
@@ -205,6 +239,55 @@ namespace SecureSocketProtocol3
             }
         }
 
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public long GetNextRandomLong()
+        {
+            decimal number = GetNextRandomDecimal();
+            number %= long.MaxValue;
+            return (int)number;
+        }
+
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public int GetNextRandomInteger()
+        {
+            decimal number = GetNextRandomDecimal();
+            number %= int.MaxValue;
+            return (int)number;
+        }
+
+        /// <summary>
+        /// This will request a random id from the server to use, a better way of getting a random number
+        /// </summary>
+        /// <returns>A random decimal number</returns>
+        public decimal GetNextRandomDecimal()
+        {
+            lock (Connection.NextRandomIdLock)
+            {
+                if (IsServerSided)
+                {
+                    return Server.randomDecimal.NextDecimal();
+                }
+
+                int ReqId = 0;
+                SyncObject SyncNextRandomId = Connection.RegisterRequest(ref ReqId);
+
+                Connection.SendMessage(new MsgGetNextId(), new RequestHeader(ReqId, false));
+
+                decimal? response = SyncNextRandomId.Wait<decimal?>(null, 30000);
+
+                if (!response.HasValue)
+                    throw new Exception("A time out occured");
+
+                return response.Value;
+            }
+        }
+
         public void Dispose()
         {
             try
@@ -222,6 +305,9 @@ namespace SecureSocketProtocol3
             this.Server = null;
             this.clientHS = null;
             this.serverHS = null;
+
+            if(this.KeepAliveTimer != null)
+                this.KeepAliveTimer.Enabled = false;
         }
     }
 }

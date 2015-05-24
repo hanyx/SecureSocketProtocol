@@ -66,7 +66,8 @@ namespace SecureSocketProtocol3.Network
         public decimal ClientId { get; internal set; }
         public SSPClient Client { get; private set; }
         private Socket Handle { get { return Client.Handle; } }
-        private Stopwatch LastPacketSW = new Stopwatch();
+        private Stopwatch LastPacketRecvSW = new Stopwatch();
+        private Stopwatch LastPacketSendSW = new Stopwatch();
         private byte[] Buffer = new byte[START_BUFFER_SIZE];
         internal MessageHandler messageHandler { get; private set; }
         private TaskQueue<SystemPacket> SystemPackets;
@@ -81,7 +82,7 @@ namespace SecureSocketProtocol3.Network
         internal HeaderList Headers { get; private set; }
         
         //locks
-        private object NextRandomIdLock = new object();
+        internal object NextRandomIdLock = new object();
         private object SendLock = new object();
 
         //receive info
@@ -111,8 +112,17 @@ namespace SecureSocketProtocol3.Network
         public ulong DataIn { get; private set; }
         public ulong PacketsOut { get; private set; }
         public ulong DataOut { get; private set; }
-
         public ulong DataCompressedIn { get; private set; }
+
+        /// <summary>
+        /// Get the time when the last packet was received
+        /// </summary>
+        public TimeSpan LastPacketReceivedElapsed { get { return LastPacketRecvSW.Elapsed; } }
+
+        /// <summary>
+        /// Get the time when the last packet was send
+        /// </summary>
+        public TimeSpan LastPacketSendElapsed { get { return LastPacketSendSW.Elapsed; } }
 
         internal bool HandShakeCompleted { get; set; }
         public EncAlgorithm EncryptionAlgorithm { get; internal set; }
@@ -176,6 +186,8 @@ namespace SecureSocketProtocol3.Network
             this.messageHandler.AddMessage(typeof(MsgOpDisconnect), "OP_DISCONNECT");
             this.messageHandler.AddMessage(typeof(MsgOpDisconnectResponse), "OP_DISCONNECT_RESPONSE");
 
+            this.messageHandler.AddMessage(typeof(MsgKeepAlive), "KEEP_ALIVE");
+
             Headers.RegisterHeader(typeof(SystemHeader));
             Headers.RegisterHeader(typeof(ConnectionHeader));
             Headers.RegisterHeader(typeof(RequestHeader));
@@ -197,17 +209,16 @@ namespace SecureSocketProtocol3.Network
 
                 if (BytesTransferred <= 0)
                 {
-                    this.Connected = false;
+                    Disconnect();
                     return;
                 }
             }
             catch(Exception ex)
             {
                 SysLogger.Log(ex.Message, SysLogType.Error);
-                this.Connected = false;
+                Disconnect();
                 return;
             }
-
 
             //let's check the certificate
             if (Client.Server != null && Client.Server.serverProperties != null)
@@ -215,12 +226,12 @@ namespace SecureSocketProtocol3.Network
                 if (Client.ConnectionTime > Client.Server.serverProperties.ClientTimeConnected)
                 {
                     //we need to wait till the time is right
-                    Client.Disconnect();
+                    Disconnect();
                     return;
                 }
             }
 
-            this.LastPacketSW = Stopwatch.StartNew();
+            this.LastPacketRecvSW = Stopwatch.StartNew();
             ReadableDataLen += BytesTransferred;
             DataIn += (ulong)BytesTransferred;
             bool Process = true;
@@ -284,6 +295,14 @@ namespace SecureSocketProtocol3.Network
                         int DecryptedBuffLen = 0;
 
                         messageHandler.DecryptMessage(this, Buffer, ReadOffset, PayloadLen, ref DecryptedBuffer, ref DecryptedBuffLen);
+
+                        if (DecryptedBuffer == null)
+                        {
+                            //failed to decrypt data
+                            Disconnect();
+                            return;
+                        }
+
                         TotalReceived += PayloadLen;
 
                         using (PayloadReader pr = new PayloadReader(DecryptedBuffer))
@@ -451,6 +470,7 @@ namespace SecureSocketProtocol3.Network
 
                     PacketsOut++;
                     DataOut += (ulong)outStream.Length;
+                    this.LastPacketSendSW = Stopwatch.StartNew();
                 }
 
 
@@ -569,57 +589,15 @@ namespace SecureSocketProtocol3.Network
             }
         }
 
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
-        public long GetNextRandomLong()
-        {
-            decimal number = GetNextRandomDecimal();
-            number %= long.MaxValue;
-            return (int)number;
-        }
-
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
-        public int GetNextRandomInteger()
-        {
-            decimal number = GetNextRandomDecimal();
-            number %= int.MaxValue;
-            return (int)number;
-        }
-
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
-        public decimal GetNextRandomDecimal()
-        {
-            lock (NextRandomIdLock)
-            {
-                if (Client.IsServerSided)
-                {
-                    return Client.Server.randomDecimal.NextDecimal();
-                }
-
-                int ReqId = 0;
-                SyncObject SyncNextRandomId = RegisterRequest(ref ReqId);
-
-                SendMessage(new MsgGetNextId(), new RequestHeader(ReqId, false));
-
-                decimal? response = SyncNextRandomId.Wait<decimal?>(null, 30000);
-
-                if (!response.HasValue)
-                    throw new Exception("A time out occured");
-
-                return response.Value;
-            }
-        }
-
         public void Disconnect()
         {
+            if (Client.TimingConfiguration.Enable_Timing)
+            {
+                //When a disconnection occurs, could be of decryption failure, or user disconnected normal
+                Thread.Sleep(Client.TimingConfiguration.Authentication_WrongPassword);
+            }
+
+            Connected = false;
             Client.Disconnect();
         }
     }

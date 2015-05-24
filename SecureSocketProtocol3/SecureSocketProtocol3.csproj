@@ -61,8 +61,11 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Network\Messages\TCP\MsgKeepAlive.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnect.cs" />
+    <Compile Include="PeerProperties.cs" />
+    <Compile Include="Security\Configurations\TimingConfig.cs" />
     <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
     <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
     <Compile Include="Security\Encryptions\HwAes.cs" />

@@ -5,6 +5,7 @@ using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
@@ -36,6 +37,13 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                 errorCode = mazeHandshake.onReceiveData(Data, ref responseData);
 
+
+                if (errorCode != MazeErrorCode.Finished && errorCode != MazeErrorCode.Success && client.TimingConfiguration.Enable_Timing)
+                {
+                    //something went wrong, annoy the attacker
+                    Thread.Sleep(client.TimingConfiguration.Authentication_WrongPassword);
+                }
+
                 if (responseData.Length > 0)
                 {
                     client.Connection.SendMessage(new MsgHandshake(responseData), new SystemHeader());
@@ -56,7 +64,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         if (mazeHandshake as ServerMaze != null)
                             client.Username = (mazeHandshake as ServerMaze).Username;
 
-                        try
+                        /*try
                         {
                             client.onBeforeConnect();
                         }
@@ -65,7 +73,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                             SysLogger.Log(ex.Message, SysLogType.Error);
                             client.onException(ex, ErrorType.UserLand);
                             return; //don't send that we're ready since we're clearly not at this point
-                        }
+                        }*/
 
                         client.Connection.SendMessage(new MsgInitOk(), new SystemHeader());
 

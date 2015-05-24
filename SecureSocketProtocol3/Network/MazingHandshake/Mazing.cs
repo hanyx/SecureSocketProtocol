@@ -41,7 +41,6 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
         public int MazeCount { get; private set; }
         public int MazeSteps { get; private set; }
 
-
         private byte[] _publicKeyData;
         public byte[] PublicKeyData
         {

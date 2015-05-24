@@ -1,23 +1,28 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
-    internal class MsgInitOk : IMessage
+    internal class MsgKeepAlive : IMessage
     {
-        public MsgInitOk()
+        [ProtoMember(1)]
+        public byte[] Payload { get; set; }
+
+        public MsgKeepAlive()
             : base()
         {
-
+            this.Payload = new byte[32];
+            new FastRandom().NextBytes(this.Payload);
         }
 
         public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)
         {
-            client.Connection.InitSync.Value = true;
-            client.Connection.InitSync.Pulse();
+
         }
     }
 }
