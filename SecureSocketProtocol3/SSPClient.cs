@@ -292,6 +292,7 @@ namespace SecureSocketProtocol3
         {
             try
             {
+                Handle.Shutdown(SocketShutdown.Both);
                 Handle.Close();
             }
             catch (Exception ex)
