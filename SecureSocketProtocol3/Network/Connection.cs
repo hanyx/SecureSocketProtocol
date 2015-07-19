@@ -63,7 +63,6 @@ namespace SecureSocketProtocol3.Network
         public const int START_BUFFER_SIZE = 8192; //8KB
 
         public bool Connected { get; private set; }
-        public decimal ClientId { get; internal set; }
         public SSPClient Client { get; private set; }
         private Socket Handle { get { return Client.Handle; } }
         private Stopwatch LastPacketRecvSW = new Stopwatch();

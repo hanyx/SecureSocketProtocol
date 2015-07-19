@@ -62,13 +62,26 @@ namespace SecureSocketProtocol3.Network
 
         internal byte[] ReadAllBytes(Stream stream)
         {
+            if (stream.CanSeek)
+                stream.Position = 0;
+
             byte[] temp = new byte[stream.Length];
             int writeOffset = 0;
             while (writeOffset != stream.Length)
             {
                 int read = stream.Read(temp, writeOffset, (int)stream.Length - writeOffset);
+
+                if (read <= 0)
+                    break;
+
                 writeOffset += read;
             }
+
+            while (writeOffset != stream.Length)
+            {
+                throw new Exception("Key reading error, unable to read the key completely");
+            }
+
             return temp;
         }
 
@@ -154,11 +167,7 @@ namespace SecureSocketProtocol3.Network
             {
 
             }
-
-            /// <summary>
-            /// serialize the UserDbInfo in a Base64 string
-            /// </summary>
-            /// <returns></returns>
+            
             public byte[] Serialize()
             {
                 using (MemoryStream ms = new MemoryStream())

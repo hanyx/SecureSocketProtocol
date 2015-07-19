@@ -58,7 +58,7 @@ namespace SecureSocketProtocol3
                 client.RemoteIp = AcceptSocket.RemoteEndPoint.ToString().Split(':')[0];
                 client.Server = this;
                 client.Connection = new Network.Connection(client);
-                client.Connection.ClientId = randomDecimal.NextDecimal();
+                client.ClientId = randomDecimal.NextDecimal();
 
                 client.serverHS = new ServerMaze(serverProperties.Handshake_Maze_Size, serverProperties.Handshake_MazeCount, serverProperties.Handshake_StepSize);
                 client.serverHS.onFindKeyInDatabase += serverHS_onFindKeyInDatabase;
@@ -67,9 +67,9 @@ namespace SecureSocketProtocol3
 
                 lock (Clients)
                 {
-                    while (Clients.ContainsKey(client.Connection.ClientId))
-                        client.Connection.ClientId = randomDecimal.NextDecimal();
-                    Clients.Add(client.Connection.ClientId, client);
+                    while (Clients.ContainsKey(client.ClientId))
+                        client.ClientId = randomDecimal.NextDecimal();
+                    Clients.Add(client.ClientId, client);
                 }
 
                 try

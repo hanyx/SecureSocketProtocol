@@ -27,7 +27,13 @@ namespace SecureSocketProtocol3
 
         public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
-        public decimal ClientId { get { return Connection.ClientId; } }
+
+
+        public decimal ClientId
+        {
+            get;
+            internal set;
+        }
 
         public bool Connected
         {
@@ -65,6 +71,8 @@ namespace SecureSocketProtocol3
 
         private System.Timers.Timer KeepAliveTimer;
         private FastRandom KeepAliveRandom = new FastRandom();
+
+        public bool IsDisposed { get; private set; }
 
         public SSPClient()
         {
@@ -309,6 +317,17 @@ namespace SecureSocketProtocol3
 
             if(this.KeepAliveTimer != null)
                 this.KeepAliveTimer.Enabled = false;
+
+            this.IsDisposed = true;
+
+            try
+            {
+                onDisconnect(DisconnectReason.UserDisconnection);
+            }
+            catch (Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error);
+            }
         }
     }
 }
