@@ -50,6 +50,16 @@ namespace TestServer
                 get { return "0.0.0.0"; }
             }
 
+            public override string ListenIp6
+            {
+                get { return "::1"; }
+            }
+
+            public override bool UseIPv4AndIPv6
+            {
+                get { return true; }
+            }
+
             public override Stream[] KeyFiles
             {
                 get { return new Stream[0]; }

@@ -160,7 +160,10 @@ namespace TestClient
 
             public override string HostIp
             {
-                get { return "127.0.0.1"; }// "192.168.2.10"; }
+                get
+                {
+                    return "127.0.0.1";
+                }//"127.0.0.1"; }// "192.168.2.10"; }
             }
 
             public override ushort Port

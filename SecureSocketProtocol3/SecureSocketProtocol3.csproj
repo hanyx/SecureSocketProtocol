@@ -65,6 +65,7 @@
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnect.cs" />
     <Compile Include="PeerProperties.cs" />
+    <Compile Include="Processors\ClientAcceptProcessor.cs" />
     <Compile Include="Security\Configurations\TimingConfig.cs" />
     <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
     <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />

@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.MazingHandshake;
+using SecureSocketProtocol3.Processors;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -19,11 +20,13 @@ namespace SecureSocketProtocol3
 
         internal object AuthLock = new object();
         internal Socket TcpServer { get; private set; }
+        internal Socket TcpServer6 { get; private set; }
         public ServerProperties serverProperties { get; private set; }
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
         internal RandomDecimal randomDecimal { get; private set; }
 
-
+        private ClientAcceptProcessor ClientAcceptProcessor4;
+        private ClientAcceptProcessor ClientAcceptProcessor6;
 
         private object FindKeyLock = new object();
 
@@ -41,62 +44,52 @@ namespace SecureSocketProtocol3
             this.randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
 
             SysLogger.Log("Starting server", SysLogType.Debug);
+
+            this.ClientAcceptProcessor4 = new ClientAcceptProcessor();
+            this.ClientAcceptProcessor6 = new ClientAcceptProcessor();
+
+
+            //start the server for IPv4
             this.TcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.TcpServer.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp), serverProperties.ListenPort));
             this.TcpServer.Listen(100);
-            this.TcpServer.BeginAccept(AsyncAction, null);
+            this.TcpServer.BeginAccept(AcceptClientCallback, null);
+
+            if (serverProperties.UseIPv4AndIPv6)
+            {
+                //start the server for IPv6
+                this.TcpServer6 = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp);
+                this.TcpServer6.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp6), serverProperties.ListenPort));
+                this.TcpServer6.Listen(100);
+                this.TcpServer6.BeginAccept(AcceptClient6Callback, null);
+            }
+
             SysLogger.Log("Started server", SysLogType.Debug);
         }
 
-        private void AsyncAction(IAsyncResult result)
+        private void AcceptClientCallback(IAsyncResult result)
         {
-            try
-            {
-                Socket AcceptSocket = this.TcpServer.EndAccept(result); //<- can throw a error
-                SSPClient client = GetNewClient();
-                client.Handle = AcceptSocket;
-                client.RemoteIp = AcceptSocket.RemoteEndPoint.ToString().Split(':')[0];
-                client.Server = this;
-                client.Connection = new Network.Connection(client);
-                client.ClientId = randomDecimal.NextDecimal();
-
-                client.serverHS = new ServerMaze(serverProperties.Handshake_Maze_Size, serverProperties.Handshake_MazeCount, serverProperties.Handshake_StepSize);
-                client.serverHS.onFindKeyInDatabase += serverHS_onFindKeyInDatabase;
-
-                SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
-
-                lock (Clients)
-                {
-                    while (Clients.ContainsKey(client.ClientId))
-                        client.ClientId = randomDecimal.NextDecimal();
-                    Clients.Add(client.ClientId, client);
-                }
-
-                try
-                {
-                    client.onBeforeConnect();
-                }
-                catch (Exception ex)
-                {
-                    SysLogger.Log(ex.Message, SysLogType.Error);
-                    client.onException(ex, ErrorType.UserLand);
-                }
-
-                client.Connection.StartReceiver();
-            }
-            catch(Exception ex)
-            {
-                SysLogger.Log(ex.Message, SysLogType.Error);
-            }
+            ClientAcceptProcessor4.ProcessClient(this, TcpServer, result);
 
             try
             {
-                this.TcpServer.BeginAccept(AsyncAction, null);
+                this.TcpServer.BeginAccept(AcceptClientCallback, null);
             }
             catch { }
         }
 
-        private bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
+        private void AcceptClient6Callback(IAsyncResult result)
+        {
+            ClientAcceptProcessor6.ProcessClient(this, TcpServer6, result);
+
+            try
+            {
+                this.TcpServer6.BeginAccept(AcceptClient6Callback, null);
+            }
+            catch { }
+        }
+
+        internal bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
         {
             lock (FindKeyLock)
             {
@@ -149,7 +142,10 @@ namespace SecureSocketProtocol3
         {
             TcpServer.Close();
 
-            lock(Clients)
+            if(TcpServer6 != null)
+                TcpServer.Close();
+
+            lock (Clients)
             {
                 foreach(SSPClient client in Clients.Values)
                 {

@@ -109,11 +109,14 @@ namespace SecureSocketProtocol3
         {
             IPAddress[] resolved = Dns.GetHostAddresses(Properties.HostIp);
             string DnsIp = "";
+            bool IsIPv6 = false;
 
             for (int i = 0; i < resolved.Length; i++)
             {
-                if (resolved[i].AddressFamily == AddressFamily.InterNetwork)
+                if (resolved[i].AddressFamily == AddressFamily.InterNetwork ||
+                    resolved[i].AddressFamily == AddressFamily.InterNetworkV6)
                 {
+                    IsIPv6 = resolved[i].AddressFamily == AddressFamily.InterNetworkV6;
                     DnsIp = resolved[i].ToString();
                     break;
                 }
@@ -127,7 +130,7 @@ namespace SecureSocketProtocol3
             int ConTimeout = Properties.ConnectionTimeout;
             do
             {
-                this.Handle = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.Handle = new Socket(IsIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 IAsyncResult result = this.Handle.BeginConnect(new IPEndPoint(resolved[0], Properties.Port), (IAsyncResult ar) =>
                 {
                     try

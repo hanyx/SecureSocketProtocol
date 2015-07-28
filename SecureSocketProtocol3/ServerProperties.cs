@@ -15,6 +15,12 @@ namespace SecureSocketProtocol3
         /// <summary> The local ip used to listen at, default: 0.0.0.0 </summary>
         public abstract string ListenIp { get; }
 
+        /// <summary> The local ip used to listen at for IPv6, default: ::1 </summary>
+        public abstract string ListenIp6 { get; }
+
+        /// <summary> Use IPv4 + IPv6 at the same time, if 'False' only IPV4 will be ran </summary>
+        public abstract bool UseIPv4AndIPv6 { get; }
+
         /// <summary> If keyfiles are being used it will make it harder to decrypt the traffic </summary>
         public abstract Stream[] KeyFiles { get; }
 
