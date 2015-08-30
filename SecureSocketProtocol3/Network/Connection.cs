@@ -401,10 +401,13 @@ namespace SecureSocketProtocol3.Network
         /// <param name="Header">The Header to use for adding additional information</param>
         /// <param name="feature">The Feature that has been used for this Message</param>
         /// <param name="OpSocket">The OperationalSocket that has been used for this Message</param>
-        internal void SendMessage(IMessage Message, Header Header, Feature feature = null, OperationalSocket OpSocket = null)
+        internal int SendMessage(IMessage Message, Header Header, Feature feature = null, OperationalSocket OpSocket = null)
         {
             lock (SendLock)
             {
+                if (!Connected)
+                    return -1;
+
                 if (Message == null)
                     throw new ArgumentException("Message cannot be null");
                 if (Header == null)
@@ -460,16 +463,28 @@ namespace SecureSocketProtocol3.Network
                         headerConfuser.Obfuscate(ref temp, 0);
                     }
 
-                    for (int i = 0; i < outStream.Length; )
+                    int SendNum = 0;
+
+                    try
                     {
-                        int len = i + 65535 < outStream.Length ? 65535 : (int)outStream.Length - i;
-                        Handle.Send(outStream.GetBuffer(), i, len, SocketFlags.None);
-                        i += len;
+                        for (int i = 0; i < outStream.Length;)
+                        {
+                            int len = i + 65535 < outStream.Length ? 65535 : (int)outStream.Length - i;
+                            Handle.Send(outStream.GetBuffer(), i, len, SocketFlags.None);
+                            i += len;
+                            SendNum += len;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Disconnect();
+                        return -1;
                     }
 
                     PacketsOut++;
                     DataOut += (ulong)outStream.Length;
                     this.LastPacketSendSW = Stopwatch.StartNew();
+                    return SendNum;
                 }
 
 

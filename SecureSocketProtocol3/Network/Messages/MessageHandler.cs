@@ -111,6 +111,8 @@ namespace SecureSocketProtocol3.Network.Messages
 
             Serializer.Serialize(TargetStream, message);
 
+            //return (int)TargetStream.Length;
+
             #region Security
             //compress data
             if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & CompressionAlgorithm.QuickLZ))
@@ -154,6 +156,11 @@ namespace SecureSocketProtocol3.Network.Messages
 
         internal void DecryptMessage(Connection conn, byte[] InData, int InOffset, int inLen, ref byte[] OutData, ref int OutLen)
         {
+            /*OutData = new byte[inLen];
+            Array.Copy(InData, InOffset, OutData, 0, OutData.Length);
+            OutLen = inLen;
+            return;*/
+
             #region Encryption
             if (EncAlgorithm.HwAES == (conn.EncryptionAlgorithm & EncAlgorithm.HwAES))
             {
