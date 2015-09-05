@@ -35,6 +35,14 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                 MazeErrorCode errorCode = MazeErrorCode.Error;
                 Mazing mazeHandshake = _client.IsServerSided ? _client.serverHS : _client.clientHS;
 
+                if (mazeHandshake == null)
+                {
+                    //error could occur on a unexpected disconnect
+                    client.Connection.HandShakeCompleted = false;
+                    client.Connection.HandshakeSync.Pulse();
+                    return;
+                }
+
                 errorCode = mazeHandshake.onReceiveData(Data, ref responseData);
 
 
@@ -47,6 +55,12 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                 if (responseData.Length > 0)
                 {
                     client.Connection.SendMessage(new MsgHandshake(responseData), new SystemHeader());
+                }
+
+                if(client == null || client.Connection == null || client.Connection.HandshakeSync == null)
+                {
+                    //error could occur on a unexpected disconnect
+                    return;
                 }
 
                 client.Connection.HandshakeSync.Value = errorCode;
@@ -62,7 +76,11 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                     if (_client.IsServerSided)
                     {
                         if (mazeHandshake as ServerMaze != null)
+                        {
                             client.Username = (mazeHandshake as ServerMaze).Username;
+                        }
+
+                        client.Connection.HandShakeCompleted = true;
 
                         /*try
                         {

@@ -219,178 +219,191 @@ namespace SecureSocketProtocol3.Network
                 return;
             }
 
-            //let's check the certificate
-            if (Client.Server != null && Client.Server.serverProperties != null)
+            try
             {
-                if (Client.ConnectionTime > Client.Server.serverProperties.ClientTimeConnected)
+                //let's check the certificate
+                if (Client.Server != null && Client.Server.serverProperties != null)
                 {
-                    //we need to wait till the time is right
-                    Disconnect();
-                    return;
-                }
-            }
-
-            this.LastPacketRecvSW = Stopwatch.StartNew();
-            ReadableDataLen += BytesTransferred;
-            DataIn += (ulong)BytesTransferred;
-            bool Process = true;
-
-            while (Process)
-            {
-                if (ReceiveState == ReceiveType.Header)
-                {
-                    Process = ReadableDataLen >= HEADER_SIZE;
-                    if (ReadableDataLen >= HEADER_SIZE)
+                    if (Client.ConnectionTime > Client.Server.serverProperties.ClientTimeConnected)
                     {
-                        lock (HeaderEncryption)
-                        {
-                            headerConfuser.Deobfuscate(ref Buffer, ReadOffset);
-                            HeaderEncryption.Decrypt(Buffer, ReadOffset, HEADER_SIZE);
-                        }
-
-                        using(PayloadReader pr = new PayloadReader(Buffer))
-                        {
-                            pr.Position = ReadOffset;
-                            PayloadLen = pr.ReadThreeByteInteger();
-                            CurPacketId = pr.ReadByte();
-                            ConnectionId = pr.ReadUShort();
-                            HeaderId = pr.ReadUShort();
-                            HeaderChecksum = pr.ReadByte();
-                            FeatureId = pr.ReadInteger();
-                        }
-
-                        byte ReChecksum = 0; //re-calculate the checksum
-                        ReChecksum += (byte)PayloadLen;
-                        ReChecksum += CurPacketId;
-                        ReChecksum += (byte)ConnectionId;
-                        ReChecksum += (byte)HeaderId;
-                        ReChecksum += (byte)FeatureId;
-
-                        if (ReChecksum != HeaderChecksum ||
-                            PayloadLen >= MAX_PACKET_SIZE ||
-                            PayloadLen < 0)
-                        {
-                            Disconnect();
-                            return;
-                        }
-
-                        if(PayloadLen > Buffer.Length)
-                        {
-                            ResizeBuffer(PayloadLen);
-                        }
-
-                        TotalReceived = HEADER_SIZE;
-                        ReadableDataLen -= HEADER_SIZE;
-                        ReadOffset += HEADER_SIZE;
-                        ReceiveState = ReceiveType.Payload;
+                        //we need to wait till the time is right
+                        Disconnect();
+                        return;
                     }
                 }
-                else if (ReceiveState == ReceiveType.Payload)
+
+                this.LastPacketRecvSW = Stopwatch.StartNew();
+                ReadableDataLen += BytesTransferred;
+                DataIn += (ulong)BytesTransferred;
+                bool Process = true;
+
+                while (Process)
                 {
-                    Process = ReadableDataLen >= PayloadLen;
-                    if (ReadableDataLen >= PayloadLen)
+                    if (ReceiveState == ReceiveType.Header)
                     {
-                        byte[] DecryptedBuffer = null;
-                        int DecryptedBuffLen = 0;
-
-                        messageHandler.DecryptMessage(this, Buffer, ReadOffset, PayloadLen, ref DecryptedBuffer, ref DecryptedBuffLen);
-
-                        if (DecryptedBuffer == null)
+                        Process = ReadableDataLen >= HEADER_SIZE;
+                        if (ReadableDataLen >= HEADER_SIZE)
                         {
-                            //failed to decrypt data
-                            Disconnect();
-                            return;
-                        }
-
-                        TotalReceived += PayloadLen;
-
-                        using (PayloadReader pr = new PayloadReader(DecryptedBuffer))
-                        {
-                            OperationalSocket OpSocket = null;
-                            if (ConnectionId > 0)
+                            lock (HeaderEncryption)
                             {
-                                lock(OperationalSockets)
-                                {
-                                    if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
-                                    {
-                                        //strange...
-                                        Disconnect();
-                                        return;
-                                    }
-                                }
+                                headerConfuser.Deobfuscate(ref Buffer, ReadOffset);
+                                HeaderEncryption.Decrypt(Buffer, ReadOffset, HEADER_SIZE);
                             }
 
-                            Type type = Headers.GetHeaderType(HeaderId);
-
-                            if (type != null)
+                            using(PayloadReader pr = new PayloadReader(Buffer))
                             {
-                                Header header = Header.DeSerialize(type, pr);
-                                uint MessageId = pr.ReadUInteger();
-                                IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId) : messageHandler.DeSerialize(pr, MessageId);
-
-                                if (message != null)
-                                {
-                                    message.RawSize = TotalReceived;
-                                    message.Header = header;
-
-                                    if (message.GetType() == typeof(MsgHandshake))
-                                    {
-                                        //we must directly process this message because if the handshake ends the keys will change
-                                        //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
-                                        message.ProcessPayload(Client, null);
-                                    }
-                                    else
-                                    {
-                                        lock (SystemPackets)
-                                        {
-                                            SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId, OpSocket));
-                                        }
-                                    }
-                                }
+                                pr.Position = ReadOffset;
+                                PayloadLen = pr.ReadThreeByteInteger();
+                                CurPacketId = pr.ReadByte();
+                                ConnectionId = pr.ReadUShort();
+                                HeaderId = pr.ReadUShort();
+                                HeaderChecksum = pr.ReadByte();
+                                FeatureId = pr.ReadInteger();
                             }
-                            else
+
+                            byte ReChecksum = 0; //re-calculate the checksum
+                            ReChecksum += (byte)PayloadLen;
+                            ReChecksum += CurPacketId;
+                            ReChecksum += (byte)ConnectionId;
+                            ReChecksum += (byte)HeaderId;
+                            ReChecksum += (byte)FeatureId;
+
+                            if (ReChecksum != HeaderChecksum ||
+                                PayloadLen >= MAX_PACKET_SIZE ||
+                                PayloadLen < 0)
                             {
                                 Disconnect();
                                 return;
                             }
-                        }
-                        TotalReceived = 0;
 
-                        PacketsIn++;
-                        ReadOffset += PayloadLen;
-                        ReadableDataLen -= PayloadLen;
-                        ReceiveState = ReceiveType.Header;
+                            if(PayloadLen > Buffer.Length)
+                            {
+                                ResizeBuffer(PayloadLen);
+                            }
+
+                            TotalReceived = HEADER_SIZE;
+                            ReadableDataLen -= HEADER_SIZE;
+                            ReadOffset += HEADER_SIZE;
+                            ReceiveState = ReceiveType.Payload;
+                        }
+                    }
+                    else if (ReceiveState == ReceiveType.Payload)
+                    {
+                        Process = ReadableDataLen >= PayloadLen;
+                        if (ReadableDataLen >= PayloadLen)
+                        {
+                            byte[] DecryptedBuffer = null;
+                            int DecryptedBuffLen = 0;
+
+                            messageHandler.DecryptMessage(this, Buffer, ReadOffset, PayloadLen, ref DecryptedBuffer, ref DecryptedBuffLen);
+
+                            if (DecryptedBuffer == null)
+                            {
+                                //failed to decrypt data
+                                Disconnect();
+                                return;
+                            }
+
+                            TotalReceived += PayloadLen;
+
+                            using (PayloadReader pr = new PayloadReader(DecryptedBuffer))
+                            {
+                                OperationalSocket OpSocket = null;
+                                if (ConnectionId > 0)
+                                {
+                                    lock(OperationalSockets)
+                                    {
+                                        if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
+                                        {
+                                            //strange...
+                                            Disconnect();
+                                            return;
+                                        }
+                                    }
+                                }
+
+                                Type type = Headers.GetHeaderType(HeaderId);
+
+                                if (type != null)
+                                {
+                                    Header header = Header.DeSerialize(type, pr);
+                                    uint MessageId = pr.ReadUInteger();
+                                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId) : messageHandler.DeSerialize(pr, MessageId);
+
+                                    if (message != null)
+                                    {
+                                        message.RawSize = TotalReceived;
+                                        message.Header = header;
+
+                                        if (!HandShakeCompleted)
+                                        {
+                                            if (message.GetType() == typeof(MsgHandshake))
+                                            {
+                                                //we must directly process this message because if the handshake ends the keys will change
+                                                //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                                message.ProcessPayload(Client, null);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            lock (SystemPackets)
+                                            {
+                                                SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId, OpSocket));
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Disconnect();
+                                    return;
+                                }
+                            }
+                            TotalReceived = 0;
+
+                            PacketsIn++;
+                            ReadOffset += PayloadLen;
+                            ReadableDataLen -= PayloadLen;
+                            ReceiveState = ReceiveType.Header;
+                        }
                     }
                 }
-            }
 
-            int len = ReceiveState == ReceiveType.Header ? HEADER_SIZE : PayloadLen;
-            if (ReadOffset + len >= this.Buffer.Length)
-            {
-                //no more room for this data size, at the end of the buffer ?
+                int len = ReceiveState == ReceiveType.Header ? HEADER_SIZE : PayloadLen;
+                if (ReadOffset + len >= this.Buffer.Length)
+                {
+                    //no more room for this data size, at the end of the buffer ?
 
-                //copy the buffer to the beginning
-                Array.Copy(this.Buffer, ReadOffset, this.Buffer, 0, ReadableDataLen);
+                    //copy the buffer to the beginning
+                    Array.Copy(this.Buffer, ReadOffset, this.Buffer, 0, ReadableDataLen);
 
-                WriteOffset = ReadableDataLen;
-                ReadOffset = 0;
-            }
-            else
-            {
-                //payload fits in the buffer from the current offset
-                //use BytesTransferred to write at the end of the payload
-                //so that the data is not split
-                WriteOffset += BytesTransferred;
-            }
+                    WriteOffset = ReadableDataLen;
+                    ReadOffset = 0;
+                }
+                else
+                {
+                    //payload fits in the buffer from the current offset
+                    //use BytesTransferred to write at the end of the payload
+                    //so that the data is not split
+                    WriteOffset += BytesTransferred;
+                }
 
-            if (Buffer.Length - WriteOffset > 0)
-            {
-                Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
+                if (Buffer.Length - WriteOffset > 0)
+                {
+                    Handle.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
+                }
+                else
+                {
+                    //Shoudln't be even possible... very strange
+                    Disconnect();
+                }
             }
-            else
+            catch(Exception ex)
             {
-                //Shoudln't be even possible... very strange
+                //unexpected error, client might have disconnected itself, or else report this error
+                SysLogger.Log(ex.Message, SysLogType.Error);
                 Disconnect();
+                return;
             }
         }
 
@@ -607,8 +620,11 @@ namespace SecureSocketProtocol3.Network
         {
             if (Client.TimingConfiguration.Enable_Timing)
             {
-                //When a disconnection occurs, could be of decryption failure, or user disconnected normal
-                Thread.Sleep(Client.TimingConfiguration.Authentication_WrongPassword);
+                if (!HandShakeCompleted)
+                {
+                    //When a disconnection occurs, could be of decryption failure or authentication failure
+                    Thread.Sleep(Client.TimingConfiguration.Authentication_WrongPassword);
+                }
             }
 
             Connected = false;
