@@ -26,114 +26,243 @@ namespace MazeHandShakeTest
 
         static void Main(string[] args)
         {
-            try
+            SecureHandshake_SingleUser();
+        }
+
+        private static void SecureHandshake_SingleUser()
+        {
+            MazeErrorCode clientError = MazeErrorCode.Error;
+            MazeErrorCode serverError = MazeErrorCode.Error;
+            int multiplier = 100;
+
+            //create users
+            User temp_user = new User();
+
+            Console.WriteLine("[Server] Creating user table...");
+            //Add real data here if you want to test this out
+            temp_user.Username = "TestUser";
+            temp_user.Password = "SomeStrongPasswordHere";
+            temp_user.PublicKey = GetRandomBytes(128 * multiplier); //File.ReadAllBytes("./Data/PublicKey1.dat"));
+            temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //File.ReadAllBytes("./Data/PrivateKey1.dat"));
+            temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //(File.ReadAllBytes("./Data/PrivateKey2.dat"));
+
+            temp_user.GenServerKey();
+
+            ClientMaze client = new ClientMaze(new System.Drawing.Size(128, 128), 1, 5);
+            ServerMaze server = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
+            server.onFindKeyInDatabase += server_onFindKeyInDatabase;
+
+            Server_Users = new List<User>();
+            Server_Users.Add(temp_user);
+
+            while (true)
             {
-                MazeErrorCode clientError = MazeErrorCode.Error;
-                MazeErrorCode serverError = MazeErrorCode.Error;
-                int multiplier = 100;
+                Console.WriteLine(".............................................................");
 
-                while (true)
+                Stopwatch sw = Stopwatch.StartNew();
+
+                byte[] ClientResponseData = new byte[0];
+                byte[] ServerResponseData = new byte[0];
+
+                //1. Send server the bytecode
+                byte[] byteCode = client.GetByteCode();
+                Console.WriteLine("[Client] Sending ByteCode to server");
+
+
+                //2. Server receives the ByteCode
+                serverError = server.onReceiveData(byteCode, ref ServerResponseData);
+                if (serverError == MazeErrorCode.Success)
                 {
-                    Server_Users = new List<User>();
+                    Console.WriteLine("[Server] ByteCode is correct, continue on with handshake");
+                }
+                else
+                {
+                    Console.WriteLine("[Server] ByteCode is not correct, disconnecting...");
+                }
 
-                    //create users
-                    User temp_user = new User();
-                    temp_user.Username = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
-                    temp_user.Password = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
-                    temp_user.PublicKey = GetRandomBytes(128 * multiplier); //File.ReadAllBytes("./Data/PublicKey1.dat"));
 
-                    //for (int i = 0; i < temp_user.PublicKey.Length; i++)
-                    //    temp_user.PublicKey[i] = (byte)(i % 100);
+                //in this example we will simply keep this simple, so no additional encryption(s) will be used here except the one that is being used by the handshake it self
+                Console.WriteLine("[Client] Setting login data... username:" + temp_user.Username);
+                client.SetLoginData(temp_user.Username, temp_user.Password, temp_user.PrivateKeys, temp_user.PublicKey);
 
-                    temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //File.ReadAllBytes("./Data/PrivateKey1.dat"));
-                    temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //(File.ReadAllBytes("./Data/PrivateKey2.dat"));
 
-                    Console.WriteLine("[Server] Creating user table...");
-                    temp_user.GenServerKey();
-                    Server_Users.Add(temp_user);
+                Console.WriteLine("[Client] Calculating the key");
+                BigInteger mazeKey = client.SetMazeKey();
 
-                    Console.WriteLine(".............................................................");
 
-                    foreach (User User in Server_Users)
-                    {
-                        Stopwatch sw = Stopwatch.StartNew();
-                        ClientMaze client = new ClientMaze(new System.Drawing.Size(128, 128), 1, 5);
-                        ServerMaze server = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
-                        server.onFindKeyInDatabase += server_onFindKeyInDatabase;
+                Console.WriteLine("[Client] Encrypting the public key & sending public key");
+                byte[] encryptedPublicKey = client.GetEncryptedPublicKey();
+
+
+                Console.WriteLine("[Server] Received encrypted public key");
+                serverError = server.onReceiveData(encryptedPublicKey, ref ServerResponseData);
+                if (serverError != MazeErrorCode.Success)
+                {
+                    Console.WriteLine("[Server] Encrypted Public Key was not found in database or something else went wrong");
+                    continue;//Process.GetCurrentProcess().WaitForExit();
+                }
+                Console.WriteLine("[Server] Sending back response to client len:" + ServerResponseData.Length);
+
+                Console.WriteLine("[Client] Received response from server... len:" + ServerResponseData.Length + ", sending response back...");
+                clientError = client.onReceiveData(ServerResponseData, ref ClientResponseData);
+                if (clientError != MazeErrorCode.Success && clientError != MazeErrorCode.Finished)
+                {
+                    Console.WriteLine("[Client] Incorrect response from server");
+                    continue;//Process.GetCurrentProcess().WaitForExit();
+                }
+
+                Console.WriteLine("[Server] Received response from client len:" + ServerResponseData.Length);
+                serverError = server.onReceiveData(ClientResponseData, ref ServerResponseData);
+                if (serverError != MazeErrorCode.Success && serverError != MazeErrorCode.Finished)
+                {
+                    Console.WriteLine("[Server] Incorrect response from client");
+                    continue;//Process.GetCurrentProcess().WaitForExit();
+                }
+                Console.WriteLine("[Client] Applied the key to the encryption");
+                Console.WriteLine("[Server] Applied the key to the encryption");
+
+                Console.WriteLine("[Client-Key] " + BitConverter.ToString(client.wopEx.Key).Substring(0, 50) + "....");
+                Console.WriteLine("[Client-Salt] " + BitConverter.ToString(client.wopEx.Salt).Substring(0, 50) + "....");
+                Console.WriteLine("[Server-Key] " + BitConverter.ToString(server.wopEx.Key).Substring(0, 50) + "....");
+                Console.WriteLine("[Server-Salt] " + BitConverter.ToString(server.wopEx.Salt).Substring(0, 50));
+
+                sw.Stop();
+                Console.WriteLine("Done... Authenticated without sending login data, completed in " + sw.Elapsed);
+
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine();
+                Console.WriteLine("Re-Calculating the private keys");
+                int keyCount = temp_user.PrivateKeys.Count;
+                List<Stream> calcPrivateKeys = new List<Stream>();
+                for(int i = 0; i < keyCount; i++)
+                {
+                    Console.WriteLine("Old Privatekey[" + i.ToString("D2") + "] " + BitConverter.ToString(temp_user.PrivateKeys[i]).Substring(0, 50) + "....");
+                    calcPrivateKeys.Add(client.RecalculatePrivateKey(new MemoryStream(temp_user.PrivateKeys[i])));
+                    Console.WriteLine("New Privatekey[" + i.ToString("D2") + "] " + BitConverter.ToString(temp_user.PrivateKeys[i]).Substring(0, 50) + "....");
+                }
+
+                //because of the MemoryStream we don't need to remove/add the keys, but in a remote server you must so I'll leave this here 
+                /*temp_user.PrivateKeys.Clear();
+                for (int i = 0; i < keyCount; i++)
+                {
+                    temp_user.PrivateKeys.Add((calcPrivateKeys[i] as MemoryStream).ToArray());
+                }*/
+
+                temp_user.GenServerKey();
+
+                //re-initialize the client/server for new login attempt ;)
+                client = new ClientMaze(new System.Drawing.Size(128, 128), 1, 5);
+                server = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
+                server.onFindKeyInDatabase += server_onFindKeyInDatabase;
+            }
+        }
+
+        private static void KeepTestingHandshake()
+        {
+            MazeErrorCode clientError = MazeErrorCode.Error;
+            MazeErrorCode serverError = MazeErrorCode.Error;
+            int multiplier = 100;
+
+            while (true)
+            {
+                Server_Users = new List<User>();
+
+                //create users
+                User temp_user = new User();
+                temp_user.Username = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
+                temp_user.Password = ASCIIEncoding.ASCII.GetString(GetRandomBytes(20));
+                temp_user.PublicKey = GetRandomBytes(128 * multiplier); //File.ReadAllBytes("./Data/PublicKey1.dat"));
+
+                //for (int i = 0; i < temp_user.PublicKey.Length; i++)
+                //    temp_user.PublicKey[i] = (byte)(i % 100);
+
+                temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //File.ReadAllBytes("./Data/PrivateKey1.dat"));
+                temp_user.PrivateKeys.Add(GetRandomBytes(128 * multiplier)); //(File.ReadAllBytes("./Data/PrivateKey2.dat"));
+
+                Console.WriteLine("[Server] Creating user table...");
+                temp_user.GenServerKey();
+                Server_Users.Add(temp_user);
+
+                Console.WriteLine(".............................................................");
+
+                foreach (User User in Server_Users)
+                {
+                    Stopwatch sw = Stopwatch.StartNew();
+                    ClientMaze client = new ClientMaze(new System.Drawing.Size(128, 128), 1, 5);
+                    ServerMaze server = new ServerMaze(new System.Drawing.Size(128, 128), 1, 5);
+                    server.onFindKeyInDatabase += server_onFindKeyInDatabase;
                         
 
-                        byte[] ClientResponseData = new byte[0];
-                        byte[] ServerResponseData = new byte[0];
+                    byte[] ClientResponseData = new byte[0];
+                    byte[] ServerResponseData = new byte[0];
 
-                        //1. Send server the bytecode
-                        byte[] byteCode = client.GetByteCode();
-                        Console.WriteLine("[Client] Sending ByteCode to server");
-
-
-                        //2. Server receives the ByteCode
-                        serverError = server.onReceiveData(byteCode, ref ServerResponseData);
-                        if (serverError == MazeErrorCode.Success)
-                        {
-                            Console.WriteLine("[Server] ByteCode is correct, continue on with handshake");
-                        }
-                        else
-                        {
-                            Console.WriteLine("[Server] ByteCode is not correct, disconnecting...");
-                        }
+                    //1. Send server the bytecode
+                    byte[] byteCode = client.GetByteCode();
+                    Console.WriteLine("[Client] Sending ByteCode to server");
 
 
-                        //in this example we will simply keep this simple, so no additional encryption(s) will be used here except the one that is being used by the handshake it self
-                        Console.WriteLine("[Client] Setting login data... username:" + User.Username);
-                        client.SetLoginData(User.Username, User.Password, User.PrivateKeys, User.PublicKey);
-
-
-                        Console.WriteLine("[Client] Calculating the key");
-                        BigInteger mazeKey = client.SetMazeKey();
-
-
-                        Console.WriteLine("[Client] Encrypting the public key & sending public key");
-                        byte[] encryptedPublicKey = client.GetEncryptedPublicKey();
-
-
-                        Console.WriteLine("[Server] Received encrypted public key");
-                        serverError = server.onReceiveData(encryptedPublicKey, ref ServerResponseData);
-                        if (serverError != MazeErrorCode.Success)
-                        {
-                            Console.WriteLine("[Server] Encrypted Public Key was not found in database or something else went wrong");
-                            continue;//Process.GetCurrentProcess().WaitForExit();
-                        }
-                        Console.WriteLine("[Server] Sending back response to client len:" + ServerResponseData.Length);
-
-                        Console.WriteLine("[Client] Received response from server... len:" + ServerResponseData.Length + ", sending response back...");
-                        clientError = client.onReceiveData(ServerResponseData, ref ClientResponseData);
-                        if (clientError != MazeErrorCode.Success && clientError != MazeErrorCode.Finished)
-                        {
-                            Console.WriteLine("[Client] Incorrect response from server");
-                            continue;//Process.GetCurrentProcess().WaitForExit();
-                        }
-
-                        Console.WriteLine("[Server] Received response from client len:" + ServerResponseData.Length);
-                        serverError = server.onReceiveData(ClientResponseData, ref ServerResponseData);
-                        if (serverError != MazeErrorCode.Success && serverError != MazeErrorCode.Finished)
-                        {
-                            Console.WriteLine("[Server] Incorrect response from client");
-                            continue;//Process.GetCurrentProcess().WaitForExit();
-                        }
-                        Console.WriteLine("[Client] Applied the key to the encryption");
-                        Console.WriteLine("[Server] Applied the key to the encryption");
-
-                        Console.WriteLine("[Client-Key] " + BitConverter.ToString(client.wopEx.Key).Substring(0, 50) + "....");
-                        Console.WriteLine("[Client-Salt] " + BitConverter.ToString(client.wopEx.Salt).Substring(0, 50) + "....");
-                        Console.WriteLine("[Server-Key] " + BitConverter.ToString(server.wopEx.Key).Substring(0, 50) + "....");
-                        Console.WriteLine("[Server-Salt] " + BitConverter.ToString(server.wopEx.Salt).Substring(0, 50));
-
-                        sw.Stop();
-                        Console.WriteLine("Done... Authenticated without sending login data, completed in " + sw.Elapsed);
+                    //2. Server receives the ByteCode
+                    serverError = server.onReceiveData(byteCode, ref ServerResponseData);
+                    if (serverError == MazeErrorCode.Success)
+                    {
+                        Console.WriteLine("[Server] ByteCode is correct, continue on with handshake");
                     }
+                    else
+                    {
+                        Console.WriteLine("[Server] ByteCode is not correct, disconnecting...");
+                    }
+
+
+                    //in this example we will simply keep this simple, so no additional encryption(s) will be used here except the one that is being used by the handshake it self
+                    Console.WriteLine("[Client] Setting login data... username:" + User.Username);
+                    client.SetLoginData(User.Username, User.Password, User.PrivateKeys, User.PublicKey);
+
+
+                    Console.WriteLine("[Client] Calculating the key");
+                    BigInteger mazeKey = client.SetMazeKey();
+
+
+                    Console.WriteLine("[Client] Encrypting the public key & sending public key");
+                    byte[] encryptedPublicKey = client.GetEncryptedPublicKey();
+
+
+                    Console.WriteLine("[Server] Received encrypted public key");
+                    serverError = server.onReceiveData(encryptedPublicKey, ref ServerResponseData);
+                    if (serverError != MazeErrorCode.Success)
+                    {
+                        Console.WriteLine("[Server] Encrypted Public Key was not found in database or something else went wrong");
+                        continue;//Process.GetCurrentProcess().WaitForExit();
+                    }
+                    Console.WriteLine("[Server] Sending back response to client len:" + ServerResponseData.Length);
+
+                    Console.WriteLine("[Client] Received response from server... len:" + ServerResponseData.Length + ", sending response back...");
+                    clientError = client.onReceiveData(ServerResponseData, ref ClientResponseData);
+                    if (clientError != MazeErrorCode.Success && clientError != MazeErrorCode.Finished)
+                    {
+                        Console.WriteLine("[Client] Incorrect response from server");
+                        continue;//Process.GetCurrentProcess().WaitForExit();
+                    }
+
+                    Console.WriteLine("[Server] Received response from client len:" + ServerResponseData.Length);
+                    serverError = server.onReceiveData(ClientResponseData, ref ServerResponseData);
+                    if (serverError != MazeErrorCode.Success && serverError != MazeErrorCode.Finished)
+                    {
+                        Console.WriteLine("[Server] Incorrect response from client");
+                        continue;//Process.GetCurrentProcess().WaitForExit();
+                    }
+                    Console.WriteLine("[Client] Applied the key to the encryption");
+                    Console.WriteLine("[Server] Applied the key to the encryption");
+
+                    Console.WriteLine("[Client-Key] " + BitConverter.ToString(client.wopEx.Key).Substring(0, 50) + "....");
+                    Console.WriteLine("[Client-Salt] " + BitConverter.ToString(client.wopEx.Salt).Substring(0, 50) + "....");
+                    Console.WriteLine("[Server-Key] " + BitConverter.ToString(server.wopEx.Key).Substring(0, 50) + "....");
+                    Console.WriteLine("[Server-Salt] " + BitConverter.ToString(server.wopEx.Salt).Substring(0, 50));
+
+                    sw.Stop();
+                    Console.WriteLine("Done... Authenticated without sending login data, completed in " + sw.Elapsed);
                 }
-                Process.GetCurrentProcess().WaitForExit();
             }
-            catch { }
         }
 
         static bool server_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)

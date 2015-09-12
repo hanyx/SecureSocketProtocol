@@ -130,6 +130,7 @@ namespace SecureSocketProtocol3.Network
         public Connection(SSPClient client)
         {
             this.Client = client;
+
             this.Connected = true;
             this.Headers = new HeaderList(this);
             this.SystemPackets = new TaskQueue<SystemPacket>(onSystemPacket, 50);

@@ -48,6 +48,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
         {
             using (ICryptoTransform Encryptor = AES.CreateEncryptor())
             {
+
                 return Encryptor.TransformFinalBlock(Data, Offset, Length);
             }
         }
@@ -56,6 +57,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
         {
             using (ICryptoTransform Decryptor = AES.CreateDecryptor())
             {
+
                 return Decryptor.TransformFinalBlock(Data, Offset, Length);
             }
         }

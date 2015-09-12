@@ -16,8 +16,9 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
         public MsgKeepAlive()
             : base()
         {
-            this.Payload = new byte[32];
-            new FastRandom().NextBytes(this.Payload);
+            FastRandom fastRand = new FastRandom();
+            this.Payload = new byte[fastRand.Next(32, 256)];
+            fastRand.NextBytes(this.Payload);
         }
 
         public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)

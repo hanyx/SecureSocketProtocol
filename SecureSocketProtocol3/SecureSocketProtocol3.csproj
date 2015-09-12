@@ -71,6 +71,7 @@
     <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
     <Compile Include="Security\Encryptions\HwAes.cs" />
     <Compile Include="Security\Encryptions\KeyEncryptor.cs" />
+    <Compile Include="Security\Encryptions\RSAEncryption.cs" />
     <Compile Include="Security\Encryptions\WopEncryption.cs" />
     <Compile Include="Security\Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
