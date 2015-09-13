@@ -104,7 +104,7 @@ namespace SecureSocketProtocol3.Network
         internal HwAes EncAES { get; private set; }
         internal int PrivateSeed { get; private set; }
         internal UnsafeQuickLZ QuickLZ { get; private set; }
-        private HeaderConfuser headerConfuser { get; set; }
+        private DataConfuser headerConfuser { get; set; }
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -166,11 +166,9 @@ namespace SecureSocketProtocol3.Network
             WopEx.GenerateCryptoCode(PrivateSeed << 3, 15, ref encCode, ref decCode);
             this.PayloadEncryption = new WopEx(privKey, SaltKey, InitialVector, encCode, decCode, WopEncMode.Simple, CipherRounds, true);
 
-            byte[] temp_iv = new byte[16];
-            Array.Copy(InitialVector, temp_iv, 16);
-            this.EncAES = new HwAes(privKey, temp_iv, 256, System.Security.Cryptography.CipherMode.CBC, System.Security.Cryptography.PaddingMode.PKCS7);
+            this.EncAES = new HwAes(this, privKey, 256, System.Security.Cryptography.CipherMode.CBC, System.Security.Cryptography.PaddingMode.PKCS7);
 
-            this.headerConfuser = new HeaderConfuser(PrivateSeed);
+            this.headerConfuser = new DataConfuser(PrivateSeed, Connection.HEADER_SIZE);
 
             this.QuickLZ = new UnsafeQuickLZ();
 

@@ -1,4 +1,6 @@
-﻿using SecureSocketProtocol3.Utils;
+﻿using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Security.Obfuscation;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
@@ -12,6 +14,8 @@ namespace SecureSocketProtocol3.Security.Encryptions
     public sealed class HwAes : IDisposable
     {
         private AesCryptoServiceProvider AES;
+        private FastRandom Frandom = new FastRandom();
+        private DataConfuser IvConfuser;
 
         public byte[] Key
         {
@@ -30,35 +34,56 @@ namespace SecureSocketProtocol3.Security.Encryptions
             }
         }
 
-        public bool DynamicKey { get; private set; }
-        private FastRandom Rnd = new FastRandom(DateTime.Now.Millisecond);
-
-
-        public HwAes(byte[] Key, byte[] IV, int KeySize, CipherMode cipherMode, PaddingMode padding)
+        public HwAes(Connection connection, byte[] Key, int KeySize, CipherMode cipherMode, PaddingMode padding)
         {
             this.AES = new AesCryptoServiceProvider();
             this.AES.Padding = padding;
             this.AES.Mode = cipherMode;
             this.AES.KeySize = KeySize;
-            this.DynamicKey = DynamicKey;
-            ApplyKey(Key, IV);
+            this.IvConfuser = new DataConfuser(connection.PrivateSeed, 16);
+            ApplyKey(Key);
         }
 
         public byte[] Encrypt(byte[] Data, int Offset, int Length)
         {
-            using (ICryptoTransform Encryptor = AES.CreateEncryptor())
+            lock(AES)
             {
+                byte[] NewIV = new byte[16];
+                Frandom.NextBytes(NewIV);
+                this.IV = NewIV;
 
-                return Encryptor.TransformFinalBlock(Data, Offset, Length);
+                //mask the IV to make it harder to grab the IV while packet sniffing / MITM
+                IvConfuser.Obfuscate(ref NewIV, 0);
+
+                using (ICryptoTransform Encryptor = AES.CreateEncryptor())
+                {
+                    using(PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream()))
+                    {
+                        pw.WriteBytes(NewIV);
+                        pw.WriteBytes(Encryptor.TransformFinalBlock(Data, Offset, Length));
+                        return pw.ToByteArray();
+                    }
+                }
             }
         }
 
         public byte[] Decrypt(byte[] Data, int Offset, int Length)
         {
-            using (ICryptoTransform Decryptor = AES.CreateDecryptor())
+            lock(AES)
             {
+                if (Length < 16)
+                    return Data;
 
-                return Decryptor.TransformFinalBlock(Data, Offset, Length);
+                //Copy the IV
+                byte[] newIV = new byte[16];
+                Array.Copy(Data, Offset, newIV, 0, 16);
+                IvConfuser.Deobfuscate(ref newIV, 0); //unmask the new IV
+                this.IV = newIV;
+
+                using (ICryptoTransform Decryptor = AES.CreateDecryptor())
+                {
+                    return Decryptor.TransformFinalBlock(Data, Offset + 16, Length - 16);
+                }
             }
         }
 
@@ -75,10 +100,9 @@ namespace SecureSocketProtocol3.Security.Encryptions
             return Input;
         }
 
-        public void ApplyKey(byte[] Key, byte[] IV)
+        public void ApplyKey(byte[] Key)
         {
             this.AES.Key = KeyExtender(Key, 32);
-            this.IV = IV;
         }
 
         public void Dispose()

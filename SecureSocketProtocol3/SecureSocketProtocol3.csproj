@@ -188,7 +188,7 @@
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
     <Compile Include="Security\Encryptions\Compiler\AlgorithmCompiler.cs" />
-    <Compile Include="Security\Obfuscation\HeaderConfuser.cs" />
+    <Compile Include="Security\Obfuscation\DataConfuser.cs" />
     <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\OptimizedPayloadStream.cs" />

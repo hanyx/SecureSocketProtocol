@@ -7,18 +7,27 @@ using System.Text;
 
 namespace SecureSocketProtocol3.Security.Obfuscation
 {
-    internal class HeaderConfuser
+    public class DataConfuser
     {
         const int BOX_SIZE = 256;
-        public HeaderConfuser(int Seed)
+        public int DataSize { get; private set; }
+
+        private byte[,] BOX_A;
+        private byte[,] BOX_B;
+
+        public DataConfuser(int Seed, int DataSize)
         {
             //initialize the boxes
+            this.DataSize = DataSize;
+            BOX_A = new byte[DataSize, BOX_SIZE];
+            BOX_B = new byte[DataSize, BOX_SIZE];
+
             InitBoxes(Seed);
         }
 
         public void Obfuscate(ref byte[] HeaderData, int Offset)
         {
-            for (int i = 0; i < Connection.HEADER_SIZE; i++)
+            for (int i = 0; i < DataSize; i++)
             {
                 //convert the data to Box A
                 HeaderData[Offset + i] = BOX_A[i, HeaderData[Offset + i]];
@@ -27,7 +36,7 @@ namespace SecureSocketProtocol3.Security.Obfuscation
 
         public void Deobfuscate(ref byte[] HeaderData, int Offset)
         {
-            for (int i = 0; i < Connection.HEADER_SIZE; i++)
+            for (int i = 0; i < DataSize; i++)
             {
                 //convert the data to Box B
                 HeaderData[Offset + i] = BOX_B[i, HeaderData[Offset + i]];
@@ -38,7 +47,7 @@ namespace SecureSocketProtocol3.Security.Obfuscation
         {
             FastRandom rnd = new FastRandom(Seed);
 
-            for (int i = 0; i < Connection.HEADER_SIZE; i++)
+            for (int i = 0; i < DataSize; i++)
             {
                 //set random values in Box B (The output box)
                 byte[] TempValues = new byte[BOX_SIZE];
@@ -77,8 +86,5 @@ namespace SecureSocketProtocol3.Security.Obfuscation
                 values[i - 1] = tmp;
             }
         }
-
-        private byte[,] BOX_A = new byte[Connection.HEADER_SIZE, BOX_SIZE];
-        private byte[,] BOX_B = new byte[Connection.HEADER_SIZE, BOX_SIZE];
     }
 }
