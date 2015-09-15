@@ -43,7 +43,14 @@ namespace SecureSocketProtocol3.Network.Headers
 
         public static Header DeSerialize(Type HeaderType, PayloadReader pr)
         {
+            if (pr.Position + 2 > pr.Buffer.Length)
+                return null;
+
             ushort size = pr.ReadUShort();
+
+            if (pr.Position + size > pr.Buffer.Length)
+                return null;
+
             //byte[] data = pr.ReadBytes(size);
             Header header = (Header)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Position, size), HeaderType);
             pr.Position += size;

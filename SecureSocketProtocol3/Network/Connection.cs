@@ -69,7 +69,6 @@ namespace SecureSocketProtocol3.Network
         private Stopwatch LastPacketSendSW = new Stopwatch();
         private byte[] Buffer = new byte[START_BUFFER_SIZE];
         internal MessageHandler messageHandler { get; private set; }
-        private TaskQueue<SystemPacket> SystemPackets;
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
         internal SortedList<ushort, OperationalSocket> OperationalSockets { get; private set; }
         internal SortedList<int, SyncObject> Requests { get; private set; }
@@ -133,7 +132,6 @@ namespace SecureSocketProtocol3.Network
 
             this.Connected = true;
             this.Headers = new HeaderList(this);
-            this.SystemPackets = new TaskQueue<SystemPacket>(onSystemPacket, 50);
             this.HandshakeSync = new SyncObject(this);
             this.InitSync = new SyncObject(this);
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
@@ -326,6 +324,13 @@ namespace SecureSocketProtocol3.Network
                                 if (type != null)
                                 {
                                     Header header = Header.DeSerialize(type, pr);
+
+                                    if(header == null)
+                                    {
+                                        Disconnect();
+                                        return;
+                                    }
+
                                     uint MessageId = pr.ReadUInteger();
                                     IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId) : messageHandler.DeSerialize(pr, MessageId);
 
@@ -338,17 +343,13 @@ namespace SecureSocketProtocol3.Network
                                         {
                                             if (message.GetType() == typeof(MsgHandshake))
                                             {
-                                                //we must directly process this message because if the handshake ends the keys will change
-                                                //and if we will handle this message in a different thread the chances are that the next packet will be unreadable
+                                                //process the handshake messages straight away
                                                 message.ProcessPayload(Client, null);
                                             }
                                         }
                                         else
                                         {
-                                            lock (SystemPackets)
-                                            {
-                                                SystemPackets.Enqueue(new SystemPacket(header, message, ConnectionId, OpSocket));
-                                            }
+                                            ProcessMessage(new SystemPacket(header, message, ConnectionId, OpSocket));
                                         }
                                     }
                                 }
@@ -493,6 +494,8 @@ namespace SecureSocketProtocol3.Network
                         return -1;
                     }
 
+                    SysLogger.Log("Send " + outStream.Length, SysLogType.Network);
+
                     PacketsOut++;
                     DataOut += (ulong)outStream.Length;
                     this.LastPacketSendSW = Stopwatch.StartNew();
@@ -550,7 +553,7 @@ namespace SecureSocketProtocol3.Network
             Array.Resize(ref Buffer, NewLength);
         }
 
-        private void onSystemPacket(SystemPacket systemPacket)
+        private void ProcessMessage(SystemPacket systemPacket)
         {
             if (systemPacket.Message.GetType() == typeof(MsgOpDisconnectResponse))
             {
