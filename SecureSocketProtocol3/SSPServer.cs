@@ -49,6 +49,7 @@ namespace SecureSocketProtocol3
             this.ClientAcceptProcessor6 = new ClientAcceptProcessor();
 
 
+
             //start the server for IPv4
             this.TcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             this.TcpServer.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp), serverProperties.ListenPort));
@@ -135,6 +136,18 @@ namespace SecureSocketProtocol3
                 SSPClient[] clients = new SSPClient[Clients.Count];
                 Clients.Values.CopyTo(clients, 0);
                 return clients;
+            }
+        }
+
+        internal void RemoveClient(SSPClient client)
+        {
+            if (client != null)
+            {
+                lock(Clients)
+                {
+                    if (Clients.ContainsKey(client.ClientId))
+                        Clients.Remove(client.ClientId);
+                }
             }
         }
 

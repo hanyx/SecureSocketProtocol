@@ -72,6 +72,6 @@ C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestClient.pdb
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\SecureSocketProtocol3.dll
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\SecureSocketProtocol3.pdb
-C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.exe
 C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.pdb
+C:\Users\AnguisCaptor\Documents\GitHub\SecureSocketProtocol\TestClient\obj\Debug\TestClient.csprojResolveAssemblyReference.cache

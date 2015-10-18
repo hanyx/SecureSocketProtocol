@@ -311,6 +311,11 @@ namespace SecureSocketProtocol3
                 SysLogger.Log(ex.Message, SysLogType.Error);
             }
 
+            if (IsServerSided && Server != null)
+            {
+                Server.RemoveClient(this);
+            }
+
             this.Connection = null;
             this.Properties = null;
             this.Handle = null;
