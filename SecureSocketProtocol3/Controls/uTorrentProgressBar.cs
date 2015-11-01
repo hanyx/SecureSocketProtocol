@@ -9,7 +9,7 @@ using System.Drawing.Drawing2D;
 
 namespace SecureSocketProtocol3.Controls
 {
-    public partial class uTorrentProgressBar : UserControl
+    public partial class uTorrentProgressBar : UserControl, IDisposable
     {
         /*
          * This progressbar is a attempt to re-create the progressbar from uTorrent
@@ -41,6 +41,19 @@ namespace SecureSocketProtocol3.Controls
             }
         }
 
+        public Color ProgressBarColor
+        {
+            get;
+            set;
+        }
+
+
+        public bool AllowAlpha
+        {
+            get;
+            set;
+        }
+
         public uTorrentProgressBar()
         {
             InitializeComponent();
@@ -51,9 +64,15 @@ namespace SecureSocketProtocol3.Controls
             BackColor.Luminosity = 230;
             BackColor.Saturation = 103;
             this.BackColor = BackColor;
+
+            HSLColor ProgressColor = Color.FromArgb(255, 171, 214, 121);
+            ProgressColor.Hue = 58;
+            ProgressColor.Luminosity = 158;
+            ProgressColor.Saturation = 124;
+            this.ProgressBarColor = ProgressColor;
         }
 
-        internal void RedrawProgressBar()
+        public void RedrawProgressBar()
         {
             lock (locky)
             {
@@ -84,13 +103,14 @@ namespace SecureSocketProtocol3.Controls
                             new Point((int)xOffset + (int)Math.Ceiling(pieces.Values[i].RenderWidth) + 1, this.Height - 1),
                             new Point((int)xOffset + 1, this.Height - 1),
                         });
-                        int alpha = (int)(255f * ((1f / ((float)_MaxValue / (float)pieces.Values[i].Value)) / Multiplier));
-                        alpha = (alpha < 230) ? alpha + 25 : alpha;
-                        HSLColor ProgressColor = Color.FromArgb(alpha, 171, 214, 121);
-                        ProgressColor.Hue = 58;
-                        ProgressColor.Luminosity = 158;
-                        ProgressColor.Saturation = 124;
-                        bg.Graphics.FillPath(new SolidBrush(ProgressColor), path);
+
+                        if (AllowAlpha)
+                        {
+                            int alpha = (int)(255f * ((1f / ((float)_MaxValue / (float)pieces.Values[i].Value)) / Multiplier));
+                            ProgressBarColor = Color.FromArgb((alpha < 230) ? alpha + 25 : alpha, ProgressBarColor.R, ProgressBarColor.G, ProgressBarColor.B);
+                        }
+
+                        bg.Graphics.FillPath(new SolidBrush(ProgressBarColor), path);
                     }
                 }
                 bg.Render();
@@ -171,7 +191,7 @@ namespace SecureSocketProtocol3.Controls
             }
         }
 
-        private void CalcWidth()
+        public void CalcWidth()
         {
             lock (locky)
             {
