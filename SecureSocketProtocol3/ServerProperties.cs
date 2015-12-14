@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Security.DataIntegrity;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -23,12 +24,6 @@ namespace SecureSocketProtocol3
 
         /// <summary> If keyfiles are being used it will make it harder to decrypt the traffic </summary>
         public abstract Stream[] KeyFiles { get; }
-
-        /// <summary>  </summary>
-        public abstract uint Cipher_Rounds { get; }
-
-        public abstract EncAlgorithm EncryptionAlgorithm { get; }
-        public abstract CompressionAlgorithm CompressionAlgorithm { get; }
 
         /// <summary> The maximum amount of time a client can be connected for, if the time ran out the client will get kicked </summary>
         public abstract TimeSpan ClientTimeConnected { get; }

@@ -29,7 +29,6 @@ namespace SecureSocketProtocol3.Processors
                 else
                     client.RemoteIp = AcceptSocket.RemoteEndPoint.ToString().Split(':')[0];
 
-
                 client.Server = Server;
                 client.Connection = new Network.Connection(client);
                 client.ClientId = Server.randomDecimal.NextDecimal();
@@ -46,13 +45,16 @@ namespace SecureSocketProtocol3.Processors
                     Server.Clients.Add(client.ClientId, client);
                 }
 
+                client.onApplyLayers(client.layerSystem);
+                client.StartKeepAliveTimer();
+
                 try
                 {
                     client.onBeforeConnect();
                 }
                 catch (Exception ex)
                 {
-                    SysLogger.Log(ex.Message, SysLogType.Error);
+                    SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     client.onException(ex, ErrorType.UserLand);
                 }
 
@@ -61,7 +63,7 @@ namespace SecureSocketProtocol3.Processors
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
                 return null;
             }
         }

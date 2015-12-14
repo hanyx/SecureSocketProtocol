@@ -72,9 +72,9 @@ namespace ProtoBuf
         /// <typeparam name="T">The type to be created.</typeparam>
         /// <param name="source">The binary stream to apply to the new instance (cannot be null).</param>
         /// <returns>A new, initialized instance.</returns>
-        public static object Deserialize(Stream source, Type type)
+        public static T Deserialize<T>(Stream source)
         {
-            return RuntimeTypeModel.Default.Deserialize(source, null, type);
+            return (T) RuntimeTypeModel.Default.Deserialize(source, null, typeof(T));
         }
         /// <summary>
         /// Creates a new instance from a protocol-buffer stream
@@ -82,10 +82,20 @@ namespace ProtoBuf
         /// <typeparam name="T">The type to be created.</typeparam>
         /// <param name="source">The binary stream to apply to the new instance (cannot be null).</param>
         /// <returns>A new, initialized instance.</returns>
-        public static T Deserialize<T>(Stream source)
+        public static object Deserialize(Stream source, Type type)
         {
-            return (T)RuntimeTypeModel.Default.Deserialize(source, null, typeof(T));
+            return RuntimeTypeModel.Default.Deserialize(source, null, type);
         }
+        /// <summary>
+		/// Creates a new instance from a protocol-buffer stream
+		/// </summary>
+		/// <param name="type">The type to be created.</param>
+		/// <param name="source">The binary stream to apply to the new instance (cannot be null).</param>
+		/// <returns>A new, initialized instance.</returns>
+		public static object Deserialize(System.Type type, Stream source)
+		{
+			return RuntimeTypeModel.Default.Deserialize(source, null, type);
+		}
         /// <summary>
         /// Writes a protocol-buffer representation of the given instance to the supplied stream.
         /// </summary>
@@ -117,7 +127,7 @@ namespace ProtoBuf
                 return Deserialize<TTo>(ms);
             }
         }
-#if PLAT_BINARYFORMATTER && !(WINRT || PHONE8)
+#if PLAT_BINARYFORMATTER && !(WINRT || PHONE8 || COREFX)
         /// <summary>
         /// Writes a protocol-buffer representation of the given instance to the supplied SerializationInfo.
         /// </summary>
@@ -163,7 +173,7 @@ namespace ProtoBuf
             using (MemoryStream ms = new MemoryStream())
             {
                 Serializer.Serialize(ms, instance);
-                writer.WriteBase64(ms.GetBuffer(), 0, (int)ms.Length);
+                writer.WriteBase64(Helpers.GetBuffer(ms), 0, (int)ms.Length);
             }
         }
         /// <summary>
@@ -201,7 +211,7 @@ namespace ProtoBuf
 #endif
 
         private const string ProtoBinaryField = "proto";
-#if PLAT_BINARYFORMATTER && !NO_GENERICS && !(WINRT || PHONE8)
+#if PLAT_BINARYFORMATTER && !NO_GENERICS && !(WINRT || PHONE8 || COREFX)
         /// <summary>
         /// Applies a protocol-buffer from a SerializationInfo to an existing instance.
         /// </summary>
@@ -250,7 +260,7 @@ namespace ProtoBuf
 #endif
         }
 
-#if PLAT_BINARYFORMATTER && !(WINRT || PHONE8)
+#if PLAT_BINARYFORMATTER && !(WINRT || PHONE8 || COREFX)
         /// <summary>
         /// Creates a new IFormatter that uses protocol-buffer [de]serialization.
         /// </summary>

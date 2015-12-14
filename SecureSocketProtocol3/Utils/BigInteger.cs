@@ -731,7 +731,7 @@ namespace SecureSocketProtocol3.Utils
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
             }
 
             BigInteger result = new BigInteger();
@@ -760,7 +760,7 @@ namespace SecureSocketProtocol3.Utils
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
                 throw (new ArithmeticException("Multiplication overflow."));
             }
 
@@ -1541,7 +1541,7 @@ namespace SecureSocketProtocol3.Utils
                 }
                 catch (Exception ex)
                 {
-                    SysLogger.Log(ex.Message, SysLogType.Error);
+                    SysLogger.Log(ex.Message, SysLogType.Error, ex);
                 }
             }
 
@@ -2523,7 +2523,7 @@ namespace SecureSocketProtocol3.Utils
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
                 if ((data[0] & 0x80000000) != 0) // negative
                     val = (int)data[0];
             }

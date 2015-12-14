@@ -45,8 +45,6 @@ namespace SecureSocketProtocol3.Security.Obfuscation
 
         private void InitBoxes(int Seed)
         {
-            FastRandom rnd = new FastRandom(Seed);
-
             for (int i = 0; i < DataSize; i++)
             {
                 //set random values in Box B (The output box)

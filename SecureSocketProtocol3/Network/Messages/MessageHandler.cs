@@ -63,33 +63,6 @@ namespace SecureSocketProtocol3.Network.Messages
             }
         }
 
-        /*public IMessage HandleMessage(PayloadReader reader, uint MessageId)
-        {
-            lock (Messages)
-            {
-                Type type = null;
-                if (!Messages.TryGetValue(MessageId, out type))
-                    return null;
-
-                IMessage message = null;//IMessage.DeSerialize(type, reader);
-                return message;
-            }
-        }*/
-
-        public IMessage HandleUdpMessage(PayloadReader reader, uint MessageId)
-        {
-            lock (Messages)
-            {
-                Type type = null;
-                if (!Messages.TryGetValue(MessageId, out type))
-                    return null;
-
-                IMessage message = null;//IMessage.DeSerialize(type, reader);
-                message.RawSize = reader.Length;
-                return message;
-            }
-        }
-
         /// <summary>
         /// This method should only be called when handshake is successful
         /// </summary>
@@ -98,139 +71,13 @@ namespace SecureSocketProtocol3.Network.Messages
             Messages.Clear();
         }
 
-        /// <summary>
-        /// Serialize the Message to output stream
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="TargetStream"></param>
-        /// <returns>The size of the serialzed message</returns>
-        internal int EncryptMessage(Connection conn, IMessage message, MemoryStream TargetStream)
-        {
-            PayloadWriter pw = new PayloadWriter(TargetStream);
-            int PayloadPos = pw.Position;
-
-            Serializer.Serialize(TargetStream, message);
-
-            //return (int)TargetStream.Length;
-
-            #region Security
-            //compress data
-            if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & CompressionAlgorithm.QuickLZ))
-            {
-                UnsafeQuickLZ quickLz = new UnsafeQuickLZ();
-                byte[] compressed = quickLz.compress(TargetStream.GetBuffer(), (uint)Connection.HEADER_SIZE, (uint)TargetStream.Length - Connection.HEADER_SIZE);
-
-                if (compressed != null &&
-                    compressed.Length + Connection.HEADER_SIZE < TargetStream.Length) //only apply compression if it's smaller then the original data
-                {
-                    TargetStream.Position = Connection.HEADER_SIZE;
-                    TargetStream.Write(compressed, 0, compressed.Length);
-
-                    if (TargetStream.Length != compressed.Length + Connection.HEADER_SIZE)
-                        TargetStream.SetLength(compressed.Length + Connection.HEADER_SIZE);
-                }
-            }
-
-            //encrypt all the data
-            if (EncAlgorithm.HwAES == (conn.EncryptionAlgorithm & EncAlgorithm.HwAES))
-            {
-                lock (conn.EncAES)
-                {
-                    //no need to re-size the stream here, AES will encrypt at the same size or bigger then the stream, so data will be overwritten
-                    byte[] encrypted = conn.EncAES.Encrypt(TargetStream.GetBuffer(), Connection.HEADER_SIZE, (int)TargetStream.Length - Connection.HEADER_SIZE);
-                    TargetStream.Position = Connection.HEADER_SIZE;
-                    TargetStream.Write(encrypted, 0, encrypted.Length);
-                }
-            }
-            if (EncAlgorithm.WopEx == (conn.EncryptionAlgorithm & EncAlgorithm.WopEx))
-            {
-                lock (conn.PayloadEncryption)
-                {
-                    conn.PayloadEncryption.Encrypt(TargetStream.GetBuffer(), Connection.HEADER_SIZE, (int)TargetStream.Length - Connection.HEADER_SIZE);
-                }
-            }
-            #endregion
-
-            return pw.Length - PayloadPos;
-        }
-
-        internal void DecryptMessage(Connection conn, byte[] InData, int InOffset, int inLen, ref byte[] OutData, ref int OutLen)
-        {
-            /*OutData = new byte[inLen];
-            Array.Copy(InData, InOffset, OutData, 0, OutData.Length);
-            OutLen = inLen;
-            return;*/
-
-            #region Encryption
-            if (EncAlgorithm.HwAES == (conn.EncryptionAlgorithm & EncAlgorithm.HwAES))
-            {
-                lock (conn.EncAES)
-                {
-                    if (OutData != null)
-                    {
-                        OutData = conn.EncAES.Decrypt(OutData, 0, OutLen);
-                    }
-                    else
-                    {
-                        OutData = conn.EncAES.Decrypt(InData, InOffset, inLen);
-                    }
-                    OutLen = OutData.Length;
-                }
-            }
-            if (EncAlgorithm.WopEx == (conn.EncryptionAlgorithm & EncAlgorithm.WopEx))
-            {
-                lock (conn.PayloadEncryption)
-                {
-                    if (OutData != null)
-                    {
-                        conn.PayloadEncryption.Decrypt(OutData, 0, OutLen);
-                    }
-                    else
-                    {
-                        conn.PayloadEncryption.Decrypt(InData, InOffset, inLen);
-                        OutLen = inLen;
-                    }
-                }
-            }
-            #endregion
-
-            #region Compression
-            if (CompressionAlgorithm.QuickLZ == (conn.CompressionAlgorithm & SecureSocketProtocol3.CompressionAlgorithm.QuickLZ))
-            {
-                if (OutData != null)
-                {
-                    byte[] temp = conn.QuickLZ.decompress(OutData, 0);
-                    if (temp != null)
-                    {
-                        OutData = temp;
-                        OutLen = temp.Length;
-                        OutLen = OutData.Length;
-                    }
-                }
-                else
-                {
-                    byte[] temp = conn.QuickLZ.decompress(InData, (uint)InOffset);
-                    if (temp != null)
-                    {
-                        OutData = temp;
-                        OutLen = temp.Length;
-                        OutLen = OutData.Length;
-                    }
-                }
-            }
-            #endregion
-        }
-
-        internal IMessage DeSerialize(PayloadReader pr, uint MessageId)
+        internal IMessage DeSerialize(PayloadReader pr, uint MessageId, int MessageLength)
         {
             Type type = null;
             if (!Messages.TryGetValue(MessageId, out type))
                 return null;
 
-            int len = pr.Length - pr.Position;
-            IMessage message = (IMessage)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Position, len), type);
-            pr.Position += len;
-            return message;
+            return (IMessage)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Position, MessageLength - pr.Position), type);
         }
     }
 }

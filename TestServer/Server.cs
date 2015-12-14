@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3;
 using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Security.DataIntegrity;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,21 +64,6 @@ namespace TestServer
             public override Stream[] KeyFiles
             {
                 get { return new Stream[0]; }
-            }
-
-            public override uint Cipher_Rounds
-            {
-                get { return 100; }
-            }
-
-            public override EncAlgorithm EncryptionAlgorithm
-            {
-                get { return EncAlgorithm.HwAES; }
-            }
-
-            public override CompressionAlgorithm CompressionAlgorithm
-            {
-                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
             }
 
             public override System.Drawing.Size Handshake_Maze_Size

@@ -488,6 +488,9 @@ namespace SecureSocketProtocol3.Compressions
 
         public unsafe Byte[] compress(Byte[] source, uint offset, uint length)
         {
+            if(source == null || (source != null && source.Length == 0))
+                return new byte[0];
+
             Byte[] destination = new Byte[source.Length + 36000];
             UInt32 used = UnsafeCompress(source, offset, destination, length);
 
@@ -500,6 +503,9 @@ namespace SecureSocketProtocol3.Compressions
         }
         public Byte[] decompress(Byte[] source, uint offset = 0)
         {
+            if (source == null || (source != null && source.Length == 0))
+                return new byte[0];
+
             UInt32 size = GetDecompressedSize(source, offset);
             Byte[] destination = null;
             if (size != 0)

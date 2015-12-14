@@ -45,7 +45,6 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                 errorCode = mazeHandshake.onReceiveData(Data, ref responseData);
 
-
                 if (errorCode != MazeErrorCode.Finished && errorCode != MazeErrorCode.Success && client.TimingConfiguration.Enable_Timing)
                 {
                     //something went wrong, annoy the attacker
@@ -101,7 +100,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                         }
                         catch (Exception ex)
                         {
-                            SysLogger.Log(ex.Message, SysLogType.Error);
+                            SysLogger.Log(ex.Message, SysLogType.Error, ex);
                             client.onException(ex, ErrorType.UserLand);
                             return; //don't send that we're ready since we're clearly not at this point
                         }

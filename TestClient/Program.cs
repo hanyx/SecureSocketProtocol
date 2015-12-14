@@ -11,6 +11,10 @@ using SecureSocketProtocol3.Utils;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
 using TestClient.Sockets;
+using SecureSocketProtocol3.Security.Layers;
+using SecureSocketProtocol3.Security.DataIntegrity;
+using ExtraLayers.LZMA;
+using ExtraLayers.LZ4;
 
 namespace TestClient
 {
@@ -18,6 +22,7 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+            //new LayerSystem().TestLayer(new QuickLzLayer(), 10000);
             /*byte[] TestKey = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
             byte[] TestSalt  = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
             byte[] TestIV = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 2, 2, 2, 2, 3, 3, 3, 3 };
@@ -155,6 +160,26 @@ namespace TestClient
 
         }
 
+        public override void onApplyLayers(LayerSystem layerSystem)
+        {
+            layerSystem.AddLayer(new Lz4Layer());
+            layerSystem.AddLayer(new LzmaLayer());
+            layerSystem.AddLayer(new QuickLzLayer());
+            layerSystem.AddLayer(new AesLayer(base.Connection));
+            layerSystem.AddLayer(new WopExLayer(5, 1, false, this));
+        }
+
+        private IDataIntegrityLayer _dataIntegrityLayer;
+        public override IDataIntegrityLayer DataIntegrityLayer
+        {
+            get
+            {
+                if(_dataIntegrityLayer == null)
+                    _dataIntegrityLayer = new HMacLayer(this);
+                return _dataIntegrityLayer;
+            }
+        }
+
         private class ClientProps : ClientProperties
         {
 
@@ -217,21 +242,6 @@ namespace TestClient
                         218, 155
                     };
                 }
-            }
-
-            public override uint Cipher_Rounds
-            {
-                get { return 100; }
-            }
-
-            public override EncAlgorithm EncryptionAlgorithm
-            {
-                get { return EncAlgorithm.HwAES; }
-            }
-
-            public override CompressionAlgorithm CompressionAlgorithm
-            {
-                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
             }
 
             public override System.Drawing.Size Handshake_Maze_Size

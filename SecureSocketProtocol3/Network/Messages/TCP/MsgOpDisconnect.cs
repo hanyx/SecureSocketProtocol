@@ -62,7 +62,7 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
                 }
                 catch (Exception ex)
                 {
-                    SysLogger.Log(ex.Message, SysLogType.Error);
+                    SysLogger.Log(ex.Message, SysLogType.Error, ex);
                 }
             }
         }

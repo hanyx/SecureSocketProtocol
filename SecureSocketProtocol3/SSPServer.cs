@@ -109,7 +109,7 @@ namespace SecureSocketProtocol3
                 }
                 catch (Exception ex)
                 {
-                    SysLogger.Log(ex.Message, SysLogType.Error); 
+                    SysLogger.Log(ex.Message, SysLogType.Error, ex); 
                     return false;
                 }
             }

@@ -63,6 +63,10 @@
     </Content>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ExtraLayers\ExtraLayers.csproj">
+      <Project>{b4c968f8-42d3-44e3-a95e-8f708b758138}</Project>
+      <Name>ExtraLayers</Name>
+    </ProjectReference>
     <ProjectReference Include="..\SecureSocketProtocol3\SecureSocketProtocol3.csproj">
       <Project>{4615F7F9-8EC2-4005-8E82-657B0F196051}</Project>
       <Name>SecureSocketProtocol3</Name>

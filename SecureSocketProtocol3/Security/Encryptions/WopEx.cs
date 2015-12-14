@@ -47,14 +47,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
         /// <param name="DecryptionCode">The decryption algorithm that was generated</param>
         /// <param name="WopMode">The encryption mode</param>
         /// <param name="UseCompiler">Using the dynamic compiler will increase performance</param>
-        public WopEx(byte[] Key, byte[] Salt, byte[] InitialVector, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode, uint Rounds, bool UseDynamicCompiler)
+        public WopEx(byte[] Key, byte[] Salt, int InitialVectorSeed, byte[] EncryptionCode, byte[] DecryptionCode, WopEncMode EncMode, uint Rounds, bool UseDynamicCompiler)
         {
             if (EncryptionCode.Length != DecryptionCode.Length)
                 throw new Exception("Encryption and Decryption algorithms must be the same size");
             if (Key.Length < 8 || Salt.Length < 8)
                 throw new Exception("The Key and Salt must atleast have a size of 8");
-            if (InitialVector.Length < 32)
-                throw new Exception("The Initial Vector must atleast have a size of 32");
             if (Rounds == 0)
                 throw new Exception("There must be atleast 1 round");
 
@@ -71,11 +69,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
 
             this.Rounds = Rounds;
             this.EncMode = EncMode;
-            this.EncState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)), false);
+
+            this.EncState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), InitialVectorSeed, false, UseDynamicCompiler);
             this.EncState.Instructions = ReadAlgorithm(EncryptionCode);
             this.EncState.Compile();
 
-            this.DecState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), BytesToLongList(ExpandKey(InitialVector)), true);
+            this.DecState = new State(BytesToLongList(this.Key), BytesToLongList(this.Salt), BitConverter.ToInt32(this.Key, 0), InitialVectorSeed, true, UseDynamicCompiler);
             this.DecState.Instructions = ReadAlgorithm(DecryptionCode);
             this.DecState.Compile();
         }
@@ -160,56 +159,68 @@ namespace SecureSocketProtocol3.Security.Encryptions
         /// <param name="Data">The data to encrypt</param>
         /// <param name="Offset">The index where the data starts</param>
         /// <param name="Length">The length to encrypt</param>
-        public void Encrypt(byte[] Data, int Offset, int Length)
+        public void Encrypt(byte[] Data, int Offset, int Length, MemoryStream OutStream)
         {
             lock (EncState)
             {
                 int OrgLen = Length;
                 Length += Offset;
 
+                long OutStream_Pos = OutStream.Position;
+
+                PayloadWriter outPw = new PayloadWriter(OutStream) { Position = OutStream_Pos };
+                outPw.AutoDispose = false;
+
+                ulong temp_Value = EncMode == WopEncMode.Simple ? 0 : EncState.GetNextIV(); //is being used for CBC Mode (Block-Cipher-Chaining Mode)
+
                 for (int round = 0; round < Rounds; round++)
                 {
-                    ulong temp_Value = EncState.IV[EncMode == WopEncMode.Simple ? 0 : EncState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
+                    outPw.Position = OutStream_Pos;
 
-                    using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+                    for (int i = Offset, k = 0; i < Length; k++)
                     {
-                        for (int i = Offset, k = 0; i < Length; k++)
+                        outPw.Position = i;
+                        int usedsize = 0;
+                        ulong OrgValue = 0;
+
+                        if (i + 8 < Length)
                         {
-                            pw.vStream.Position = i;
-                            int usedsize = 0;
+                            OrgValue = BitConverter.ToUInt64(Data, i);
+                            usedsize = 8;
 
-                            if (i + 8 < Length)
-                            {
-                                ulong OrgValue = BitConverter.ToUInt64(Data, i);
-                                usedsize = 8;
+                            ulong value = Encrypt_Core_Big(OrgValue, OrgLen, k);
 
-                                ulong value = Encrypt_Core_Big(OrgValue, OrgLen, k) ^ temp_Value;
-                                pw.WriteULong(value);
-                                temp_Value += value;
-                                EncState.Seed += (int)OrgValue;
-                            }
-                            else
-                            {
-                                byte OrgValue = Data[i];
-                                usedsize = 1;
+                            if (Rounds == 1)
+                                value ^= temp_Value;
 
-                                byte value = Encrypt_Core_Small(OrgValue, OrgLen, k);
-                                pw.WriteByte(value);
-                                EncState.Seed += OrgValue;
-                            }
+                            outPw.WriteULong(value);
+                            EncState.Seed += (int)OrgValue;
+                        }
+                        else
+                        {
+                            OrgValue = Data[i];
+                            usedsize = 1;
 
-                            i += usedsize;
+                            byte value = Encrypt_Core_Small((byte)OrgValue, OrgLen, k);
 
-                            if (EncMode != WopEncMode.Simple)
-                            {
-                                EncState.Key_Pos += 1;
-                                EncState.Salt_Pos += 1;
-                            }
+                            if (Rounds == 1)
+                                value ^= (byte)temp_Value;
+
+                            outPw.WriteByte(value);
+                            EncState.Seed += (byte)OrgValue;
+                        }
+
+                        temp_Value += OrgValue;
+
+                        i += usedsize;
+
+                        if (EncMode != WopEncMode.Simple)
+                        {
+                            EncState.Key_Pos += 1;
+                            EncState.Salt_Pos += 1;
                         }
                     }
                 }
-
-                EncState.IV_Pos = (EncState.IV_Pos + 1) % EncState.IV.Length;
 
                 switch (EncMode)
                 {
@@ -333,56 +344,58 @@ namespace SecureSocketProtocol3.Security.Encryptions
         /// <param name="Data">The data to decrypt</param>l
         /// <param name="Offset">The index where the data starts</param>
         /// <param name="Length">The length to decrypt</param>
-        public void Decrypt(byte[] Data, int Offset, int Length)
+        public void Decrypt(byte[] Data, int Offset, int Length, MemoryStream OutStream)
         {
             lock (DecState)
             {
                 int OrgLen = Length;
                 Length += Offset;
 
+                long OutStream_Pos = OutStream.Position;
+                PayloadWriter outPw = new PayloadWriter(OutStream) { Position = OutStream_Pos };
+                outPw.AutoDispose = false;
+
+                ulong temp_Value = EncMode == WopEncMode.Simple ? 0 : DecState.GetNextIV(); //is being used for CBC Mode (Block-Cipher-Chaining Mode)
+
                 for (int round = 0; round < Rounds; round++)
                 {
-                    using (PayloadWriter pw = new PayloadWriter(new System.IO.MemoryStream(Data)))
+                    outPw.Position = OutStream_Pos;
+
+                    for (int i = Offset, k = 0; i < Length; k++)
                     {
-                        ulong temp_Value = DecState.IV[EncMode == WopEncMode.Simple ? 0 : DecState.IV_Pos]; //is being used for CBC Mode (Block-Cipher-Chaining Mode)
-                        for (int i = Offset, k = 0; i < Length; k++)
+                        int usedsize = 0;
+                        ulong value = 0;
+                        ulong OrgReadValue = 0;
+
+                        if (i + 8 < Length)
                         {
-                            pw.vStream.Position = i;
-                            int usedsize = 0;
-                            ulong value = 0;
-                            ulong OrgReadValue = 0;
+                            OrgReadValue = BitConverter.ToUInt64(Data, i);
+                            usedsize = 8;
 
-                            if (i + 8 < Length)
-                            {
-                                OrgReadValue = BitConverter.ToUInt64(Data, i);
-                                usedsize = 8;
+                            value = Decrypt_Core_Big(Rounds == 1 ? OrgReadValue ^ temp_Value : OrgReadValue, OrgLen, k);
+                            outPw.WriteULong(value);
+                        }
+                        else
+                        {
+                            OrgReadValue = Data[i];
+                            usedsize = 1;
 
-                                value = Decrypt_Core_Big(OrgReadValue ^ temp_Value, OrgLen, k);
-                                pw.WriteULong(value);
-                            }
-                            else
-                            {
-                                OrgReadValue = Data[i];
-                                usedsize = 1;
+                            value = Decrypt_Core_Small((byte)(Rounds == 1 ? OrgReadValue ^ temp_Value : OrgReadValue), OrgLen, k);
+                            outPw.WriteByte((byte)value);
+                        }
 
-                                value = Decrypt_Core_Small((byte)OrgReadValue, OrgLen, k);
-                                pw.WriteByte((byte)value);
-                            }
+                        temp_Value += value;
 
-                            temp_Value += OrgReadValue;
-                            DecState.Seed += (int)value;
-                            i += usedsize;
+                        DecState.Seed += (int)value;
+                        i += usedsize;
 
-                            if (EncMode != WopEncMode.Simple)
-                            {
-                                DecState.Key_Pos += 1;
-                                DecState.Salt_Pos += 1;
-                            }
+                        if (EncMode != WopEncMode.Simple)
+                        {
+                            DecState.Key_Pos += 1;
+                            DecState.Salt_Pos += 1;
                         }
                     }
                 }
-
-                DecState.IV_Pos = (DecState.IV_Pos + 1) % DecState.IV.Length;
 
                 switch (EncMode)
                 {
@@ -528,7 +541,6 @@ namespace SecureSocketProtocol3.Security.Encryptions
                     /*uint decValue = inf.Value;
                     uint incValue = inf.Value2;
                     uint loops = inf.Value3 >> 1;
-
                     if (IsDecrypt)
                     {
                         for (int i = 0; i < loops; i++)
@@ -579,7 +591,6 @@ namespace SecureSocketProtocol3.Security.Encryptions
                     /*uint decValue = inf.Value;
                     uint incValue = inf.Value2;
                     uint loops = inf.Value3 >> 1;
-
                     if (IsDecrypt)
                     {
                         for (int i = 0; i < loops; i++)
@@ -745,9 +756,8 @@ namespace SecureSocketProtocol3.Security.Encryptions
 
             byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5 };
             byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1 };
-            byte[] IV = new byte[] { 100, 132, 194, 103, 165, 222, 64, 110, 144, 217, 202, 129, 54, 97, 230, 25, 34, 58, 100, 79, 80, 124, 14, 61, 191, 5, 174, 94, 194, 10, 222, 215 };
 
-            WopEx wop = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.Simple, 1, true);
+            WopEx wop = new WopEx(Key, Salt, Seed, EncryptCode, DecryptCode, WopEncMode.Simple, 1, false);
 
             //test it 50 times if it's safe to use
             for (int x = 0; x < 50; x++)
@@ -755,7 +765,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
                 byte[] crypted = new byte[RandData.Length];
                 Array.Copy(RandData, crypted, RandData.Length);
 
-                wop.Encrypt(crypted, 0, crypted.Length);
+                wop.Encrypt(crypted, 0, crypted.Length, new MemoryStream(crypted));
 
                 double Equals = 0;
 
@@ -767,7 +777,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
                     }
                 }
 
-                wop.Decrypt(crypted, 0, crypted.Length);
+                wop.Decrypt(crypted, 0, crypted.Length, new MemoryStream(crypted));
 
                 //check if decryption went successful
                 if (RandData.Length != crypted.Length)
@@ -883,31 +893,32 @@ namespace SecureSocketProtocol3.Security.Encryptions
             public ulong[] Salt { get; private set; }
             public IAlgorithm Algorithm { get; private set; }
 
-            /// <summary> Initial Vector </summary>
-            public ulong[] IV { get; private set; }
-
             public int Seed = 0;
             public int Key_Pos = 0;
             public int Salt_Pos = 1;
-            public int IV_Pos = 0;
             public FastRandom random;
+            public FastRandom IvRandom;
 
-            public State()
+            public State(int IvSeed)
             {
                 this.Instructions = new InstructionInfo[0];
                 this.Key = new ulong[0];
                 this.Salt = new ulong[0];
-                this.IV = new ulong[0];
                 this.random = new FastRandom();
+                this.IvRandom = new FastRandom(IvSeed);
             }
 
-            public State(ulong[] key, ulong[] salt, int seed, ulong[] IV, bool IsDecryptState)
+            public State(ulong[] key, ulong[] salt, int seed, int IvSeed, bool IsDecryptState, bool UseDynamicCompiler)
             {
                 this.Instructions = new InstructionInfo[0];
                 this.random = new FastRandom(seed);
                 this.Seed = seed;
                 this.IsDecryptState = IsDecryptState;
-                AlgoCompiler = new AlgorithmCompiler(IsDecryptState);
+
+                if (UseDynamicCompiler)
+                {
+                    AlgoCompiler = new AlgorithmCompiler(IsDecryptState);
+                }
 
                 this.Key = new ulong[key.Length];
                 Array.Copy(key, this.Key, key.Length);
@@ -915,13 +926,20 @@ namespace SecureSocketProtocol3.Security.Encryptions
                 this.Salt = new ulong[salt.Length];
                 Array.Copy(salt, this.Salt, salt.Length);
 
-                this.IV = new ulong[IV.Length];
-                Array.Copy(IV, this.IV, IV.Length);
+                this.IvRandom = new FastRandom(IvSeed);
+            }
+
+            public ulong GetNextIV()
+            {
+                byte[] TempIV = new byte[8];
+                IvRandom.NextBytes(TempIV);
+                return BitConverter.ToUInt64(TempIV, 0);
             }
 
             public void Compile()
             {
-                Algorithm = AlgoCompiler.Compile(Instructions);
+                if (AlgoCompiler != null)
+                    Algorithm = AlgoCompiler.Compile(Instructions);
             }
         }
     }

@@ -14,9 +14,9 @@ namespace EncryptionTests
         private static WopEx wop_dec;
         static void Main(string[] args)
         {
-            RSA_Test();
+            //RSA_Test();
 
-            while(true)
+            //while(true)
             {
                 byte[] Key = new byte[] { 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, };
                 byte[] Salt = new byte[] { 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, };
@@ -25,8 +25,8 @@ namespace EncryptionTests
                 byte[] EncryptCode = new byte[0];
                 byte[] DecryptCode = new byte[0];
                 WopEx.GenerateCryptoCode(12345678, 20, ref EncryptCode, ref DecryptCode);
-                wop_enc = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, true);
-                wop_dec = new WopEx(Key, Salt, IV, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 1, true);
+                wop_enc = new WopEx(Key, Salt, 12345678, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 5, true);
+                wop_dec = new WopEx(Key, Salt, 12345678, EncryptCode, DecryptCode, WopEncMode.GenerateNewAlgorithm, 5, true);
 
                 //if (File.Exists("./temp.txt"))
                 //    File.Delete("./temp.txt");
@@ -39,7 +39,7 @@ namespace EncryptionTests
                 Log("Encryption Algorithm:");
                 ShowAlgorithm(wop_enc);
 
-                byte[] Data = new byte[] { 1, 3, 3, 7 };
+                byte[] Data = new byte[] { 1, 3, 3, 7, 1, 3, 3, 7, 1, 3, 3, 7, 1 };
 
                 //while(true)
                 {
@@ -52,7 +52,7 @@ namespace EncryptionTests
 
         private static void ShowAlgorithm(WopEx wop)
         {
-            /*Log("Instructions: " + wop..EncInstructions.Length);
+            /*Log("Instructions: " + wop.EncInstructions.Length);
 
             foreach (WopEx.InstructionInfo inf in wop.EncInstructions)
             {
@@ -89,16 +89,16 @@ namespace EncryptionTests
 
         private static void EncDec(byte[] Data)
         {
-            //Log("=============================== Encrypting data ===============================");
-            //Log("Original Data:" + BitConverter.ToString(Data).Replace("-", " "));
-            wop_enc.Encrypt(Data, 0, Data.Length);
-            //Log("Encrypted Data:" + BitConverter.ToString(Data).Replace("-", " "));
+            Log("=============================== Encrypting data ===============================");
+            Log("Original Data:" + BitConverter.ToString(Data).Replace("-", " "));
+            wop_enc.Encrypt(Data, 0, Data.Length, new MemoryStream(Data));
+            Log("Encrypted Data:" + BitConverter.ToString(Data).Replace("-", " "));
 
             //Log("\r\n\r\n====================New Encryption Algorithm: ====================");
-            ShowAlgorithm(wop_enc);
+            //ShowAlgorithm(wop_enc);
 
-            wop_dec.Decrypt(Data, 0, Data.Length);
-            //Log("Decrypted data: " + BitConverter.ToString(Data).Replace("-", " "));
+            wop_dec.Decrypt(Data, 0, Data.Length, new MemoryStream(Data));
+            Log("Decrypted data: " + BitConverter.ToString(Data).Replace("-", " "));
         }
 
         private static void RSA_Test()

@@ -3,6 +3,7 @@ using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -32,7 +33,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                     }
 
                     wopEx = base.GetWopEncryption();
-                    wopEx.Decrypt(Data, 0, Data.Length);
+                    wopEx.Decrypt(Data, 0, Data.Length, new MemoryStream(Data));
 
                     BigInteger server_prime = new BigInteger(Data);
                     if (server_prime.isProbablePrime())
@@ -52,10 +53,12 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         BigInteger client_Prime = BigInteger.genPseudoPrime(256, 50, new Random(server_prime.IntValue()));
 
                         byte[] primeData = client_Prime.getBytes();
-                        wopEx.Encrypt(primeData, 0, primeData.Length);
+                        wopEx.Encrypt(primeData, 0, primeData.Length, new MemoryStream(primeData));
                         ResponseData = primeData;
 
                         BigInteger key = base.ModKey(server_prime, client_Prime);
+
+
                         //apply key to encryption
                         ApplyKey(wopEx, key);
 

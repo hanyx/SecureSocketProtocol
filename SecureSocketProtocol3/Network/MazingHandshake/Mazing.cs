@@ -257,19 +257,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             byte[] DecryptCode = new byte[0];
             WopEx.GenerateCryptoCode(BitConverter.ToInt32(Key, 0) + BitConverter.ToInt32(Salt, 0), 15, ref CryptCode, ref DecryptCode);
 
-            //badly hardcoded, should be dynamic
-            byte[] IV = new byte[] { 71, 140, 33, 100, 118, 9, 92, 129, 42, 113, 247, 20, 250, 36, 90, 204, 108, 64, 151, 34, 216, 92, 188, 191, 132, 127, 15, 28, 135, 247, 32, 246,  };
-
-            //apply Public Key to IV just to make it a little harder
-            if (_publicKeyData != null)
-            {
-                for (int i = 0; i < _publicKeyData.Length; i++)
-                {
-                    IV[i % IV.Length] += _publicKeyData[i];
-                }
-            }
-
-            return new WopEx(Key, Salt, IV, CryptCode, DecryptCode, WopEncMode.Simple, ROUNDS, true);
+            return new WopEx(Key, Salt, 4356755, CryptCode, DecryptCode, WopEncMode.Simple, ROUNDS, false);
         }
 
         public byte[] GetEncryptedPublicKey()
@@ -281,7 +269,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             byte[] publicData = new byte[this.PublicKeyData.Length];
             Array.Copy(this.PublicKeyData, publicData, publicData.Length); //copy the public key data so the original will be still in memory
 
-            GetWopEncryption().Encrypt(publicData, 0, publicData.Length);
+            GetWopEncryption().Encrypt(publicData, 0, publicData.Length, new MemoryStream(publicData));
             return publicData;
         }
 
@@ -366,7 +354,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
 
                 //no inverse could be found
                 InversedInt = PrivateSalt + this.Username;

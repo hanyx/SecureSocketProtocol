@@ -550,8 +550,12 @@ namespace ProtoBuf
             writer.ioBuffer[writer.ioIndex - 1] &= 0x7F;
             writer.position += count;
         }
- 
+
+#if COREFX
+        static readonly Encoding encoding = Encoding.UTF8;
+#else
         static readonly UTF8Encoding encoding = new UTF8Encoding();
+#endif
 
         internal static uint Zig(int value)
         {        

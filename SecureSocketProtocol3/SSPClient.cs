@@ -3,6 +3,8 @@ using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Security.Configurations;
+using SecureSocketProtocol3.Security.DataIntegrity;
+using SecureSocketProtocol3.Security.Layers;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -20,10 +22,13 @@ namespace SecureSocketProtocol3
         public abstract void onConnect();
         public abstract void onDisconnect(DisconnectReason Reason);
         public abstract void onException(Exception ex, ErrorType errorType);
+        public abstract void onApplyLayers(LayerSystem layerSystem);
 
         public abstract void onOperationalSocket_BeforeConnect(OperationalSocket OPSocket);
         public abstract void onOperationalSocket_Connected(OperationalSocket OPSocket);
         public abstract void onOperationalSocket_Disconnected(OperationalSocket OPSocket, DisconnectReason Reason);
+
+        public abstract IDataIntegrityLayer DataIntegrityLayer { get; }
 
         public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
@@ -73,11 +78,13 @@ namespace SecureSocketProtocol3
         private FastRandom KeepAliveRandom = new FastRandom();
 
         public bool IsDisposed { get; private set; }
+        internal LayerSystem layerSystem { get; private set; }
 
         public SSPClient()
         {
             _connectionTime = Stopwatch.StartNew();
             this.TimingConfiguration = new TimingConfig();
+            this.layerSystem = new LayerSystem();
         }
 
         /// <summary>
@@ -140,7 +147,7 @@ namespace SecureSocketProtocol3
                     catch (Exception ex)
                     {
                         /* Will throw a error if connection couldn't be made */
-                        SysLogger.Log(ex.Message, SysLogType.Error);
+                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     }
                 }, null);
 
@@ -166,6 +173,9 @@ namespace SecureSocketProtocol3
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
 
             Connection = new Connection(this);
+
+            onApplyLayers(layerSystem);
+
             Connection.StartReceiver();
 
             onBeforeConnect();
@@ -206,12 +216,20 @@ namespace SecureSocketProtocol3
 
             this.Username = Properties.Username;
 
+            StartKeepAliveTimer();
+
+            onConnect();
+        }
+
+        internal void StartKeepAliveTimer()
+        {
+            if (this.KeepAliveTimer != null)
+                this.KeepAliveTimer.Stop();
+
             this.KeepAliveTimer = new System.Timers.Timer();
             this.KeepAliveTimer.Interval = 5000;
             this.KeepAliveTimer.Elapsed += KeepAliveTimer_Elapsed;
             this.KeepAliveTimer.Enabled = true;
-
-            onConnect();
         }
 
         void KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
@@ -219,11 +237,24 @@ namespace SecureSocketProtocol3
             if (!Connected)
                 return;
 
-            if (Connection.LastPacketSendElapsed.TotalSeconds > 5)
+            try
             {
-                //Make the Keep-Alive go a bit random to confuse time attacks with real traffic
-                this.KeepAliveTimer.Interval = KeepAliveRandom.Next(2000, 8000);
-                Connection.SendMessage(new MsgKeepAlive(), new SystemHeader());
+                if (Connection.LastPacketSendElapsed.TotalSeconds > 5)
+                {
+                    //Make the Keep-Alive go a bit random to confuse time attacks with real traffic
+                    this.KeepAliveTimer.Interval = KeepAliveRandom.Next(2000, 8000);
+                    Connection.SendMessage(new MsgKeepAlive(), new SystemHeader());
+                }
+
+                if (Connection.LastPacketReceivedElapsed.TotalSeconds >= 30)
+                {
+                    //hardware disconnection
+                    Disconnect();
+                }
+            }
+            catch (Exception ex)
+            {
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
             }
         }
 
@@ -308,10 +339,10 @@ namespace SecureSocketProtocol3
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
             }
 
-            if (IsServerSided && Server != null)
+            if (IsServerSided)
             {
                 Server.RemoveClient(this);
             }
@@ -334,7 +365,7 @@ namespace SecureSocketProtocol3
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
             }
         }
     }

@@ -306,7 +306,7 @@ namespace SecureSocketProtocol3.Compressions
                 a[i + j] = (byte)(value >> (j * 8));
         }
 
-        public byte[] decompress(byte[] source, int Offset, int Length)
+        public byte[] decompress(byte[] source, int Offset)
         {
             int level;
             int size = sizeDecompressed(source, Offset);
@@ -329,7 +329,8 @@ namespace SecureSocketProtocol3.Compressions
             if ((source[Offset] & 1) != 1)
             {
                 byte[] d2 = new byte[size];
-                System.Array.Copy(source, headerLen(source, Offset), d2, Offset, size);
+                int sourceIndex = headerLen(source, Offset);
+                System.Array.Copy(source, sourceIndex, d2, 0, size);
                 return d2;
             }
 

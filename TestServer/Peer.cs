@@ -1,5 +1,9 @@
-﻿using SecureSocketProtocol3;
+﻿using ExtraLayers.LZ4;
+using ExtraLayers.LZMA;
+using SecureSocketProtocol3;
 using SecureSocketProtocol3.Network;
+using SecureSocketProtocol3.Security.DataIntegrity;
+using SecureSocketProtocol3.Security.Layers;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -54,6 +58,26 @@ namespace TestServer
         public override void onOperationalSocket_Disconnected(OperationalSocket OPSocket, DisconnectReason Reason)
         {
 
+        }
+
+        public override void onApplyLayers(LayerSystem layerSystem)
+        {
+            layerSystem.AddLayer(new Lz4Layer());
+            layerSystem.AddLayer(new LzmaLayer());
+            layerSystem.AddLayer(new QuickLzLayer());
+            layerSystem.AddLayer(new AesLayer(base.Connection));
+            layerSystem.AddLayer(new WopExLayer(5, 1, false, this));
+        }
+
+        private IDataIntegrityLayer _dataIntegrityLayer;
+        public override IDataIntegrityLayer DataIntegrityLayer
+        {
+            get
+            {
+                if (_dataIntegrityLayer == null)
+                    _dataIntegrityLayer = new HMacLayer(this);
+                return _dataIntegrityLayer;
+            }
         }
     }
 }

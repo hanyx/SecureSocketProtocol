@@ -31,7 +31,7 @@ namespace TestServer
             Process.GetCurrentProcess().WaitForExit();
         }
 
-        static void SysLogger_onSysLog(string Message, SysLogType Type)
+        private static void SysLogger_onSysLog(string Message, SysLogType Type, Exception ex)
         {
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("[SysLogger][" + Type + "] " + Message);

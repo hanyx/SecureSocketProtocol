@@ -60,12 +60,18 @@ namespace SecureSocketProtocol3.Network
         /// <param name="Header">The header that is being used for this message</param>
         protected void SendMessage(IMessage Message, Header Header)
         {
-            Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), null, this);
+            if (isConnected && Client.Connection != null)
+            {
+                Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), this);
+            }
         }
 
         internal void InternalSendMessage(IMessage Message, Header Header)
         {
-            Client.Connection.SendMessage(Message, Header);
+            if (isConnected && Client.Connection != null)
+            {
+                Client.Connection.SendMessage(Message, Header);
+            }
         }
 
         private void onPacketQueue(PayloadInfo inf)
@@ -148,7 +154,7 @@ namespace SecureSocketProtocol3.Network
             }
             catch(Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error);
+                SysLogger.Log(ex.Message, SysLogType.Error, ex);
             }
         }
 

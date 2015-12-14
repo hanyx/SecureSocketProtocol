@@ -3,6 +3,7 @@ using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -84,7 +85,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         base.FinalSalt = _salt;
 
                         //let's try to decrypt the data, should go successful
-                        wopEx.Decrypt(Data, 0, Data.Length);
+                        wopEx.Decrypt(Data, 0, Data.Length, new MemoryStream(Data));
 
                         if (Data.Length != _publicKey.Length)
                         {
@@ -108,7 +109,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         //encryption / public key went successful for now
                         this.server_Prime = BigInteger.genPseudoPrime(256, 50, new Random(BitConverter.ToInt32(_key, 0)));
                         byte[] primeData = server_Prime.getBytes();
-                        wopEx.Encrypt(primeData, 0, primeData.Length);
+                        wopEx.Encrypt(primeData, 0, primeData.Length, new MemoryStream(primeData));
                         ResponseData = primeData;
 
                         this.Username = _userName;
@@ -126,7 +127,7 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                 case 3:
                 {
                     //response back from client with his prime number
-                    wopEx.Decrypt(Data, 0, Data.Length);
+                    wopEx.Decrypt(Data, 0, Data.Length, new MemoryStream(Data));
                     
                     this.client_Prime = new BigInteger(Data);
                     if (this.client_Prime.isProbablePrime())
@@ -144,6 +145,10 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
                         BigInteger key = base.ModKey(server_Prime, client_Prime);
                         //apply key to encryption
                         ApplyKey(wopEx, key);
+
+                        base.FinalKey = wopEx.Key;
+                        base.FinalSalt = wopEx.Salt;
+
                         return MazeErrorCode.Finished;
                     }
                     else

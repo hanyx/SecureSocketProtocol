@@ -43,7 +43,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClientProperties.cs" />
-    <Compile Include="Compressions\GzipCompression.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
     <Compile Include="Compressions\SafeQuickLZ.cs" />
     <Compile Include="Compressions\UnsafeQuickLZ.cs" />
@@ -64,42 +63,9 @@
     <Compile Include="Network\Messages\TCP\MsgKeepAlive.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnect.cs" />
+    <Compile Include="Network\TinySocket.cs" />
     <Compile Include="PeerProperties.cs" />
     <Compile Include="Processors\ClientAcceptProcessor.cs" />
-    <Compile Include="Security\Configurations\TimingConfig.cs" />
-    <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
-    <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
-    <Compile Include="Security\Encryptions\HwAes.cs" />
-    <Compile Include="Security\Encryptions\KeyEncryptor.cs" />
-    <Compile Include="Security\Encryptions\RSAEncryption.cs" />
-    <Compile Include="Security\Encryptions\WopEncryption.cs" />
-    <Compile Include="Security\Encryptions\WopEx.cs" />
-    <Compile Include="Enums.cs" />
-    <Compile Include="Features\Feature.cs" />
-    <Compile Include="Hashers\CRC32.cs" />
-    <Compile Include="Misc\PayloadInfo.cs" />
-    <Compile Include="Misc\SystemPacket.cs" />
-    <Compile Include="Network\Connection.cs" />
-    <Compile Include="Network\Headers\ConnectionHeader.cs" />
-    <Compile Include="Network\Headers\Header.cs" />
-    <Compile Include="Network\Headers\HeaderList.cs" />
-    <Compile Include="Network\Headers\RequestHeader.cs" />
-    <Compile Include="Network\Headers\SystemHeader.cs" />
-    <Compile Include="Network\MazingHandshake\ClientMaze.cs" />
-    <Compile Include="Network\MazingHandshake\Maze\Maze.cs" />
-    <Compile Include="Network\MazingHandshake\Maze\Stack.cs" />
-    <Compile Include="Network\MazingHandshake\Mazing.cs" />
-    <Compile Include="Network\MazingHandshake\ServerMaze.cs" />
-    <Compile Include="Network\Messages\IMessage.cs" />
-    <Compile Include="Network\Messages\MessageHandler.cs" />
-    <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
-    <Compile Include="Network\Messages\TCP\MsgGetNextId.cs" />
-    <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
-    <Compile Include="Network\Messages\TCP\MsgGetNextIdResponse.cs" />
-    <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
-    <Compile Include="Network\Messages\TCP\MsgInitOk.cs" />
-    <Compile Include="Network\OperationalSocket.cs" />
-    <Compile Include="Network\User.cs" />
     <Compile Include="ProtoBuf\BclHelpers.cs" />
     <Compile Include="ProtoBuf\BufferExtension.cs" />
     <Compile Include="ProtoBuf\BufferPool.cs" />
@@ -166,6 +132,7 @@
     <Compile Include="ProtoBuf\Serializers\ParseableSerializer.cs" />
     <Compile Include="ProtoBuf\Serializers\PropertyDecorator.cs" />
     <Compile Include="ProtoBuf\Serializers\ProtoDecoratorBase.cs" />
+    <Compile Include="ProtoBuf\Serializers\ReflectedUriDecorator.cs" />
     <Compile Include="ProtoBuf\Serializers\SByteSerializer.cs" />
     <Compile Include="ProtoBuf\Serializers\SingleSerializer.cs" />
     <Compile Include="ProtoBuf\Serializers\StringSerializer.cs" />
@@ -187,11 +154,52 @@
     <Compile Include="ProtoBuf\ServiceModel\XmlProtoSerializer.cs" />
     <Compile Include="ProtoBuf\SubItemToken.cs" />
     <Compile Include="ProtoBuf\WireType.cs" />
+    <Compile Include="Security\Configurations\TimingConfig.cs" />
+    <Compile Include="Security\DataIntegrity\HMacLayer.cs" />
+    <Compile Include="Security\DataIntegrity\Sha1Layer.cs" />
+    <Compile Include="Security\DataIntegrity\CRC32Layer.cs" />
+    <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
+    <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
+    <Compile Include="Security\Encryptions\HwAes.cs" />
+    <Compile Include="Security\Encryptions\KeyEncryptor.cs" />
+    <Compile Include="Security\Encryptions\RSAEncryption.cs" />
+    <Compile Include="Security\Encryptions\WopEncryption.cs" />
+    <Compile Include="Security\Encryptions\WopEx.cs" />
+    <Compile Include="Enums.cs" />
+    <Compile Include="Hashers\CRC32.cs" />
+    <Compile Include="Misc\PayloadInfo.cs" />
+    <Compile Include="Misc\SystemPacket.cs" />
+    <Compile Include="Network\Connection.cs" />
+    <Compile Include="Network\Headers\ConnectionHeader.cs" />
+    <Compile Include="Network\Headers\Header.cs" />
+    <Compile Include="Network\Headers\HeaderList.cs" />
+    <Compile Include="Network\Headers\RequestHeader.cs" />
+    <Compile Include="Network\Headers\SystemHeader.cs" />
+    <Compile Include="Network\MazingHandshake\ClientMaze.cs" />
+    <Compile Include="Network\MazingHandshake\Maze\Maze.cs" />
+    <Compile Include="Network\MazingHandshake\Maze\Stack.cs" />
+    <Compile Include="Network\MazingHandshake\Mazing.cs" />
+    <Compile Include="Network\MazingHandshake\ServerMaze.cs" />
+    <Compile Include="Network\Messages\IMessage.cs" />
+    <Compile Include="Network\Messages\MessageHandler.cs" />
+    <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
+    <Compile Include="Network\Messages\TCP\MsgGetNextId.cs" />
+    <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
+    <Compile Include="Network\Messages\TCP\MsgGetNextIdResponse.cs" />
+    <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
+    <Compile Include="Network\Messages\TCP\MsgInitOk.cs" />
+    <Compile Include="Network\OperationalSocket.cs" />
+    <Compile Include="Network\User.cs" />
     <Compile Include="Security\Encryptions\Compiler\AlgorithmCompiler.cs" />
+    <Compile Include="Security\Layers\AesLayer.cs" />
+    <Compile Include="Security\DataIntegrity\IDataIntegrityLayer.cs" />
+    <Compile Include="Security\Layers\ILayer.cs" />
+    <Compile Include="Security\Layers\LayerSystem.cs" />
+    <Compile Include="Security\Layers\QuickLzLayer.cs" />
+    <Compile Include="Security\Layers\WopExLayer.cs" />
     <Compile Include="Security\Obfuscation\DataConfuser.cs" />
     <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\FastRandom.cs" />
-    <Compile Include="Utils\OptimizedPayloadStream.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
     <Compile Include="Utils\SyncObject.cs" />
@@ -210,12 +218,15 @@
     <Folder Include="Attributes\" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="ProtoBuf\Web\TODO.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <EmbeddedResource Include="Controls\uTorrentProgressBar.resx">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ProtoBuf\Web\TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ProtoBuf\project.json" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

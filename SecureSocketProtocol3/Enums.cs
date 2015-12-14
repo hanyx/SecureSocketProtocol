@@ -20,7 +20,7 @@ namespace SecureSocketProtocol3
     internal delegate bool AuthenticationDelegate(SSPClient client, string Username, string Password);
     public delegate void ReceiveDataCallback(byte[] Payload, Header header);
 
-    public delegate void SysLogDeletegate(string Message, SysLogType Type);
+    public delegate void SysLogDeletegate(string Message, SysLogType Type, Exception ex);
 
     public enum DisconnectReason
     {
@@ -136,5 +136,11 @@ namespace SecureSocketProtocol3
         /// </summary>
         Fixed,
         Variable
+    }
+
+    public enum LayerType
+    {
+        Encryption,
+        Compression
     }
 }

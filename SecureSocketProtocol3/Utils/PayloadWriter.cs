@@ -8,6 +8,8 @@ namespace SecureSocketProtocol3.Utils
     public class PayloadWriter : IDisposable
     {
         public MemoryStream vStream { get; set; }
+        public bool AutoDispose = true;
+
         public PayloadWriter()
         {
             vStream = new MemoryStream();
@@ -124,22 +126,25 @@ namespace SecureSocketProtocol3.Utils
             return vStream.GetBuffer();
         }
 
-        public int Length
+        public long Length
         {
-            get { return (int)vStream.Length; }
+            get { return vStream.Length; }
         }
 
-        public int Position
+        public long Position
         {
-            get { return (int)vStream.Position; }
+            get { return vStream.Position; }
             set { vStream.Position = value; }
         }
 
         public void Dispose()
         {
-            vStream.Close();
-            vStream.Dispose();
-            vStream = null;
+            if (AutoDispose)
+            {
+                vStream.Close();
+                vStream.Dispose();
+                vStream = null;
+            }
         }
     }
 }

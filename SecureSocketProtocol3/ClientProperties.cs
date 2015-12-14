@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SecureSocketProtocol3.Security.DataIntegrity;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -19,11 +20,6 @@ namespace SecureSocketProtocol3
         public abstract Stream PublicKeyFile { get; }
 
         public abstract byte[] NetworkKey { get; }
-
-        public abstract uint Cipher_Rounds { get; }
-
-        public abstract EncAlgorithm EncryptionAlgorithm { get; }
-        public abstract CompressionAlgorithm CompressionAlgorithm { get; }
 
         public abstract Size Handshake_Maze_Size { get; }
         public abstract ushort Handshake_StepSize { get; }

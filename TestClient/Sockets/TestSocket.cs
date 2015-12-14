@@ -58,10 +58,16 @@ namespace TestClient.Sockets
 
         private int test = 0;
         FastRandom rnd = new FastRandom();
-        public byte[] testBytes = new byte[65000];
+        public byte[] testBytes;// = new byte[65000];
         public int SendStuff()
         {
-            //testBytes = new byte[rnd.Next(0, 65535)];
+            if (testBytes == null)
+            {
+                testBytes = new byte[65535];////rnd.Next(1, 6000)];
+                rnd.NextBytes(testBytes);
+            }
+
+            //testBytes = new byte[25];
             test++;
             base.SendMessage(new TestMessage() { Buffer = testBytes }, new TestHeader());
 
@@ -73,6 +79,11 @@ namespace TestClient.Sockets
             base.SendMessage(new TestMessage() { Buffer = ASCIIEncoding.ASCII.GetBytes(TestStr) }, new TestHeader());
             */
             return test;
+        }
+
+        public void TestBufferMessage(byte[] message)
+        {
+            base.SendMessage(new TestMessage() { Buffer = message }, new TestHeader());
         }
     }
 }
