@@ -218,6 +218,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
                         {
                             EncState.Key_Pos += 1;
                             EncState.Salt_Pos += 1;
+
+                            if (EncState.Key_Pos < 0)
+                                EncState.Key_Pos = 0;
+
+                            if (EncState.Salt_Pos < 0)
+                                EncState.Salt_Pos = 0;
                         }
                     }
                 }
@@ -285,11 +291,17 @@ namespace SecureSocketProtocol3.Security.Encryptions
         {
             if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
-                value ^= (ulong)(EncState.Key[(k % EncState.Key.Length)] * EncState.Salt[(OrgLen + k) % EncState.Salt.Length]);
+                int keyOffset = Math.Abs(k % EncState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + k) % EncState.Salt.Length);
+
+                value ^= (ulong)(EncState.Key[keyOffset] * EncState.Salt[saltOffset]);
             }
             else
             {
-                value ^= (ulong)(EncState.Key[(EncState.random.Next(0, EncState.Key.Length) + EncState.Key_Pos) % EncState.Key.Length] * EncState.Salt[(OrgLen + EncState.Salt_Pos) % EncState.Salt.Length]);
+                int keyOffset = Math.Abs((EncState.random.Next(0, EncState.Key.Length) + EncState.Key_Pos) % EncState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + EncState.Salt_Pos) % EncState.Salt.Length);
+
+                value ^= (ulong)(EncState.Key[keyOffset] * EncState.Salt[saltOffset]);
             }
 
             if (UseDynamicCompiler)
@@ -317,11 +329,15 @@ namespace SecureSocketProtocol3.Security.Encryptions
         {
             if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
-                value ^= (byte)(EncState.Key[(k % EncState.Key.Length)] * EncState.Salt[(OrgLen + k) % EncState.Salt.Length]);
+                int keyOffset = Math.Abs(k % EncState.Key.Length);
+                int saltOffset =  Math.Abs((OrgLen + k) % EncState.Salt.Length);
+                value ^= (byte)(EncState.Key[keyOffset] * EncState.Salt[saltOffset]);
             }
             else
             {
-                value ^= (byte)(EncState.Key[(EncState.random.Next(0, EncState.Key.Length) + EncState.Key_Pos) % EncState.Key.Length] * EncState.Salt[(OrgLen + EncState.Salt_Pos) % EncState.Salt.Length]);
+                int keyOffset = Math.Abs((EncState.random.Next(0, EncState.Key.Length) + EncState.Key_Pos) % EncState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + EncState.Salt_Pos) % EncState.Salt.Length);
+                value ^= (byte)(EncState.Key[keyOffset] * EncState.Salt[saltOffset]);
             }
 
             for (int j = 0; j < EncState.Instructions.Length; j++)
@@ -393,6 +409,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
                         {
                             DecState.Key_Pos += 1;
                             DecState.Salt_Pos += 1;
+
+                            if (DecState.Key_Pos < 0)
+                                DecState.Key_Pos = 0;
+
+                            if (DecState.Salt_Pos < 0)
+                                DecState.Salt_Pos = 0;
                         }
                     }
                 }
@@ -454,11 +476,15 @@ namespace SecureSocketProtocol3.Security.Encryptions
 
             if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
-                value ^= (ulong)(DecState.Key[(k % DecState.Key.Length)] * DecState.Salt[(OrgLen + k) % DecState.Salt.Length]);
+                int keyOffset = Math.Abs(k % DecState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + k) % DecState.Salt.Length);
+                value ^= (ulong)(DecState.Key[keyOffset] * DecState.Salt[saltOffset]);
             }
             else
             {
-                value ^= (ulong)(DecState.Key[(DecState.random.Next(0, DecState.Key.Length) + DecState.Key_Pos) % DecState.Key.Length] * DecState.Salt[(OrgLen + DecState.Salt_Pos) % DecState.Salt.Length]);
+                int keyOffset = Math.Abs((DecState.random.Next(0, DecState.Key.Length) + DecState.Key_Pos) % DecState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + DecState.Salt_Pos) % DecState.Salt.Length);
+                value ^= (ulong)(DecState.Key[keyOffset] * DecState.Salt[saltOffset]);
             }
             return value;
         }
@@ -479,11 +505,15 @@ namespace SecureSocketProtocol3.Security.Encryptions
 
             if (EncMode == WopEncMode.Simple || Rounds > 1)
             {
-                value ^= (byte)(DecState.Key[(k % DecState.Key.Length)] * DecState.Salt[(OrgLen + k) % DecState.Salt.Length]);
+                int keyOffset = Math.Abs(k % DecState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + k) % DecState.Salt.Length);
+                value ^= (byte)(DecState.Key[keyOffset] * DecState.Salt[saltOffset]);
             }
             else
             {
-                value ^= (byte)(DecState.Key[(DecState.random.Next(0, DecState.Key.Length) + DecState.Key_Pos) % DecState.Key.Length] * DecState.Salt[(OrgLen + DecState.Salt_Pos) % DecState.Salt.Length]);
+                int keyOffset = Math.Abs((DecState.random.Next(0, DecState.Key.Length) + DecState.Key_Pos) % DecState.Key.Length);
+                int saltOffset = Math.Abs((OrgLen + DecState.Salt_Pos) % DecState.Salt.Length);
+                value ^= (byte)(DecState.Key[keyOffset] * DecState.Salt[saltOffset]);
             }
             return value;
         }
