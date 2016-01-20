@@ -22,7 +22,7 @@ namespace TestServer
 
             Server server = new Server();
 
-            while(true)
+            while (true)
             {
                 Console.Title = "SSP Server - Connected Clients: " + server.GetClients().Length;
                 Thread.Sleep(250);

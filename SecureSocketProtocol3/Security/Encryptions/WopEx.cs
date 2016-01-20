@@ -33,9 +33,19 @@ namespace SecureSocketProtocol3.Security.Encryptions
         /// </summary>
         public byte[] Salt { get; private set; }
 
-        public uint Rounds { get; private set; }
+        /// <summary>
+        /// The initial Salt
+        /// </summary>
+        public byte[] EncryptionCode { get; private set; }
 
-        private bool UseDynamicCompiler;
+        /// <summary>
+        /// The initial Salt
+        /// </summary>
+        public byte[] DecryptionCode { get; private set; }
+
+        public uint Rounds { get; private set; }
+        public int InitialVectorSeed { get; private set; }
+        public bool UseDynamicCompiler { get; private set; }
 
         /// <summary>
         /// Initialize the WopEx Encryption
@@ -57,6 +67,9 @@ namespace SecureSocketProtocol3.Security.Encryptions
                 throw new Exception("There must be atleast 1 round");
 
             this.UseDynamicCompiler = UseDynamicCompiler;
+            this.InitialVectorSeed = InitialVectorSeed;
+            this.EncryptionCode = EncryptionCode;
+            this.DecryptionCode = DecryptionCode;
 
             this.Key = new byte[Key.Length];
             Array.Copy(Key, this.Key, Key.Length);

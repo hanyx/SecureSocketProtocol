@@ -16,6 +16,7 @@ using ProtoBuf;
 using SecureSocketProtocol3.Compressions;
 using SecureSocketProtocol3.Security.Obfuscation;
 using SecureSocketProtocol3.Security.Layers;
+using SecureSocketProtocol3.Security.Handshakes;
 
 namespace SecureSocketProtocol3.Network
 {
@@ -30,12 +31,11 @@ namespace SecureSocketProtocol3.Network
         internal SortedList<ulong, Type> RegisteredOperationalSockets { get; private set; }
         internal SortedList<ushort, OperationalSocket> OperationalSockets { get; private set; }
         internal SortedList<int, SyncObject> Requests { get; private set; }
-        
-        internal SyncObject HandshakeSync { get; private set; }
+
         internal SyncObject InitSync { get; private set; }
 
         internal HeaderList Headers { get; private set; }
-        
+
         //locks
         internal object NextRandomIdLock = new object();
         private object SendLock = new object();
@@ -63,7 +63,18 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         public TimeSpan LastPacketSendElapsed { get { return LastPacketSendSW.Elapsed; } }
 
-        internal bool HandShakeCompleted { get; set; }
+        private bool _handShakeCompleted;
+        private bool HandShakeCompleted
+        {
+            get
+            {
+                if (_handShakeCompleted)
+                    return true;
+
+                _handShakeCompleted = Client.handshakeSystem.CompletedAllHandshakes;
+                return _handShakeCompleted;
+            }
+        }
 
         internal byte[] NetworkKey
         {
@@ -80,12 +91,11 @@ namespace SecureSocketProtocol3.Network
 
             this.Connected = true;
             this.Headers = new HeaderList(this);
-            this.HandshakeSync = new SyncObject(this);
             this.InitSync = new SyncObject(this);
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
             this.Requests = new SortedList<int, SyncObject>();
             this.OperationalSockets = new SortedList<ushort, OperationalSocket>();
-            
+
             //generate the header encryption
             PrivateSeed = NetworkKey.Length >= 4 ? BitConverter.ToInt32(NetworkKey, 0) : 0xBEEF;
 
@@ -107,10 +117,11 @@ namespace SecureSocketProtocol3.Network
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
+            this.messageHandler.AddMessage(typeof(MsgHandshakeFinish), "HANDSHAKE_FINISH");
+
             this.messageHandler.AddMessage(typeof(MsgCreateConnection), "CREATE_CONNECTION");
             this.messageHandler.AddMessage(typeof(MsgCreateConnectionResponse), "CREATE_CONNECTION_RESPONSE");
 
-            this.messageHandler.AddMessage(typeof(MsgInitOk), "INIT_OK");
             this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
             this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
 
@@ -170,12 +181,19 @@ namespace SecureSocketProtocol3.Network
                         Client.layerSystem.ApplyLayers(TempStream.GetBuffer(), 0, (int)TempStream.Length, ref outEncrypted, ref outOffset, ref outLength);
                         pw.WriteBytes(outEncrypted, outOffset, outLength);
 
-                        byte[] DataHash = Client.DataIntegrityLayer.ComputeHash(Client, outEncrypted, outOffset, outLength);
+                        if (Client.DataIntegrityLayer != null)
+                        {
+                            byte[] DataHash = Client.DataIntegrityLayer.ComputeHash(Client, outEncrypted, outOffset, outLength);
 
-                        if (DataHash == null || (DataHash != null && DataHash.Length != Client.DataIntegrityLayer.FixedLength))
-                            throw new Exception("DataIntegrityLayer FixedLength does not match GetHash");
+                            if (DataHash == null || (DataHash != null && DataHash.Length != Client.DataIntegrityLayer.FixedLength))
+                                throw new Exception("DataIntegrityLayer FixedLength does not match GetHash");
 
-                        pw.WriteBytes(DataHash);
+                            pw.WriteBytes(DataHash);
+                        }
+                        else
+                        {
+                            //no Data Integrity Layer
+                        }
                     }
 
                     if (pw.Length > MAX_PACKET_SIZE)
@@ -215,7 +233,7 @@ namespace SecureSocketProtocol3.Network
 
                     try
                     {
-                        for (int i = 0; i < outStream.Length;)
+                        for (int i = 0; i < outStream.Length; )
                         {
                             int len = i + 65535 < outStream.Length ? 65535 : (int)outStream.Length - i;
                             Handle.Send(outStream.GetBuffer(), i, len, SocketFlags.None);
@@ -268,15 +286,13 @@ namespace SecureSocketProtocol3.Network
             }
         }
 
-        internal void ApplyNewKey(Mazing mazeHandshake, byte[] key, byte[] salt)
+        public void ApplyNewKey(byte[] key, byte[] salt)
         {
-            Console.WriteLine("Is Server ? " + Client.IsServerSided + ", " + BitConverter.ToString(key).Substring(0, 100));
-
-            mazeHandshake.ApplyKey(this.HeaderEncryption, key);
-            mazeHandshake.ApplyKey(this.HeaderEncryption, salt);
+            this.HeaderEncryption = new WopEx(key, salt, HeaderEncryption.InitialVectorSeed, HeaderEncryption.EncryptionCode,
+                                              HeaderEncryption.DecryptionCode, HeaderEncryption.EncMode, HeaderEncryption.Rounds,
+                                              HeaderEncryption.UseDynamicCompiler);
 
             Client.DataIntegrityLayer.ApplyKey(key, salt);
-
             Client.layerSystem.ApplyKeyToLayers(Client, key, salt);
         }
 
@@ -287,7 +303,7 @@ namespace SecureSocketProtocol3.Network
                 SyncObject syncObj = new SyncObject(this);
                 FastRandom rnd = new FastRandom();
 
-                do 
+                do
                 {
                     RequestId = rnd.Next();
                 }
@@ -340,17 +356,21 @@ namespace SecureSocketProtocol3.Network
         {
             this.LastPacketRecvSW = Stopwatch.StartNew();
             PacketsIn++;
+            int PayloadLength = Length;
 
-            int PayloadLength = Length - Client.DataIntegrityLayer.FixedLength;
-
-            //let's check the Data Integrity Layer
-            byte[] IntegrityData = new byte[Client.DataIntegrityLayer.FixedLength];
-            Buffer.BlockCopy(Data, (Offset + PayloadLen) - IntegrityData.Length, IntegrityData, 0, IntegrityData.Length);
-            if (!Client.DataIntegrityLayer.Verify(Client, IntegrityData, Data, Offset, PayloadLength))
+            if (Client.DataIntegrityLayer != null)
             {
-                //Hash missmatch
-                Disconnect();
-                return;
+                PayloadLength -= Client.DataIntegrityLayer.FixedLength;
+
+                //let's check the Data Integrity Layer
+                byte[] IntegrityData = new byte[Client.DataIntegrityLayer.FixedLength];
+                Buffer.BlockCopy(Data, (Offset + PayloadLen) - IntegrityData.Length, IntegrityData, 0, IntegrityData.Length);
+                if (!Client.DataIntegrityLayer.Verify(Client, IntegrityData, Data, Offset, PayloadLength))
+                {
+                    //Hash missmatch
+                    Disconnect();
+                    return;
+                }
             }
 
             byte[] DecryptedBuffer = null;
@@ -404,9 +424,23 @@ namespace SecureSocketProtocol3.Network
 
                         if (!HandShakeCompleted)
                         {
-                            if (message.GetType() == typeof(MsgHandshake))
+                            if (message.GetType() != typeof(MsgKeepAlive) && message.GetType() != typeof(MsgHandshakeFinish))
                             {
-                                //process the handshake messages straight away
+                                Handshake CurHandshake = Client.handshakeSystem.GetCurrentHandshake();
+
+                                if (CurHandshake != null)
+                                {
+                                    //process the handshake messages straight away
+                                    CurHandshake.onReceiveMessage(message);
+                                }
+                                else
+                                {
+                                    //??
+                                    Disconnect();
+                                }
+                            }
+                            else if (message.GetType() == typeof(MsgHandshakeFinish))
+                            {
                                 message.ProcessPayload(Client, null);
                             }
                         }

@@ -5,29 +5,66 @@ using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Security.DataIntegrity;
 using SecureSocketProtocol3.Security.Handshakes;
 using SecureSocketProtocol3.Security.Layers;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
-using TestServer.Sockets;
+using TestClient.Sockets;
 
-namespace TestServer
+namespace TestClient
 {
-    public class Peer : SSPClient
+    public class Client : SSPClient
     {
-        public Peer()
-            : base()
+        public Client()
+            : base(new ClientProps())
         {
 
         }
 
-
         public override void onConnect()
         {
-            Console.WriteLine("[" + DateTime.Now.ToString("HH:mm:ss") + "] User \"" + base.Username + "\" connected, Peer connected " + base.RemoteIp);
-            //TestSocket testSock = new TestSocket(this);
-            //testSock.Connect();
+            Console.WriteLine("Client successfully connected");
+
+            while (false)
+            {
+                using (TestSocket testSock2 = new TestSocket(this))
+                {
+                    testSock2.Connect();
+                    testSock2.Disconnect();
+                }
+                //Thread.Sleep(5000);
+            }
+
+            TestSocket testSock = new TestSocket(this);
+            testSock.Connect();
+
+            Stopwatch RuntimeSW = Stopwatch.StartNew();
+
+            Benchmark bench = new Benchmark();
+            while (true)
+            {
+                //Thread.Sleep(1);
+                int size = 0;
+                bench.Bench(new BenchCallback(() => size = testSock.SendStuff()));
+
+                if (bench.PastASecond)
+                {
+                    ulong Speed = bench.SpeedPerSec * (ulong)testSock.testBytes.Length;
+                    double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
+                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 2);
+
+                    Console.WriteLine("Packets Send: " + size + "\t\t" + MegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
+                    Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
+                }
+            }
+        }
+
+        private void onBenchEvent()
+        {
+            int number = base.GetNextRandomInteger();
         }
 
         public override void onDisconnect(DisconnectReason Reason)
@@ -37,15 +74,12 @@ namespace TestServer
 
         public override void onException(Exception ex, ErrorType errorType)
         {
-            Console.WriteLine(ex.Message);
+
         }
 
         public override void onBeforeConnect()
         {
             base.RegisterOperationalSocket(new TestSocket(this));
-
-            //Timing configuration is enabled as default, just showing users it's there
-            base.TimingConfiguration.Enable_Timing = true;
         }
 
         public override void onOperationalSocket_Connected(OperationalSocket OPSocket)
@@ -87,27 +121,17 @@ namespace TestServer
             }
         }
 
-        public override void onApplyHandshakes(SecureSocketProtocol3.Security.Handshakes.HandshakeSystem handshakeSystem)
+        public override void onApplyHandshakes(HandshakeSystem handshakeSystem)
         {
             List<MemoryStream> keys = new List<MemoryStream>();
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
             Stream PublicKeyFile = new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat"));
 
-            MazeHandshake mazeHandshake = new MazeHandshake(this, new Size(128, 128), 5, 5, "UserTest", "PassTest",
-                                                           keys.ToArray(), PublicKeyFile);
+            handshakeSystem.AddLayer(new MazeHandshake(this, new System.Drawing.Size(128, 128), 5, 5, "UserTest", "PassTest",
+                                     keys.ToArray(), PublicKeyFile));
 
-            mazeHandshake.onFindUser += mazeHandshae_onFindUser;
-
-            handshakeSystem.AddLayer(mazeHandshake);
             //handshakeSystem.AddLayer(new SslHandshake(this));
-        }
-
-        private User.UserDbInfo mazeHandshae_onFindUser(string EncryptedPublicKeyHash)
-        {
-            if (Program.Users.ContainsKey(EncryptedPublicKeyHash))
-                return Program.Users[EncryptedPublicKeyHash];
-            return null;
         }
     }
 }

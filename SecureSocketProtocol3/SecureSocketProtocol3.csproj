@@ -60,6 +60,7 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Network\Messages\TCP\MsgHandshakeFinish.cs" />
     <Compile Include="Network\Messages\TCP\MsgKeepAlive.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnect.cs" />
@@ -187,15 +188,18 @@
     <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgGetNextIdResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
-    <Compile Include="Network\Messages\TCP\MsgInitOk.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="Network\User.cs" />
     <Compile Include="Security\Encryptions\Compiler\AlgorithmCompiler.cs" />
+    <Compile Include="Security\Handshakes\Handshake.cs" />
+    <Compile Include="Security\Handshakes\HandshakeSystem.cs" />
+    <Compile Include="Security\Handshakes\MazeHandshake.cs" />
     <Compile Include="Security\Layers\AesLayer.cs" />
     <Compile Include="Security\DataIntegrity\IDataIntegrityLayer.cs" />
     <Compile Include="Security\Layers\ILayer.cs" />
     <Compile Include="Security\Layers\LayerSystem.cs" />
     <Compile Include="Security\Layers\QuickLzLayer.cs" />
+    <Compile Include="Security\Layers\SSLLayer.cs" />
     <Compile Include="Security\Layers\WopExLayer.cs" />
     <Compile Include="Security\Obfuscation\DataConfuser.cs" />
     <Compile Include="Utils\Benchmark.cs" />

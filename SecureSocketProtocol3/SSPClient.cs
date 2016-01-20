@@ -4,6 +4,7 @@ using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Security.Configurations;
 using SecureSocketProtocol3.Security.DataIntegrity;
+using SecureSocketProtocol3.Security.Handshakes;
 using SecureSocketProtocol3.Security.Layers;
 using SecureSocketProtocol3.Utils;
 using System;
@@ -23,6 +24,7 @@ namespace SecureSocketProtocol3
         public abstract void onDisconnect(DisconnectReason Reason);
         public abstract void onException(Exception ex, ErrorType errorType);
         public abstract void onApplyLayers(LayerSystem layerSystem);
+        public abstract void onApplyHandshakes(HandshakeSystem handshakeSystem);
 
         public abstract void onOperationalSocket_BeforeConnect(OperationalSocket OPSocket);
         public abstract void onOperationalSocket_Connected(OperationalSocket OPSocket);
@@ -54,9 +56,6 @@ namespace SecureSocketProtocol3
         internal Socket Handle { get; set; }
         internal SSPServer Server;
 
-        internal Mazing clientHS { get; private set; }
-        internal ServerMaze serverHS { get; set; }
-
         private object Locky = new object();
         internal bool IsServerSided { get { return Server != null; } }
 
@@ -70,7 +69,7 @@ namespace SecureSocketProtocol3
         /// <summary>
         /// The name of the logged in person
         /// </summary>
-        public string Username { get; internal set; }
+        public string Username { get; set; }
 
         public TimingConfig TimingConfiguration { get; private set; }
 
@@ -79,12 +78,14 @@ namespace SecureSocketProtocol3
 
         public bool IsDisposed { get; private set; }
         internal LayerSystem layerSystem { get; private set; }
+        internal HandshakeSystem handshakeSystem { get; private set; }
 
         public SSPClient()
         {
             _connectionTime = Stopwatch.StartNew();
             this.TimingConfiguration = new TimingConfig();
             this.layerSystem = new LayerSystem();
+            this.handshakeSystem = new HandshakeSystem();
         }
 
         /// <summary>
@@ -95,20 +96,6 @@ namespace SecureSocketProtocol3
             : this()
         {
             this.Properties = Properties;
-
-            if (String.IsNullOrEmpty(Properties.Username))
-                throw new ArgumentException("Username");
-            if (String.IsNullOrEmpty(Properties.Password))
-                throw new ArgumentException("Password");
-            if (Properties.PublicKeyFile == null)
-                throw new ArgumentException("PublicKeyFile");
-            if (Properties.PublicKeyFile.Length < 128)
-                throw new ArgumentException("PublicKeyFile must be >=128 in length");
-            if (Properties.PrivateKeyFiles == null)
-                throw new ArgumentException("PrivateKeyFiles");
-            if (Properties.PrivateKeyFiles.Length == 0)
-                throw new ArgumentException("There must be atleast 1 private key file");
-
             Connect(ConnectionState.Open);
         }
 
@@ -175,48 +162,29 @@ namespace SecureSocketProtocol3
             Connection = new Connection(this);
 
             onApplyLayers(layerSystem);
+            onApplyHandshakes(handshakeSystem);
 
             Connection.StartReceiver();
 
             onBeforeConnect();
 
-            //let's begin the handshake
-            User user = new User(Properties.Username, Properties.Password, new List<Stream>(Properties.PrivateKeyFiles), Properties.PublicKeyFile);
-            user.GenKey(this, SessionSide.Client, Properties.Handshake_Maze_Size, Properties.Handshake_MazeCount, Properties.Handshake_StepSize);
-
-            this.clientHS = user.MazeHandshake;
-            byte[] encryptedPublicKey = clientHS.GetEncryptedPublicKey();
-
-
-            byte[] byteCode = clientHS.GetByteCode();
-            Connection.SendMessage(new MsgHandshake(byteCode), new SystemHeader());
-
-            //send our encrypted public key
-            Connection.SendMessage(new MsgHandshake(encryptedPublicKey), new SystemHeader());
-
-            //and now just wait for the handshake to finish... can't take longer then 60 seconds
-            MazeErrorCode errorCode = Connection.HandshakeSync.Wait<MazeErrorCode>(MazeErrorCode.Error, 60000);
-
-            if (errorCode != MazeErrorCode.Finished)
-            {
-                throw new Exception("Username or Password is incorrect.");
-            }
-
-            bool initOk = Connection.InitSync.Wait<bool>(false, 30000);
-            if (!initOk)
-            {
-                throw new Exception("A server time-out occured");
-            }
-
-            //re-calculate the private keys
-            for(int i = 0; i < Properties.PrivateKeyFiles.Length; i++)
-            {
-                clientHS.RecalculatePrivateKey(Properties.PrivateKeyFiles[i]);
-            }
-
-            this.Username = Properties.Username;
-
             StartKeepAliveTimer();
+
+            while (!handshakeSystem.CompletedAllHandshakes)
+            {
+                Handshake curHandshake = handshakeSystem.GetCurrentHandshake();
+
+                if (curHandshake != null)
+                {
+                    curHandshake.onStartHandshake();
+                    if (!curHandshake.HandshakeSync.Wait<bool>(false, 30000))
+                    {
+                        //handshake failed or took too long
+                        Disconnect();
+                        throw new Exception("Handshake \"" + curHandshake.GetType().Name + "\" failed");
+                    }
+                }
+            }
 
             onConnect();
         }
@@ -351,10 +319,8 @@ namespace SecureSocketProtocol3
             this.Properties = null;
             this.Handle = null;
             this.Server = null;
-            this.clientHS = null;
-            this.serverHS = null;
 
-            if(this.KeepAliveTimer != null)
+            if (this.KeepAliveTimer != null)
                 this.KeepAliveTimer.Enabled = false;
 
             this.IsDisposed = true;

@@ -4,6 +4,7 @@ using SecureSocketProtocol3.Processors;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
@@ -16,8 +17,6 @@ namespace SecureSocketProtocol3
         /// <summary> Get a new initialized client that can be used for the server </summary>
         public abstract SSPClient GetNewClient();
 
-        public abstract User.UserDbInfo onFindUser(string EncryptedPublicKeyHash);
-
         internal object AuthLock = new object();
         internal Socket TcpServer { get; private set; }
         internal Socket TcpServer6 { get; private set; }
@@ -25,10 +24,8 @@ namespace SecureSocketProtocol3
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
         internal RandomDecimal randomDecimal { get; private set; }
 
-        private ClientAcceptProcessor ClientAcceptProcessor4;
-        private ClientAcceptProcessor ClientAcceptProcessor6;
-
-        private object FindKeyLock = new object();
+        private ClientAcceptProcessor ClientAcceptProcessor4; //IPv4
+        private ClientAcceptProcessor ClientAcceptProcessor6; //IPv6
 
         /// <summary>
         /// Initialize a new SSPServer
@@ -90,45 +87,6 @@ namespace SecureSocketProtocol3
             catch { }
         }
 
-        internal bool serverHS_onFindKeyInDatabase(string EncryptedHash, ref byte[] Key, ref byte[] Salt, ref byte[] PublicKey, ref string Username)
-        {
-            lock (FindKeyLock)
-            {
-                try
-                {
-                    User.UserDbInfo user = onFindUser(EncryptedHash);
-
-                    if (user == null)
-                        return false;
-
-                    Key = user.Key.getBytes();
-                    Salt = user.PrivateSalt.getBytes();
-                    PublicKey = user.PublicKey;
-                    Username = user.UsernameStr;
-                    return true;
-                }
-                catch (Exception ex)
-                {
-                    SysLogger.Log(ex.Message, SysLogType.Error, ex); 
-                    return false;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Create a new instance of User
-        /// </summary>
-        /// <param name="Username">The Username for the user</param>
-        /// <param name="Password">The Password for the user</param>
-        /// <param name="PrivateKeys">The Private Key(s) that are being used to Encrypt the Session</param>
-        /// <param name="PublicKey">The Public Key to indentify the user</param>
-        public User RegisterUser(string Username, string Password, List<Stream> PrivateKeys, Stream PublicKey)
-        {
-            User user = new User(Username, Password, PrivateKeys, PublicKey);
-            user.GenKey(SessionSide.Server, serverProperties.Handshake_Maze_Size, serverProperties.Handshake_MazeCount, serverProperties.Handshake_StepSize);
-            return user;
-        }
-
         public SSPClient[] GetClients()
         {
             lock (Clients)
@@ -143,10 +101,12 @@ namespace SecureSocketProtocol3
         {
             if (client != null)
             {
-                lock(Clients)
+                lock (Clients)
                 {
                     if (Clients.ContainsKey(client.ClientId))
+                    {
                         Clients.Remove(client.ClientId);
+                    }
                 }
             }
         }
@@ -155,12 +115,12 @@ namespace SecureSocketProtocol3
         {
             TcpServer.Close();
 
-            if(TcpServer6 != null)
+            if (TcpServer6 != null)
                 TcpServer.Close();
 
             lock (Clients)
             {
-                foreach(SSPClient client in Clients.Values)
+                foreach (SSPClient client in new List<SSPClient>(Clients.Values))
                 {
                     client.Disconnect();
                 }

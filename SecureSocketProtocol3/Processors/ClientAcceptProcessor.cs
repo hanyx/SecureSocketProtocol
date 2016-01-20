@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3.Network.MazingHandshake;
+using SecureSocketProtocol3.Security.Handshakes;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -33,9 +34,6 @@ namespace SecureSocketProtocol3.Processors
                 client.Connection = new Network.Connection(client);
                 client.ClientId = Server.randomDecimal.NextDecimal();
 
-                client.serverHS = new ServerMaze(Server.serverProperties.Handshake_Maze_Size, Server.serverProperties.Handshake_MazeCount, Server.serverProperties.Handshake_StepSize);
-                client.serverHS.onFindKeyInDatabase += Server.serverHS_onFindKeyInDatabase;
-
                 SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
 
                 lock (Server.Clients)
@@ -46,7 +44,7 @@ namespace SecureSocketProtocol3.Processors
                 }
 
                 client.onApplyLayers(client.layerSystem);
-                client.StartKeepAliveTimer();
+                client.onApplyHandshakes(client.handshakeSystem);
 
                 try
                 {
@@ -57,6 +55,24 @@ namespace SecureSocketProtocol3.Processors
                     SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     client.onException(ex, ErrorType.UserLand);
                 }
+
+                Handshake CurHandshake = client.handshakeSystem.GetCurrentHandshake();
+
+                if (CurHandshake != null)
+                {
+                    try
+                    {
+                        CurHandshake.onStartHandshake();
+                    }
+                    catch (Exception ex)
+                    {
+                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                        client.Disconnect();
+                        return null;
+                    }
+                }
+
+                client.StartKeepAliveTimer();
 
                 client.Connection.StartReceiver();
                 return client;

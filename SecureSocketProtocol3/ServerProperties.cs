@@ -28,10 +28,6 @@ namespace SecureSocketProtocol3
         /// <summary> The maximum amount of time a client can be connected for, if the time ran out the client will get kicked </summary>
         public abstract TimeSpan ClientTimeConnected { get; }
 
-        public abstract Size Handshake_Maze_Size { get; }
-        public abstract ushort Handshake_StepSize { get; }
-        public abstract ushort Handshake_MazeCount { get; }
-
         public abstract byte[] NetworkKey { get; }
     }
 }
