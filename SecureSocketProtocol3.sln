@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EncPerformancetest", "EncPe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExtraLayers", "ExtraLayers\ExtraLayers.csproj", "{B4C968F8-42D3-44E3-A95E-8F708B758138}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestLib", "TestLib\TestLib.csproj", "{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -109,6 +111,16 @@ Global
 		{B4C968F8-42D3-44E3-A95E-8F708B758138}.Release|ARM.ActiveCfg = Release|Any CPU
 		{B4C968F8-42D3-44E3-A95E-8F708B758138}.Release|x64.ActiveCfg = Release|Any CPU
 		{B4C968F8-42D3-44E3-A95E-8F708B758138}.Release|x86.ActiveCfg = Release|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Release|ARM.ActiveCfg = Release|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Release|x64.ActiveCfg = Release|Any CPU
+		{8CAAFF75-2A62-4C6A-8A8D-5556FEBCC327}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

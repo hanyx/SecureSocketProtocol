@@ -46,7 +46,7 @@ namespace SecureSocketProtocol3.Network
         public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
 
         public const int MAX_PACKET_SIZE = (1024 * 1024) * 1; //1MB
-        public const int START_BUFFER_SIZE = 8192; //8KB
+        public const int START_BUFFER_SIZE = 1024; //1KB
 
         protected abstract void onReceiveHeader(byte[] Data, int Offset);
         protected abstract void onReceivePayload(byte[] Data, int Offset, int Length);
@@ -175,7 +175,6 @@ namespace SecureSocketProtocol3.Network
 
                 if (Buffer.Length - WriteOffset > 0)
                 {
-                    //socket.BeginReceive(this.Buffer, WriteOffset, 1, SocketFlags.None, AynsReceive, null);
                     socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
                 }
                 else

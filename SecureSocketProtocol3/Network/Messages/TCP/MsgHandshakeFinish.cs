@@ -1,5 +1,7 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Attributes;
 using SecureSocketProtocol3.Security.Handshakes;
+using SecureSocketProtocol3.Security.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;

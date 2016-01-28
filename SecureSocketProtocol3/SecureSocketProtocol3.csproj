@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes\SerializationAttribute.cs" />
     <Compile Include="ClientProperties.cs" />
     <Compile Include="Compressions\LzwCompression.cs" />
     <Compile Include="Compressions\SafeQuickLZ.cs" />
@@ -202,6 +203,9 @@
     <Compile Include="Security\Layers\SSLLayer.cs" />
     <Compile Include="Security\Layers\WopExLayer.cs" />
     <Compile Include="Security\Obfuscation\DataConfuser.cs" />
+    <Compile Include="Security\Serialization\BinaryFormatterSerializer.cs" />
+    <Compile Include="Security\Serialization\ISerialization.cs" />
+    <Compile Include="Security\Serialization\ProtobufSerialization.cs" />
     <Compile Include="Utils\Benchmark.cs" />
     <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
@@ -218,9 +222,7 @@
     <Compile Include="Utils\PayloadWriter.cs" />
     <Compile Include="Utils\SmartSerializer.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Attributes\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <EmbeddedResource Include="Controls\uTorrentProgressBar.resx">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>

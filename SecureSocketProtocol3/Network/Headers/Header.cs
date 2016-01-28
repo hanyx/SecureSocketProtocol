@@ -27,6 +27,7 @@ using System.Text;
 
 namespace SecureSocketProtocol3.Network.Headers
 {
+    [SerializableAttribute]
     public abstract class Header
     {
         internal byte HeaderId;

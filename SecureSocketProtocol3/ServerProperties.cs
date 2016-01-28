@@ -1,5 +1,6 @@
 ﻿using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Security.DataIntegrity;
+using SecureSocketProtocol3.Security.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -47,5 +48,10 @@ namespace SecureSocketProtocol3
         public abstract TimeSpan ClientTimeConnected { get; }
 
         public abstract byte[] NetworkKey { get; }
+
+        /// <summary>
+        /// The Default Serializer will only be used if a Message you're going to send did not specified the serializer
+        /// </summary>
+        public abstract ISerialization DefaultSerializer { get; }
     }
 }

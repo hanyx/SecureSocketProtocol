@@ -1,4 +1,6 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Attributes;
+using SecureSocketProtocol3.Security.Serialization;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;

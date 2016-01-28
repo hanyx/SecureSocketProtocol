@@ -2,6 +2,7 @@
 using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Security.DataIntegrity;
 using SecureSocketProtocol3.Security.Handshakes;
+using SecureSocketProtocol3.Security.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -78,6 +79,11 @@ namespace TestServer
             public override TimeSpan ClientTimeConnected
             {
                 get { return new TimeSpan(1, 0, 0, 0); }
+            }
+
+            public override SecureSocketProtocol3.Security.Serialization.ISerialization DefaultSerializer
+            {
+                get { return new ProtobufSerialization(); }
             }
         }
     }

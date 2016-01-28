@@ -17,6 +17,7 @@ using SecureSocketProtocol3.Compressions;
 using SecureSocketProtocol3.Security.Obfuscation;
 using SecureSocketProtocol3.Security.Layers;
 using SecureSocketProtocol3.Security.Handshakes;
+using SecureSocketProtocol3.Security.Serialization;
 
 /*
     Secure Socket Protocol
@@ -133,7 +134,7 @@ namespace SecureSocketProtocol3.Network
 
             this.headerConfuser = new DataConfuser(PrivateSeed, Connection.HEADER_SIZE);
 
-            this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB);
+            this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB, this);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
             this.messageHandler.AddMessage(typeof(MsgHandshakeFinish), "HANDSHAKE_FINISH");
 
@@ -180,6 +181,13 @@ namespace SecureSocketProtocol3.Network
                 if (SerializedHeader.Length >= MAX_PACKET_SIZE)
                     throw new ArgumentException("Header length cannot be greater then " + MAX_PAYLOAD);
 
+                ISerialization serializer = messageHandler.GetSerializer(Message);
+
+                if (serializer == null)
+                {
+                    throw new Exception("No serializer is specified for message type " + Message.GetType().FullName);
+                }
+
                 using (MemoryStream outStream = new MemoryStream())
                 using (PayloadWriter pw = new PayloadWriter(outStream))
                 {
@@ -194,7 +202,9 @@ namespace SecureSocketProtocol3.Network
 
                         TempPw.WriteBytes(SerializedHeader);
                         TempPw.WriteUInteger(messageId);
-                        Serializer.Serialize(TempStream, Message);
+
+                        byte[] Serialized = serializer.Serialize(Message);
+                        TempStream.Write(Serialized, 0, Serialized.Length);
 
                         Client.layerSystem.ApplyLayers(TempStream.GetBuffer(), 0, (int)TempStream.Length, ref outEncrypted, ref outOffset, ref outLength);
                         pw.WriteBytes(outEncrypted, outOffset, outLength);
@@ -352,12 +362,10 @@ namespace SecureSocketProtocol3.Network
         {
             this.LastPacketRecvSW = Stopwatch.StartNew();
 
-            //let's check the certificate
             if (Client.Server != null && Client.Server.serverProperties != null)
             {
                 if (Client.ConnectionTime > Client.Server.serverProperties.ClientTimeConnected)
                 {
-                    //we need to wait till the time is right
                     Disconnect();
                     return;
                 }

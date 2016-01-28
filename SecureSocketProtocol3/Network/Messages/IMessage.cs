@@ -1,5 +1,6 @@
 ﻿using ProtoBuf;
 using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Security.Serialization;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -26,6 +27,7 @@ using System.Text;
 
 namespace SecureSocketProtocol3.Network.Messages
 {
+    [SerializableAttribute]
     public abstract class IMessage
     {
         /// <summary> This is the message in raw size we received </summary>
@@ -42,5 +44,10 @@ namespace SecureSocketProtocol3.Network.Messages
         }
 
         public abstract void ProcessPayload(SSPClient client, OperationalSocket OpSocket);
+
+        public virtual ISerialization onGetSerializer()
+        {
+            return null;
+        }
     }
 }

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using TestClient.Sockets.Headers;
+using TestLib.Messages;
 
 namespace TestClient.Sockets
 {
@@ -37,6 +38,11 @@ namespace TestClient.Sockets
         {
             base.Headers.RegisterHeader(typeof(TestHeader));
             base.MessageHandler.AddMessage(typeof(TestMessage), "TEST_MESSAGE");
+            base.MessageHandler.AddMessage(typeof(NetSerializeMessage), "TEST_MESSAGE_NET_SERIALIZE");
+            base.MessageHandler.AddMessage(typeof(BinaryFormatterTestMessage), "TEST_MESSAGE_BINARY_FORMATTER");
+            base.MessageHandler.AddMessage(typeof(JSonTestMessage), "TEST_MESSAGE_JSON");
+
+            
         }
 
         public override void onConnect()
@@ -54,36 +60,28 @@ namespace TestClient.Sockets
 
         }
 
-        string TestStr = "";
-
-        private int test = 0;
-        FastRandom rnd = new FastRandom();
-        public byte[] testBytes = new byte[65000];
-        public int SendStuff()
+        public void Send_BinaryFormatter_Message(byte[] Data)
         {
-            //if (testBytes == null)
-            {
-                //testBytes = new byte[65535];
-                //rnd.NextBytes(testBytes);
-            }
-
-            //testBytes = new byte[25];
-            test++;
-            base.SendMessage(new TestMessage() { Buffer = testBytes }, new TestHeader());
-
-            /*if (TestStr == "")
-            {
-                for (int i = 0; i < 10000; i++)
-                    TestStr += "lol";
-            }
-            base.SendMessage(new TestMessage() { Buffer = ASCIIEncoding.ASCII.GetBytes(TestStr) }, new TestHeader());
-            */
-            return test;
+            base.SendMessage(new BinaryFormatterTestMessage() { Buffer = Data }, new TestHeader());
         }
 
-        public void TestBufferMessage(byte[] message)
+        public void Send_Protobuf_Message(byte[] Data)
         {
-            base.SendMessage(new TestMessage() { Buffer = message }, new TestHeader());
+            TestMessage test = new TestMessage();
+            test.Buffer = Data;
+            test.ListTest.Add(new TestO() { Num1 = 1337, Str1 = "kek it worked" });
+
+            base.SendMessage(test, new TestHeader());
+        }
+
+        public void Send_NetSerialize_Message(byte[] Data)
+        {
+            base.SendMessage(new NetSerializeMessage() { Buffer = Data }, new TestHeader());
+        }
+
+        public void Send_JSonNet_Message(byte[] Data)
+        {
+            base.SendMessage(new JSonTestMessage() { Buffer = Data }, new TestHeader());
         }
     }
 }

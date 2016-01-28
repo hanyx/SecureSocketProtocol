@@ -1,6 +1,8 @@
 ﻿using ProtoBuf;
+using SecureSocketProtocol3.Attributes;
 using SecureSocketProtocol3.Compressions;
 using SecureSocketProtocol3.Hashers;
+using SecureSocketProtocol3.Security.Serialization;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
@@ -32,11 +34,13 @@ namespace SecureSocketProtocol3.Network.Messages
         private SortedList<uint, Type> Messages;
         internal uint Seed { get; private set; }
         private CRC32 hasher;
+        private Connection connection;
 
-        public MessageHandler(uint Seed)
+        public MessageHandler(uint Seed, Connection connection)
         {
             this.Messages = new SortedList<uint, Type>();
             this.hasher = new CRC32(CRC32.DefaultPolynomial + Seed);
+            this.connection = connection;
         }
 
         /// <summary>
@@ -95,7 +99,44 @@ namespace SecureSocketProtocol3.Network.Messages
             if (!Messages.TryGetValue(MessageId, out type))
                 return null;
 
-            return (IMessage)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Position, MessageLength - pr.Position), type);
+            ISerialization serializer = GetSerializer(type);
+            if (serializer != null)
+            {
+                return serializer.Deserialize(pr.Buffer, pr.Position, MessageLength - pr.Position, type);
+            }
+            return null;
+        }
+
+        internal ISerialization GetSerializer(IMessage Message)
+        {
+            object[] attributes = Message.GetType().GetCustomAttributes(typeof(SerializationAttribute), false);
+
+            if (attributes.Length > 0)
+            {
+                return (attributes[0] as SerializationAttribute).Serializer;
+            }
+
+            ISerialization serializer = Message.onGetSerializer();
+
+            if (serializer == null)
+                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.Properties.DefaultSerializer;
+            return serializer;
+        }
+
+        internal ISerialization GetSerializer(Type MessageType)
+        {
+            object[] attributes = MessageType.GetCustomAttributes(typeof(SerializationAttribute), false);
+
+            if (attributes.Length > 0)
+            {
+                return (attributes[0] as SerializationAttribute).Serializer;
+            }
+
+            ISerialization serializer = (Activator.CreateInstance(MessageType) as IMessage).onGetSerializer();
+
+            if (serializer == null)
+                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.Properties.DefaultSerializer;
+            return serializer;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using SecureSocketProtocol3;
+using SecureSocketProtocol3.Security.Serialization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +39,14 @@ namespace TestClient
                     112, 110, 91, 212, 159, 147, 180, 188, 143, 251,
                     218, 155
                 };
+            }
+        }
+
+        public override SecureSocketProtocol3.Security.Serialization.ISerialization DefaultSerializer
+        {
+            get
+            {
+                return new ProtobufSerialization();
             }
         }
     }

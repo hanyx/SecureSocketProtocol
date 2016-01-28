@@ -63,13 +63,18 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
         }
 
-        public MazeHandshake(SSPClient Client, Size MazeSize, ushort StepSize, ushort MazeCount, string Username, string Password,
-                             Stream[] PrivateKeyFiles, Stream PublicKeyFile)
+        public MazeHandshake(SSPClient Client, Size MazeSize, ushort StepSize, ushort MazeCount)
             : this(Client)
         {
             this.MazeSize = MazeSize;
             this.StepSize = StepSize;
             this.MazeCount = MazeCount;
+        }
+
+        public MazeHandshake(SSPClient Client, Size MazeSize, ushort StepSize, ushort MazeCount, string Username, string Password,
+                             Stream[] PrivateKeyFiles, Stream PublicKeyFile)
+            : this(Client, MazeSize, StepSize, MazeCount)
+        {
             this.Username = Username;
             this.Password = Password;
             this.PrivateKeyFiles = PrivateKeyFiles;

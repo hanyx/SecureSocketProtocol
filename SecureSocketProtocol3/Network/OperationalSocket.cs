@@ -42,7 +42,6 @@ namespace SecureSocketProtocol3.Network
         public abstract void onException(Exception ex, ErrorType errorType);
 
         public SSPClient Client { get; private set; }
-        internal TaskQueue<PayloadInfo> PacketQueue { get; private set; }
         internal ushort ConnectionId { get; set; }
         public MessageHandler MessageHandler { get; private set; }
         public HeaderList Headers { get; private set; }
@@ -66,8 +65,7 @@ namespace SecureSocketProtocol3.Network
         public OperationalSocket(SSPClient Client)
         {
             this.Client = Client;
-            this.PacketQueue = new TaskQueue<PayloadInfo>(onPacketQueue, 50); //Payload x 10 = Memory in use
-            this.MessageHandler = new MessageHandler(Client.Connection.messageHandler.Seed);
+            this.MessageHandler = new MessageHandler(Client.Connection.messageHandler.Seed, Client.Connection);
             this.Headers = new HeaderList(Client.Connection);
         }
 
@@ -76,25 +74,22 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         /// <param name="Message">The message to send</param>
         /// <param name="Header">The header that is being used for this message</param>
-        protected void SendMessage(IMessage Message, Header Header)
+        protected int SendMessage(IMessage Message, Header Header)
         {
             if (isConnected && Client.Connection != null)
             {
-                Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), this);
+                return Client.Connection.SendMessage(Message, new ConnectionHeader(Header, this, 0), this);
             }
+            return -1;
         }
 
-        internal void InternalSendMessage(IMessage Message, Header Header)
+        internal int InternalSendMessage(IMessage Message, Header Header)
         {
             if (isConnected && Client.Connection != null)
             {
-                Client.Connection.SendMessage(Message, Header);
+                return Client.Connection.SendMessage(Message, Header);
             }
-        }
-
-        private void onPacketQueue(PayloadInfo inf)
-        {
-
+            return -1;
         }
 
         /// <summary>
