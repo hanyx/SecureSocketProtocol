@@ -15,3 +15,10 @@ Features
 * Message System: Send serialized messages from/to Server/Client with ease
 * Set a maximum amount of time a client is able to be connected for
 * Client & Server are made with Abstract
+
+Missing Features / Todo's
+---
+* Download/Upload Kbps limit per client
+* HTTP/Socks4/4a/5 Proxy (+Chaining)
+* Black/White IP lists
+And more features that will come to mind...
