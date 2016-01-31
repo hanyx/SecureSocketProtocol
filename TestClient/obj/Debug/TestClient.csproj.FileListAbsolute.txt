@@ -89,3 +89,5 @@ C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\SecureSocketProtocol3.pdb
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\ExtraLayers.dll
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\ExtraLayers.pdb
+C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestLib.dll
+C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\TestClient\bin\Debug\TestLib.pdb

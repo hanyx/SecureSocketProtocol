@@ -47,7 +47,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Sockets\Headers\TestHeader.cs" />
-    <Compile Include="Sockets\Messages\NetSerializeMessage.cs" />
     <Compile Include="Sockets\Messages\TestMessage.cs" />
     <Compile Include="Sockets\TestSocket.cs" />
   </ItemGroup>

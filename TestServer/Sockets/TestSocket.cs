@@ -50,9 +50,7 @@ namespace TestServer.Sockets
         {
             base.Headers.RegisterHeader(typeof(TestHeader));
             base.MessageHandler.AddMessage(typeof(TestMessage), "TEST_MESSAGE");
-            base.MessageHandler.AddMessage(typeof(NetSerializeMessage), "TEST_MESSAGE_NET_SERIALIZE");
             base.MessageHandler.AddMessage(typeof(BinaryFormatterTestMessage), "TEST_MESSAGE_BINARY_FORMATTER");
-            base.MessageHandler.AddMessage(typeof(JSonTestMessage), "TEST_MESSAGE_JSON");
         }
 
         public override void onConnect()

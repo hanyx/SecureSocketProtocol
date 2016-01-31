@@ -46,7 +46,6 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Sockets\Headers\TestHeader.cs" />
-    <Compile Include="Sockets\NetSerializeMessage.cs" />
     <Compile Include="Sockets\TestMessage.cs" />
     <Compile Include="Sockets\TestSocket.cs" />
   </ItemGroup>

@@ -43,6 +43,9 @@ namespace TestServer.Sockets.Messages
         [ProtoMember(10)]
         public List<TestO> ListTest;
 
+        [ProtoMember(11)]
+        public DateTime DateTest;
+
         public TestMessage()
             : base()
         {

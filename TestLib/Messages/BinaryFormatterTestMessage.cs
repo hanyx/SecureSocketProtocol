@@ -22,6 +22,7 @@ namespace TestLib.Messages
         public ulong ULongTest;
         public decimal DecimalTest;
         public float FloatTest;
+        //public DateTime DateTest;
 
         public BinaryFormatterTestMessage()
             : base()

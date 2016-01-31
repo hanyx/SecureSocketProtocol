@@ -38,9 +38,7 @@ namespace TestClient.Sockets
         {
             base.Headers.RegisterHeader(typeof(TestHeader));
             base.MessageHandler.AddMessage(typeof(TestMessage), "TEST_MESSAGE");
-            base.MessageHandler.AddMessage(typeof(NetSerializeMessage), "TEST_MESSAGE_NET_SERIALIZE");
             base.MessageHandler.AddMessage(typeof(BinaryFormatterTestMessage), "TEST_MESSAGE_BINARY_FORMATTER");
-            base.MessageHandler.AddMessage(typeof(JSonTestMessage), "TEST_MESSAGE_JSON");
 
             
         }
@@ -62,26 +60,17 @@ namespace TestClient.Sockets
 
         public void Send_BinaryFormatter_Message(byte[] Data)
         {
-            base.SendMessage(new BinaryFormatterTestMessage() { Buffer = Data }, new TestHeader());
+            base.SendMessage(new BinaryFormatterTestMessage() { /*DateTest = DateTime.Now.AddHours(2) Buffer = Data*/ }, new TestHeader());
         }
 
         public void Send_Protobuf_Message(byte[] Data)
         {
             TestMessage test = new TestMessage();
-            test.Buffer = Data;
+            //test.Buffer = Data;
             test.ListTest.Add(new TestO() { Num1 = 1337, Str1 = "kek it worked" });
+            test.DateTest = DateTime.Now.AddHours(2);
 
-            base.SendMessage(test, new TestHeader());
-        }
-
-        public void Send_NetSerialize_Message(byte[] Data)
-        {
-            base.SendMessage(new NetSerializeMessage() { Buffer = Data }, new TestHeader());
-        }
-
-        public void Send_JSonNet_Message(byte[] Data)
-        {
-            base.SendMessage(new JSonTestMessage() { Buffer = Data }, new TestHeader());
+            int k = base.SendMessage(test, new TestHeader());
         }
     }
 }

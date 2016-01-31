@@ -70,31 +70,10 @@ namespace TestClient
             PacketsSend = 0;
             RuntimeSW = Stopwatch.StartNew();
             bench = new Benchmark();
-            while (RuntimeSW.Elapsed.Seconds <= 10)
+            while (RuntimeSW.Elapsed.Seconds <= 1)
             {
                 PacketsSend++;
                 bench.Bench(new BenchCallback(() => testSock.Send_Protobuf_Message(Data)));
-
-                if (bench.PastASecond)
-                {
-                    ulong Speed = bench.SpeedPerSec * (ulong)Data.Length;
-                    double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
-                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 2);
-
-                    Console.WriteLine("Packets Send: " + PacketsSend + "\t\t" + MegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
-                    Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
-                }
-            }
-
-
-            Console.WriteLine("============= NetSerializer Performance =============");
-            PacketsSend = 0;
-            RuntimeSW = Stopwatch.StartNew();
-            bench = new Benchmark();
-            while (RuntimeSW.Elapsed.Seconds <= 10)
-            {
-                PacketsSend++;
-                bench.Bench(new BenchCallback(() => testSock.Send_NetSerialize_Message(Data)));
 
                 if (bench.PastASecond)
                 {
@@ -116,27 +95,6 @@ namespace TestClient
             {
                 PacketsSend++;
                 bench.Bench(new BenchCallback(() => testSock.Send_BinaryFormatter_Message(Data)));
-
-                if (bench.PastASecond)
-                {
-                    ulong Speed = bench.SpeedPerSec * (ulong)Data.Length;
-                    double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
-                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 2);
-
-                    Console.WriteLine("Packets Send: " + PacketsSend + "\t\t" + MegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
-                    Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
-                }
-            }
-
-
-            Console.WriteLine("============= JSON.NET Performance =============");
-            PacketsSend = 0;
-            RuntimeSW = Stopwatch.StartNew();
-            bench = new Benchmark();
-            while (RuntimeSW.Elapsed.Seconds <= 10)
-            {
-                PacketsSend++;
-                bench.Bench(new BenchCallback(() => testSock.Send_JSonNet_Message(Data)));
 
                 if (bench.PastASecond)
                 {
