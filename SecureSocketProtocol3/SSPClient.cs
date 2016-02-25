@@ -108,7 +108,7 @@ namespace SecureSocketProtocol3
         {
             _connectionTime = Stopwatch.StartNew();
             this.TimingConfiguration = new TimingConfig();
-            this.layerSystem = new LayerSystem();
+            this.layerSystem = new LayerSystem(this);
             this.handshakeSystem = new HandshakeSystem();
         }
 

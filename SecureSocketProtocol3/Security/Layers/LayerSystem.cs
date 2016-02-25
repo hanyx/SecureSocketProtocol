@@ -39,15 +39,20 @@ namespace SecureSocketProtocol3.Security.Layers
             get { return _layers.ToArray(); }
         }
 
-        public LayerSystem()
+        public SSPClient Client { get; private set; }
+
+        public LayerSystem(SSPClient Client)
         {
             this._layers = new List<ILayer>();
+            this.Client = Client;
         }
 
         public void AddLayer(ILayer Layer)
         {
             lock (_layers)
             {
+                //apply initial key
+                Layer.ApplyKey(Client.Connection.NetworkKey, Client.Connection.NetworkKeySalt);
                 this._layers.Add(Layer);
             }
         }
@@ -106,7 +111,7 @@ namespace SecureSocketProtocol3.Security.Layers
             }
         }
 
-        internal void ApplyKeyToLayers(SSPClient Client, byte[] Key, byte[] Salt)
+        internal void ApplyKeyToLayers(byte[] Key, byte[] Salt)
         {
             foreach (ILayer Layer in _layers.Where(o => o.Type == LayerType.Encryption))
             {
