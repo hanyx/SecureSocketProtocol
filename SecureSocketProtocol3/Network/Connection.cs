@@ -101,11 +101,87 @@ namespace SecureSocketProtocol3.Network
             }
         }
 
-        internal byte[] NetworkKey
+        internal byte[] PreNetworkKey
         {
             get
             {
                 return Client.Server != null ? Client.Server.serverProperties.NetworkKey : Client.Properties.NetworkKey;
+            }
+        }
+
+        /// <summary>
+        /// Network key with the KeyFiles applied
+        /// </summary>
+        internal byte[] NetworkKey
+        {
+            get
+            {
+                byte[] FinalKey = PreNetworkKey;
+                Stream[] keyFiles = null;
+
+                if(FinalKey.Length < 1024)
+                {
+                    Array.Resize(ref FinalKey, 1024);
+                }
+
+                if (Client.Server != null && Client.Server.serverProperties.KeyFiles != null)
+                    keyFiles = Client.Server.serverProperties.KeyFiles;
+                else if (Client.Properties.KeyFiles != null)
+                    keyFiles = Client.Properties.KeyFiles;
+
+                if (keyFiles != null)
+                {
+                    foreach (Stream stream in keyFiles)
+                    {
+                        if (stream.CanSeek)
+                            stream.Position = 0;
+
+                        byte[] TempData = new byte[stream.Length];
+                        int ReadOffset = 0;
+
+                        if (TempData.Length < 8192)
+                            TempData = new byte[8192];
+
+                        while (ReadOffset != TempData.Length && stream.Length != ReadOffset)
+                        {
+                            int read = stream.Read(TempData, ReadOffset, TempData.Length - ReadOffset);
+                            ReadOffset += read;
+                        }
+
+                        if (ReadOffset != TempData.Length)
+                        {
+                            //fillup the empty space with random data
+                            byte[] TempRandom = new byte[TempData.Length - ReadOffset];
+                            new FastRandom(PrivateSeed).NextBytes(TempRandom);
+                            Array.Copy(TempRandom, 0, TempData, ReadOffset, TempRandom.Length);
+                        }
+
+                        FastRandom rnd = new FastRandom(PrivateSeed);
+
+                        for (int i = 0; i < FinalKey.Length; i++)
+                        {
+                            for (int j = 0; j < TempData.Length; j++)
+                            {
+                                FinalKey[i] += (byte)((TempData[j] + rnd.Next(0, 255)) % 0xFF);
+                            }
+                        }
+                    }
+                }
+                return FinalKey;
+            }
+        }
+
+        public byte[] NetworkKeySalt
+        {
+            get
+            {
+                byte[] temp = NetworkKey;
+                FastRandom rnd = new FastRandom(PrivateSeed);
+
+                for (int i = 0; i < temp.Length; i++)
+                    temp[i] += (byte)(PreNetworkKey[i % PreNetworkKey.Length] + rnd.Next(0, 255) % 0xFF);
+
+                return temp;
             }
         }
 
@@ -122,10 +198,10 @@ namespace SecureSocketProtocol3.Network
             this.OperationalSockets = new SortedList<ushort, OperationalSocket>();
 
             //generate the header encryption
-            PrivateSeed = NetworkKey.Length >= 4 ? BitConverter.ToInt32(NetworkKey, 0) : 0xBEEF;
+            PrivateSeed = PreNetworkKey.Length >= 4 ? BitConverter.ToInt32(PreNetworkKey, 0) : 0xBEEF;
 
-            for (int i = 0; i < NetworkKey.Length; i++)
-                PrivateSeed += NetworkKey[i];
+            for (int i = 0; i < PreNetworkKey.Length; i++)
+                PrivateSeed += PreNetworkKey[i];
 
             byte[] SaltKey = new byte[NetworkKey.Length];
             Array.Copy(NetworkKey, SaltKey, SaltKey.Length);
@@ -327,7 +403,7 @@ namespace SecureSocketProtocol3.Network
                                               HeaderEncryption.UseDynamicCompiler);
 
             Client.DataIntegrityLayer.ApplyKey(key, salt);
-            Client.layerSystem.ApplyKeyToLayers(Client, key, salt);
+            Client.layerSystem.ApplyKeyToLayers(key, salt);
         }
 
         internal SyncObject RegisterRequest(ref int RequestId)
@@ -453,6 +529,7 @@ namespace SecureSocketProtocol3.Network
                     {
                         message.RawSize = Length;
                         message.Header = header;
+                        message.DecompressedRawSize = DecryptedBuffLen;
 
                         if (!HandShakeCompleted)
                         {

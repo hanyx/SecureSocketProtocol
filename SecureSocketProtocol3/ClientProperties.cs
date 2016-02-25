@@ -40,6 +40,9 @@ namespace SecureSocketProtocol3
 
         public abstract byte[] NetworkKey { get; }
 
+        /// <summary> If keyfiles are being used it will make it harder to decrypt the traffic </summary>
+        public abstract Stream[] KeyFiles { get; }
+
         /// <summary>
         /// The Default Serializer will only be used if a Message you're going to send did not specified the serializer
         /// </summary>

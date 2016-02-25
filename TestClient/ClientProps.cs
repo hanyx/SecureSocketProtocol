@@ -2,6 +2,7 @@
 using SecureSocketProtocol3.Security.Serialization;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -47,6 +48,17 @@ namespace TestClient
             get
             {
                 return new ProtobufSerialization();
+            }
+        }
+
+        public override System.IO.Stream[] KeyFiles
+        {
+            get
+            {
+                List<MemoryStream> _keyFiles = new List<MemoryStream>();
+                _keyFiles.Add(new MemoryStream(new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }));
+                _keyFiles.Add(new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }));
+                return _keyFiles.ToArray();
             }
         }
     }

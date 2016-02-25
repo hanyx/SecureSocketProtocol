@@ -59,7 +59,13 @@ namespace TestServer
 
             public override Stream[] KeyFiles
             {
-                get { return new Stream[0]; }
+                get
+                {
+                    List<MemoryStream> _keyFiles = new List<MemoryStream>();
+                    _keyFiles.Add(new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }));
+                    _keyFiles.Add(new MemoryStream(new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }));
+                    return _keyFiles.ToArray();
+                }
             }
 
             public override byte[] NetworkKey
