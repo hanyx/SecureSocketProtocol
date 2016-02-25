@@ -38,7 +38,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
     public sealed class HwAes : IDisposable
     {
         private AesCryptoServiceProvider AES;
-        private FastRandom Frandom = new FastRandom();
+        private RNGCryptoServiceProvider rngProvider;
         private DataConfuser IvConfuser;
 
         public byte[] Key
@@ -48,14 +48,8 @@ namespace SecureSocketProtocol3.Security.Encryptions
         }
         public byte[] IV
         {
-            get
-            {
-                return AES.IV;
-            }
-            set
-            {
-                AES.IV = value;
-            }
+            get { return AES.IV; }
+            set { AES.IV = value; }
         }
 
         public HwAes(Connection connection, byte[] Key, int KeySize, CipherMode cipherMode, PaddingMode padding)
@@ -65,6 +59,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
             this.AES.Mode = cipherMode;
             this.AES.KeySize = KeySize;
             this.IvConfuser = new DataConfuser(connection.PrivateSeed, 16);
+            this.rngProvider = new RNGCryptoServiceProvider();
             ApplyKey(Key);
         }
 
@@ -73,7 +68,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
             lock(AES)
             {
                 byte[] NewIV = new byte[16];
-                Frandom.NextBytes(NewIV);
+                rngProvider.GetBytes(NewIV);
                 this.IV = NewIV;
 
                 //mask the IV to make it harder to grab the IV while packet sniffing / MITM
