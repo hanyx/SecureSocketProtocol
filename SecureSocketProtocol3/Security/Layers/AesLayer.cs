@@ -53,7 +53,7 @@ namespace SecureSocketProtocol3.Security.Layers
 
         public void ApplyKey(byte[] Key, byte[] Salt)
         {
-            //this.EncAES.Key = Key;
+            this.EncAES.ApplyKey(Key);
         }
 
         public void ApplyLayer(byte[] InData, int InOffset, int InLen, ref byte[] OutData, ref int OutOffset, ref int OutLen)
