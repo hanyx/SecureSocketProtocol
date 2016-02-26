@@ -12,6 +12,16 @@ namespace SecureSocketProtocol3.Security.Handshakes
 {
     public class SimpleRsaHandshake : Handshake
     {
+       /*
+        * 1. Server sends out the Public Key to the client
+        * 2. Client will check FingerPrint if it matches the server cert (human-check)
+        * 3. Client will send a random 32-byte key to the Server (Encrypted with the Public Key)
+        * 4. Client will apply the new key
+        * 5. Server receives the message, decrypts it with the Private Key
+        * 6. Server applies new key
+        */
+
+
         public delegate bool FingerPrintCheckCallback(byte[] PublicKey, string FingerPrint);
         public event FingerPrintCheckCallback onVerifyFingerPrint;
 
