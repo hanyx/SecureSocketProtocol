@@ -5,6 +5,7 @@ using SecureSocketProtocol3.Network.Messages;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using TestLib.Messages;
 using TestServer.Sockets.Headers;
@@ -41,8 +42,28 @@ namespace TestServer.Sockets
             }
         }*/
 
+        Stopwatch sw = Stopwatch.StartNew();
+        long ReceivePerSec = 0;
+        long DecompressedSizePerSec = 0;
+        long MessagesReceived = 0;
+
         public override void onReceiveMessage(IMessage Message, Header header)
         {
+            MessagesReceived++;
+            ReceivePerSec += Message.RawSize;
+            DecompressedSizePerSec += Message.DecompressedRawSize;
+
+            if (sw.ElapsedMilliseconds >= 1000)
+            {
+                double SpeedThroughputPerSec = Math.Round(((double)ReceivePerSec / 1000F) / 1000F, 2);
+                double DecompressedSpeedPerSec = Math.Round(((double)DecompressedSizePerSec / 1000F) / 1000F, 2);
+                Console.WriteLine("Messages /sec: " + MessagesReceived + "\tThroughput:" + SpeedThroughputPerSec + "MBps\tDecompressed speed: " + DecompressedSpeedPerSec + "MBps");
+                sw = Stopwatch.StartNew();
+                ReceivePerSec = 0;
+                DecompressedSizePerSec = 0;
+                MessagesReceived = 0;
+            }
+
             //base.SendMessage(new TestMessage() { Buffer = new byte[] { 1, 3, 3, 7 } }, header);
         }
 

@@ -44,14 +44,15 @@ namespace TestClient
             Random rnd = new Random();
             Stopwatch RuntimeSW = Stopwatch.StartNew();
             Benchmark bench = new Benchmark();
-            byte[] Data = new byte[65535];
-            rnd.NextBytes(Data);
+            byte[] Data = new byte[5000];
+            //rnd.NextBytes(Data);
             int PacketsSend = 0;
+            int RealSend = 0;
 
             //endless test
-            /*while (true)
+            /**/while (true)
             {
-                bench.Bench(new BenchCallback(() => testSock.Send_Protobuf_Message(Data)));
+                bench.Bench(new BenchCallback(() => RealSend += testSock.Send_Protobuf_Message(Data)));
                 PacketsSend++;
 
                 if (bench.PastASecond)
@@ -60,10 +61,13 @@ namespace TestClient
                     double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
                     double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 2);
 
-                    Console.WriteLine("Packets Send: " + PacketsSend + "\t\t" + MegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
+                    double SendMegaByteSpeed = Math.Round(((double)RealSend / 1000F) / 1000F, 2);
+                    RealSend = 0;
+
+                    Console.WriteLine("Messages Send: " + PacketsSend + "\t\tThroughput:" + SendMegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
                     Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
                 }
-            }*/
+            }
 
 
             Console.WriteLine("============= Protobuf Performance =============");
@@ -150,8 +154,10 @@ namespace TestClient
                 //layerSystem.AddLayer(new Lz4Layer());
                 //layerSystem.AddLayer(new LzmaLayer());
                 //layerSystem.AddLayer(new QuickLzLayer());
-                //layerSystem.AddLayer(new AesLayer(base.Connection));
+                layerSystem.AddLayer(new AesLayer(base.Connection));
                 //layerSystem.AddLayer(new WopExLayer(5, 1, false, this));
+                layerSystem.AddLayer(new TwoFishLayer(base.Connection));
+                //layerSystem.AddLayer(new RC4Layer());
             }
         }
 
@@ -169,6 +175,10 @@ namespace TestClient
 
         public override void onApplyHandshakes(HandshakeSystem handshakeSystem)
         {
+            SimpleRsaHandshake simpleRsaHandshake = new SimpleRsaHandshake(this);
+            simpleRsaHandshake.onVerifyFingerPrint += simpleRsaHandshake_onVerifyFingerPrint;
+            handshakeSystem.AddLayer(simpleRsaHandshake);
+
             List<MemoryStream> keys = new List<MemoryStream>();
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
@@ -178,6 +188,21 @@ namespace TestClient
                                      keys.ToArray(), PublicKeyFile));
 
             //handshakeSystem.AddLayer(new SslHandshake(this));
+        }
+
+        bool simpleRsaHandshake_onVerifyFingerPrint(byte[] PublicKey, string FingerPrint)
+        {
+            Console.WriteLine("Host FingerPrint: " + FingerPrint);
+
+            if (FingerPrint != "49:17:B6:AD:D9:FA:C4:09:B3:C7:4E:9E:02:D6:97:74")
+            {
+                Console.Write("FingerPrint changed!! still want to continue (no) ?");
+
+                if (Console.ReadLine() == "no")
+                    return false;
+            }
+
+            return true;
         }
     }
 }

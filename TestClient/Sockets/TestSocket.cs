@@ -63,14 +63,14 @@ namespace TestClient.Sockets
             base.SendMessage(new BinaryFormatterTestMessage() { /*DateTest = DateTime.Now.AddHours(2) Buffer = Data*/ }, new TestHeader());
         }
 
-        public void Send_Protobuf_Message(byte[] Data)
+        public int Send_Protobuf_Message(byte[] Data)
         {
             TestMessage test = new TestMessage();
-            //test.Buffer = Data;
+            test.Buffer = Data;
             test.ListTest.Add(new TestO() { Num1 = 1337, Str1 = "kek it worked" });
             test.DateTest = DateTime.Now.AddHours(2);
 
-            int k = base.SendMessage(test, new TestHeader());
+            return base.SendMessage(test, new TestHeader());
         }
     }
 }
