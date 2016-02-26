@@ -5,7 +5,7 @@ Features
 ---
 * Lightweight TCP/IP IPv4 & IPv6 Networking (1Gbps up/down)
 * Network Serialization with Protobuf
-* Builtin encryptions: Hardware Accelerated AES-256, WopEx
+* Builtin encryptions: Hardware Accelerated AES-256, WopEx, TwoFish
 * Builtin Compressions: QuickLz
 * Anonimized Authentication (Mazing Handshake) Includes Private Key(s) and Public key
 * Layer System: Use multiple encryption(s) on-top of each other
@@ -15,6 +15,8 @@ Features
 * Message System: Send serialized messages from/to Server/Client with ease
 * Set a maximum amount of time a client is able to be connected for
 * Client & Server are made with Abstract
+* Builtin Handshakes: RSA, MAZE
+* Ability to have multiple layers of security, if one cipher is broken you'll be protected by the other, AES(TwoFish(DATA))
 
 Missing Features / Todo's
 ---
