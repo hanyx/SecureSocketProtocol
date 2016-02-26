@@ -1,6 +1,7 @@
 ﻿using SecureSocketProtocol3.Network;
 using SecureSocketProtocol3.Network.Headers;
 using SecureSocketProtocol3.Network.MazingHandshake;
+using SecureSocketProtocol3.Network.Messages;
 using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Security.Configurations;
 using SecureSocketProtocol3.Security.DataIntegrity;
@@ -103,6 +104,16 @@ namespace SecureSocketProtocol3
         public bool IsDisposed { get; private set; }
         internal LayerSystem layerSystem { get; private set; }
         internal HandshakeSystem handshakeSystem { get; private set; }
+
+        public MessageHandler MessageHandler
+        {
+            get
+            {
+                if (Connection != null)
+                    return Connection.messageHandler;
+                return null;
+            }
+        }
 
         public SSPClient()
         {
