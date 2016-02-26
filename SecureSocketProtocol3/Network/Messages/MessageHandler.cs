@@ -59,17 +59,30 @@ namespace SecureSocketProtocol3.Network.Messages
         {
             lock (Messages)
             {
-                uint messageId = BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.Unicode.GetBytes(IdentifyKey)), 0);
                 if (MessageType.BaseType == null)
                     throw new Exception("IMessage is not the base type");
                 if (MessageType.GetConstructor(new Type[0]) == null)
                     throw new Exception("The type must contain a constructor with no arguments");
-                if (Messages.ContainsKey(messageId))
+                if (Messages.ContainsKey(GetMessageId(IdentifyKey)))
                     return false;
 
-                Messages.Add(messageId, MessageType);
+                Messages.Add(GetMessageId(IdentifyKey), MessageType);
                 return true;
             }
+        }
+
+        public void RemoveMessage(string IdentifyKey)
+        {
+            lock (Messages)
+            {
+                if (Messages.ContainsKey(GetMessageId(IdentifyKey)))
+                    Messages.Remove(GetMessageId(IdentifyKey));
+            }
+        }
+
+        private uint GetMessageId(string IdentifyKey)
+        {
+            return BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.Unicode.GetBytes(IdentifyKey)), 0);
         }
 
         /// <summary>
