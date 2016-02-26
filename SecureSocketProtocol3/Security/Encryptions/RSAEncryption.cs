@@ -39,7 +39,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
         public string PublicKey { get; internal set; }
         public int EncChunkSize { get; private set; }
         public int DecChunkSize { get; private set; }
-        public bool PkcsPadding { get; private set; }
+        public bool PkcsPadding { get { return false; } set { } }
         public int KeySize { get; private set; }
 
         public RSAParameters? PrivateParameters
@@ -98,6 +98,18 @@ namespace SecureSocketProtocol3.Security.Encryptions
             this.EncChunkSize = DecChunkSize / 2;
         }
 
+        public void LoadPrivateKey(string PrivateKey)
+        {
+            this.PrivateKey = PrivateKey;
+            rsa.FromXmlString(PrivateKey);
+        }
+
+        public void LoadPublicKey(string PublicKey)
+        {
+            this.PublicKey = PublicKey;
+            rsa.FromXmlString(PublicKey);
+        }
+
         public string GeneratePrivateKey()
         {
             this.PrivateKey = rsa.ToXmlString(true);
@@ -118,18 +130,14 @@ namespace SecureSocketProtocol3.Security.Encryptions
                 using (MemoryStream stream = new MemoryStream(Data.Length + ExpectedSize))
                 {
                     int LengthLeft = Length;
-                    /*if (PublicKey != null && PublicKey.Length > 0)
-                    {
-                        rsa.FromXmlString(PublicKey);
-                    }*/
 
                     for (int i = Offset; i < Length; i += EncChunkSize)
                     {
                         int size = i + EncChunkSize < Length ? EncChunkSize : LengthLeft;
 
-                        byte[] temp = new byte[size];
-                        Array.Copy(Data, i, temp, 0, size);
-                        byte[] encrypted = rsa.Encrypt(temp, PkcsPadding);
+                        //byte[] temp = new byte[size];
+                        //Array.Copy(Data, i, temp, 0, size);
+                        byte[] encrypted = rsa.Encrypt(Data, PkcsPadding);
 
                         stream.Write(encrypted, 0, encrypted.Length);
 
@@ -150,16 +158,12 @@ namespace SecureSocketProtocol3.Security.Encryptions
             {
                 int LengthLeft = Length;
 
-                /*if (PrivateKey != null && PrivateKey.Length > 0)
-                {
-                    rsa.FromXmlString(PrivateKey);
-                }*/
-
                 for (int i = Offset; i < Length; i += DecChunkSize)
                 {
-                    byte[] temp = new byte[DecChunkSize];
-                    Array.Copy(Data, i, temp, 0, DecChunkSize);
-                    byte[] decrypted = rsa.Decrypt(temp, PkcsPadding);
+                    //byte[] temp = new byte[DecChunkSize];
+                    //Array.Copy(Data, i, temp, 0, DecChunkSize);
+
+                    byte[] decrypted = rsa.Decrypt(Data, PkcsPadding);
                     stream.Write(decrypted, 0, decrypted.Length);
 
                     if (LengthLeft >= DecChunkSize)
