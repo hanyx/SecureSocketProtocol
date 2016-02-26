@@ -234,6 +234,7 @@ namespace SecureSocketProtocol3.Network
             Headers.RegisterHeader(typeof(SystemHeader));
             Headers.RegisterHeader(typeof(ConnectionHeader));
             Headers.RegisterHeader(typeof(RequestHeader));
+            Headers.RegisterHeader(typeof(NullHeader));
         }
 
         /// <summary>
@@ -398,12 +399,30 @@ namespace SecureSocketProtocol3.Network
 
         public void ApplyNewKey(byte[] key, byte[] salt)
         {
-            this.HeaderEncryption = new WopEx(key, salt, HeaderEncryption.InitialVectorSeed, HeaderEncryption.EncryptionCode,
+            byte[] MixedKey = NetworkKey;
+            byte[] MixedSalt = NetworkKeySalt;
+
+            for (int i = 0; i < MixedKey.Length; i++)
+            {
+                for (int j = 0; j < key.Length; j++)
+                {
+                    MixedKey[i] += key[j];
+                }
+            }
+            for (int i = 0; i < MixedSalt.Length; i++)
+            {
+                for (int j = 0; j < salt.Length; j++)
+                {
+                    MixedSalt[i] += salt[j];
+                }
+            }
+
+            this.HeaderEncryption = new WopEx(MixedKey, MixedSalt, HeaderEncryption.InitialVectorSeed, HeaderEncryption.EncryptionCode,
                                               HeaderEncryption.DecryptionCode, HeaderEncryption.EncMode, HeaderEncryption.Rounds,
                                               HeaderEncryption.UseDynamicCompiler);
 
-            Client.DataIntegrityLayer.ApplyKey(key, salt);
-            Client.layerSystem.ApplyKeyToLayers(key, salt);
+            Client.DataIntegrityLayer.ApplyKey(MixedKey, MixedSalt);
+            Client.layerSystem.ApplyKeyToLayers(MixedKey, MixedSalt);
         }
 
         internal SyncObject RegisterRequest(ref int RequestId)
