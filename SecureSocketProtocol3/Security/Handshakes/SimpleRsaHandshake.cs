@@ -1,0 +1,160 @@
+﻿using ProtoBuf;
+using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Network.Messages;
+using SecureSocketProtocol3.Security.Serialization;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace SecureSocketProtocol3.Security.Handshakes
+{
+    public class SimpleRsaHandshake : Handshake
+    {
+        public delegate bool FingerPrintCheckCallback(byte[] PublicKey, string FingerPrint);
+        public event FingerPrintCheckCallback onVerifyFingerPrint;
+
+        private RSACryptoServiceProvider RsaCrypto = new RSACryptoServiceProvider();
+
+        /// <summary>
+        /// This constructor is used by the Client
+        /// </summary>
+        /// <param name="Client"></param>
+        public SimpleRsaHandshake(SSPClient Client)
+            : base(Client)
+        {
+
+        }
+
+        /// <summary>
+        /// Initialize the Server handshake
+        /// </summary>
+        /// <param name="Client"></param>
+        /// <param name="PrivateKeyParams">The private key to use</param>
+        public SimpleRsaHandshake(SSPClient Client, RSAParameters PrivateKeyParams)
+            : base(Client)
+        {
+            RsaCrypto.ImportParameters(PrivateKeyParams);
+        }
+
+        /// <summary>
+        /// Initialize the Server handshake
+        /// </summary>
+        /// <param name="Client"></param>
+        /// <param name="PrivateKeyParams">The private key to use in XML format</param>
+        public SimpleRsaHandshake(SSPClient Client, string PrivateKeyXML)
+            : base(Client)
+        {
+            RsaCrypto.FromXmlString(PrivateKeyXML);
+        }
+
+        public override void onStartHandshake()
+        {
+            base.Client.MessageHandler.AddMessage(typeof(PublicKeyMessage), "RSA_PUBLIC_KEY_MESSAGE");
+            base.Client.MessageHandler.AddMessage(typeof(KeyReplyMessage), "RSA_REPLY_KEY_MESSAGE");
+            
+            if (base.Client.IsServerSided)
+                base.SendMessage(new PublicKeyMessage(RsaCrypto.ExportParameters(false)), new NullHeader());
+        }
+
+        public override void onReceiveMessage(Network.Messages.IMessage Message)
+        {
+            PublicKeyMessage publicMessage = Message as PublicKeyMessage;
+            KeyReplyMessage replyKeyMessage = Message as KeyReplyMessage;
+
+            if (publicMessage != null)
+            {
+                if(onVerifyFingerPrint != null)
+                {
+                    string fingerPrint = Convert.ToBase64String(publicMessage.Modulus);
+                    fingerPrint = BitConverter.ToString(MD5.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
+                    fingerPrint = fingerPrint.Replace('-', ':');
+
+                    if (!onVerifyFingerPrint(publicMessage.Modulus, fingerPrint))
+                    {
+                        base.Client.Dispose();
+                        return;
+                    }
+                }
+
+                RSAParameters PublicParams = new RSAParameters();
+                PublicParams.Exponent = publicMessage.Exponent;
+                PublicParams.Modulus = publicMessage.Modulus;
+                RsaCrypto.ImportParameters(PublicParams);
+
+                RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
+                byte[] NewKey = new byte[32];
+                rng.GetBytes(NewKey);
+
+                byte[] EncryptedNewKey = RsaCrypto.Encrypt(NewKey, true);
+
+                base.SendMessage(new KeyReplyMessage(EncryptedNewKey), new NullHeader());
+                base.Client.Connection.ApplyNewKey(NewKey, base.Client.Connection.NetworkKeySalt);
+                base.Finish();
+            }
+            else if (base.Client.IsServerSided && replyKeyMessage != null)
+            {
+                byte[] NewKey = RsaCrypto.Decrypt(replyKeyMessage.NewKey, true);
+                base.Client.Connection.ApplyNewKey(NewKey, base.Client.Connection.NetworkKeySalt);
+                base.Finish();
+            }
+        }
+
+        public override void onFinish()
+        {
+
+        }
+
+        [ProtoContract]
+        [Attributes.Serialization(typeof(ProtobufSerialization))]
+        public class PublicKeyMessage : IMessage
+        {
+            [ProtoMember(1)]
+            public byte[] Modulus;
+
+            [ProtoMember(2)]
+            public byte[] Exponent;
+
+            public PublicKeyMessage(RSAParameters RsaParams)
+            {
+                this.Modulus = RsaParams.Modulus;
+                this.Exponent = RsaParams.Exponent;
+            }
+
+            public PublicKeyMessage()
+            {
+
+            }
+
+            public override void ProcessPayload(SSPClient client, Network.OperationalSocket OpSocket)
+            {
+
+            }
+        }
+
+
+        [ProtoContract]
+        [Attributes.Serialization(typeof(ProtobufSerialization))]
+        public class KeyReplyMessage : IMessage
+        {
+            [ProtoMember(1)]
+            public byte[] NewKey;
+
+            public KeyReplyMessage(byte[] NewKey)
+            {
+                this.NewKey = NewKey;
+            }
+
+            public KeyReplyMessage()
+            {
+
+            }
+
+            public override void ProcessPayload(SSPClient client, Network.OperationalSocket OpSocket)
+            {
+
+            }
+        }
+    }
+}

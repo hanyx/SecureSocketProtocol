@@ -61,6 +61,7 @@
     <Compile Include="Controls\uTorrentProgressBar.Designer.cs">
       <DependentUpon>uTorrentProgressBar.cs</DependentUpon>
     </Compile>
+    <Compile Include="Network\Headers\NullHeader.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshakeFinish.cs" />
     <Compile Include="Network\Messages\TCP\MsgKeepAlive.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />
@@ -165,6 +166,7 @@
     <Compile Include="Security\Encryptions\HwAes.cs" />
     <Compile Include="Security\Encryptions\KeyEncryptor.cs" />
     <Compile Include="Security\Encryptions\RSAEncryption.cs" />
+    <Compile Include="Security\Encryptions\TwoFishManaged.cs" />
     <Compile Include="Security\Encryptions\WopEncryption.cs" />
     <Compile Include="Security\Encryptions\WopEx.cs" />
     <Compile Include="Enums.cs" />
@@ -195,14 +197,18 @@
     <Compile Include="Security\Handshakes\Handshake.cs" />
     <Compile Include="Security\Handshakes\HandshakeSystem.cs" />
     <Compile Include="Security\Handshakes\MazeHandshake.cs" />
+    <Compile Include="Security\Handshakes\SimpleRsaHandshake.cs" />
     <Compile Include="Security\Layers\AesLayer.cs" />
     <Compile Include="Security\DataIntegrity\IDataIntegrityLayer.cs" />
     <Compile Include="Security\Layers\ILayer.cs" />
     <Compile Include="Security\Layers\LayerSystem.cs" />
     <Compile Include="Security\Layers\QuickLzLayer.cs" />
+    <Compile Include="Security\Layers\RC4Layer.cs" />
     <Compile Include="Security\Layers\SSLLayer.cs" />
+    <Compile Include="Security\Layers\TwoFishLayer.cs" />
     <Compile Include="Security\Layers\WopExLayer.cs" />
     <Compile Include="Security\Obfuscation\DataConfuser.cs" />
+    <Compile Include="Security\Proxies\IProxy.cs" />
     <Compile Include="Security\Serialization\BinaryFormatterSerializer.cs" />
     <Compile Include="Security\Serialization\ISerialization.cs" />
     <Compile Include="Security\Serialization\ProtobufSerialization.cs" />
