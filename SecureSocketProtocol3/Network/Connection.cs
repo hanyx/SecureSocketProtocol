@@ -558,6 +558,9 @@ namespace SecureSocketProtocol3.Network
 
                                 if (CurHandshake != null)
                                 {
+                                    while (Connected && !CurHandshake.FinishedInitialization)
+                                        Thread.Sleep(100); //will improve this later
+
                                     //process the handshake messages straight away
                                     CurHandshake.onReceiveMessage(message);
                                 }

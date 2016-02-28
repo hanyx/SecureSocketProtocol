@@ -41,6 +41,8 @@ namespace SecureSocketProtocol3.Security.Handshakes
         public abstract void onReceiveMessage(IMessage Message);
         public abstract void onFinish();
 
+        internal bool FinishedInitialization = false;
+
         public bool IsFinished { get; private set; }
 
         /// <summary>
@@ -105,6 +107,8 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
                     HandshakeSync.Value = true;
                     HandshakeSync.Pulse();
+
+                    onFinish();
 
                     if (Client.handshakeSystem.CompletedAllHandshakes)
                     {

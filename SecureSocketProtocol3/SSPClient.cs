@@ -212,6 +212,9 @@ namespace SecureSocketProtocol3
                 if (curHandshake != null)
                 {
                     curHandshake.onStartHandshake();
+
+                    curHandshake.FinishedInitialization = true;
+
                     if (!curHandshake.HandshakeSync.Wait<bool>(false, 30000))
                     {
                         //handshake failed or took too long
