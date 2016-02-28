@@ -80,25 +80,28 @@ namespace SecureSocketProtocol3.Processors
                     client.onException(ex, ErrorType.UserLand);
                 }
 
-                Handshake CurHandshake = client.handshakeSystem.GetCurrentHandshake();
+                client.StartKeepAliveTimer();
+                client.Connection.StartReceiver();
 
-                if (CurHandshake != null)
+                while (!client.handshakeSystem.CompletedAllHandshakes)
                 {
-                    try
+                    Handshake curHandshake = client.handshakeSystem.GetCurrentHandshake();
+
+                    if (curHandshake != null)
                     {
-                        CurHandshake.onStartHandshake();
-                    }
-                    catch (Exception ex)
-                    {
-                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
-                        client.Disconnect();
-                        return null;
+                        curHandshake.onStartHandshake();
+
+                        curHandshake.FinishedInitialization = true;
+
+                        if (!curHandshake.HandshakeSync.Wait<bool>(false, 30000))
+                        {
+                            //handshake failed or took too long
+                            client.Disconnect();
+
+                        }
                     }
                 }
 
-                client.StartKeepAliveTimer();
-
-                client.Connection.StartReceiver();
                 return client;
             }
             catch (Exception ex)
