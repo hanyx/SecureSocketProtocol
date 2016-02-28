@@ -101,7 +101,6 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
                 base.SendMessage(new KeyReplyMessage(EncryptedNewKey), new NullHeader());
                 base.Client.Connection.ApplyNewKey(NewKey, base.Client.Connection.NetworkKeySalt);
-                base.Finish();
             }
             else if (base.Client.IsServerSided && replyKeyMessage != null)
             {
@@ -113,7 +112,8 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
         public override void onFinish()
         {
-
+            base.Client.MessageHandler.RemoveMessage("RSA_PUBLIC_KEY_MESSAGE");
+            base.Client.MessageHandler.RemoveMessage("RSA_REPLY_KEY_MESSAGE");
         }
 
         [ProtoContract]
