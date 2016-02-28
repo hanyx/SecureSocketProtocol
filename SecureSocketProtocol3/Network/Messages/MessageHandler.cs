@@ -82,6 +82,7 @@ namespace SecureSocketProtocol3.Network.Messages
 
         private uint GetMessageId(string IdentifyKey)
         {
+            hasher.Initialize();
             return BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.Unicode.GetBytes(IdentifyKey)), 0);
         }
 
