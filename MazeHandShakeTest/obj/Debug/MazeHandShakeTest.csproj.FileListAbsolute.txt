@@ -56,3 +56,15 @@ C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\ob
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.pdb
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.dll
 C:\Users\Dragonhunter\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\Data\ReadMe.txt
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\Data\PrivateKey1.dat
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\Data\PrivateKey2.dat
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\Data\PublicKey1.dat
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe.config
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.exe
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\MazeHandShakeTest.pdb
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.dll
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\bin\Debug\SecureSocketProtocol3.pdb
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.csprojResolveAssemblyReference.cache
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.exe
+C:\Users\TooBadLol\Documents\GitHub\SecureSocketProtocol\MazeHandShakeTest\obj\Debug\MazeHandShakeTest.pdb

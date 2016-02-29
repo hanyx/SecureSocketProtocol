@@ -37,6 +37,7 @@ namespace SecureSocketProtocol3.Security.DataIntegrity
         private SSPClient Client;
 
         public HMacLayer(SSPClient Client, HMAC hMac)
+
         {
             this.hMac = hMac;
             this.Client = Client;

@@ -63,9 +63,11 @@ namespace SecureSocketProtocol3.Security.Handshakes
         {
             base.Client.MessageHandler.AddMessage(typeof(PublicKeyMessage), "RSA_PUBLIC_KEY_MESSAGE");
             base.Client.MessageHandler.AddMessage(typeof(KeyReplyMessage), "RSA_REPLY_KEY_MESSAGE");
-            
+
             if (base.Client.IsServerSided)
-                base.SendMessage(new PublicKeyMessage(RsaCrypto.ExportParameters(false)), new NullHeader());
+            {
+                base.SendMessage(new PublicKeyMessage(RsaCrypto, RsaCrypto.ExportParameters(false)), new NullHeader());
+            }
         }
 
         public override void onReceiveMessage(Network.Messages.IMessage Message)
@@ -75,6 +77,18 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
             if (publicMessage != null)
             {
+                RSAParameters PublicParams = new RSAParameters();
+                PublicParams.Exponent = publicMessage.Exponent;
+                PublicParams.Modulus = publicMessage.Modulus;
+                RsaCrypto.ImportParameters(PublicParams);
+
+                //Verify the data
+                if (!RsaCrypto.VerifyData(publicMessage.Modulus, new SHA512CryptoServiceProvider(), publicMessage.SignedData))
+                {
+                    base.Client.Disconnect();
+                    return;
+                }
+
                 if(onVerifyFingerPrint != null)
                 {
                     string fingerPrint = Convert.ToBase64String(publicMessage.Modulus);
@@ -87,12 +101,7 @@ namespace SecureSocketProtocol3.Security.Handshakes
                         return;
                     }
                 }
-
-                RSAParameters PublicParams = new RSAParameters();
-                PublicParams.Exponent = publicMessage.Exponent;
-                PublicParams.Modulus = publicMessage.Modulus;
-                RsaCrypto.ImportParameters(PublicParams);
-
+                
                 RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
                 byte[] NewKey = new byte[32];
                 rng.GetBytes(NewKey);
@@ -126,10 +135,14 @@ namespace SecureSocketProtocol3.Security.Handshakes
             [ProtoMember(2)]
             public byte[] Exponent;
 
-            public PublicKeyMessage(RSAParameters RsaParams)
+            [ProtoMember(3)]
+            public byte[] SignedData;
+
+            public PublicKeyMessage(RSACryptoServiceProvider Crypto, RSAParameters RsaParams)
             {
                 this.Modulus = RsaParams.Modulus;
                 this.Exponent = RsaParams.Exponent;
+                this.SignedData = Crypto.SignData(Modulus, new SHA512CryptoServiceProvider());
             }
 
             public PublicKeyMessage()

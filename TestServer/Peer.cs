@@ -121,6 +121,8 @@ namespace TestServer
 
             handshakeSystem.AddLayer(new SimpleRsaHandshake(this, PrePrivKey));
 
+
+
             List<MemoryStream> keys = new List<MemoryStream>();
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));

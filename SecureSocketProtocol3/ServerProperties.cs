@@ -59,5 +59,7 @@ namespace SecureSocketProtocol3
         /// The Default Serializer will only be used if a Message you're going to send did not specified the serializer
         /// </summary>
         public abstract ISerialization DefaultSerializer { get; }
+
+
     }
 }

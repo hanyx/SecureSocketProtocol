@@ -181,6 +181,16 @@ namespace SecureSocketProtocol3.Network
 
                 if (Buffer.Length - WriteOffset > 0)
                 {
+                    int readLen = Buffer.Length - WriteOffset;
+
+                    //poor attempt at setting a max bandwidth for a user 
+                    /*if (readLen > 8192)
+                    {
+                        readLen = 8192;
+                        System.Threading.Thread.Sleep(1000);
+                    }
+                    socket.BeginReceive(this.Buffer, WriteOffset, readLen, SocketFlags.None, AynsReceive, null);*/
+
                     socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
                 }
                 else

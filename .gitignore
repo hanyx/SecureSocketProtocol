@@ -226,3 +226,4 @@ Plugins/
 *.exe
 *.cache
 SecureSocketProtocol3/obj/Debug/SecureSocketProtocol3.csproj.FileListAbsolute.txt
+*.txt

@@ -100,6 +100,8 @@ namespace SecureSocketProtocol3.Security.Handshakes
                 throw new ArgumentException("There must be atleast 1 private key file");
         }
 
+
+
         public override void onReceiveMessage(Network.Messages.IMessage Message)
         {
             if ((Message as MsgHandshake) == null)

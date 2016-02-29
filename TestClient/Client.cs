@@ -179,6 +179,7 @@ namespace TestClient
             simpleRsaHandshake.onVerifyFingerPrint += simpleRsaHandshake_onVerifyFingerPrint;
             handshakeSystem.AddLayer(simpleRsaHandshake);
 
+
             List<MemoryStream> keys = new List<MemoryStream>();
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
