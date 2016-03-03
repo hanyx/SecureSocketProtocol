@@ -207,6 +207,7 @@
     <Compile Include="Security\Layers\SSLLayer.cs" />
     <Compile Include="Security\Layers\TwoFishLayer.cs" />
     <Compile Include="Security\Layers\WopExLayer.cs" />
+    <Compile Include="Security\Layers\XmlHidingLayer.cs" />
     <Compile Include="Security\Obfuscation\DataConfuser.cs" />
     <Compile Include="Security\Proxies\IProxy.cs" />
     <Compile Include="Security\Serialization\BinaryFormatterSerializer.cs" />
