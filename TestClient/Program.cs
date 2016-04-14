@@ -23,10 +23,36 @@ namespace TestClient
     {
         static void Main(string[] args)
         {
+            /*RandomDecimal rndDecimal = new RandomDecimal();
+            SecureRandom rnd = new SecureRandom();
+
+            while (true)
+            {
+                var num = rnd.NextLong(5, 100);
+
+                if (num < 5)
+                {
+
+                }
+
+                Console.WriteLine(num);
+            }*/
             //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
-            Client client = new Client();
+                    Random rnd = new Random();
 
+            for (int i = 0; i < 5; i++)
+            {
+                new Thread(new ThreadStart(() =>
+                {
+                    int Id = rnd.Next(0, 100);
+                    while (true)
+                    {
+                        Console.WriteLine("[" + Id + "]Connecting..");
+                        Client client = new Client();
+                    }
+                })).Start();
+            }
             Process.GetCurrentProcess().WaitForExit();
         }
 

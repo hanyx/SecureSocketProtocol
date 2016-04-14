@@ -4,6 +4,7 @@ using SecureSocketProtocol3.Network.Messages.TCP;
 using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -42,6 +43,7 @@ namespace SecureSocketProtocol3.Security.Handshakes
         public abstract void onFinish();
 
         internal bool FinishedInitialization = false;
+        internal Stopwatch TimeTaken;
 
         public bool IsFinished { get; private set; }
 
@@ -84,6 +86,12 @@ namespace SecureSocketProtocol3.Security.Handshakes
             }
         }
 
+        internal void CallStartHandshake()
+        {
+            this.TimeTaken = Stopwatch.StartNew();
+            onStartHandshake();
+        }
+
         /// <summary>
         /// Let the server/client know we finished the handshake
         /// </summary>
@@ -108,21 +116,46 @@ namespace SecureSocketProtocol3.Security.Handshakes
                     HandshakeSync.Value = true;
                     HandshakeSync.Pulse();
 
+                    if(TimeTaken != null)
+                        TimeTaken.Stop();
+
                     onFinish();
 
-                    if (Client.handshakeSystem.CompletedAllHandshakes)
+                    try
                     {
-                        try
+                        if (!Client.handshakeSystem.CompletedAllHandshakes && Client.IsServerSided)
                         {
-                            if (Client.IsServerSided)
+                            Handshake curHandshake = Client.handshakeSystem.GetCurrentHandshake();
+                            curHandshake.CallStartHandshake();
+                            curHandshake.FinishedInitialization = true;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                    }
+
+                    //it looks messy I have to agree
+                    try
+                    {
+                        if (Client.handshakeSystem.CompletedAllHandshakes && Client.IsServerSided)
+                        {
+                            Client.Connection.CreateNewThread(new System.Threading.ThreadStart(() =>
                             {
-                                Client.onConnect();
-                            }
+                                try
+                                {
+                                    Client.onConnect();
+                                }
+                                catch (Exception exx)
+                                {
+                                    SysLogger.Log(exx.Message, SysLogType.Error, exx);
+                                }
+                            })).Start();
                         }
-                        catch (Exception ex)
-                        {
-                            SysLogger.Log(ex.Message, SysLogType.Error, ex);
-                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     }
                 }
             }

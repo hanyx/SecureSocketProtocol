@@ -68,14 +68,14 @@ namespace TestServer
         {
             for (int i = 0; i < 1; i++)
             {
-                layerSystem.AddLayer(new Lz4Layer());
+                //layerSystem.AddLayer(new Lz4Layer());
                 //layerSystem.AddLayer(new LzmaLayer());
                 //layerSystem.AddLayer(new QuickLzLayer());
                 layerSystem.AddLayer(new AesLayer(base.Connection));
                 //layerSystem.AddLayer(new WopExLayer(5, 1, false, this));
                 //layerSystem.AddLayer(new TwoFishLayer(base.Connection));
                 //layerSystem.AddLayer(new RC4Layer());
-                layerSystem.AddLayer(new XmlHidingLayer());
+                //layerSystem.AddLayer(new XmlHidingLayer());
             }
         }
 
@@ -129,9 +129,9 @@ namespace TestServer
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
             Stream PublicKeyFile = new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat"));
 
-            MazeHandshake mazeHandshake = new MazeHandshake(this, new Size(128, 128), 5, 5);
+            MazeHandshake mazeHandshake = new MazeHandshake(this, new Size(128, 128), 5, 1);
             mazeHandshake.onFindUser += mazeHandshae_onFindUser;
-            handshakeSystem.AddLayer(mazeHandshake);
+            //handshakeSystem.AddLayer(mazeHandshake);
             //handshakeSystem.AddLayer(new SslHandshake(this));
         }
 

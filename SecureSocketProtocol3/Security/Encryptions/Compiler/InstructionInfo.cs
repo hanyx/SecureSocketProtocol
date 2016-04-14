@@ -160,7 +160,7 @@ namespace SecureSocketProtocol3.Security.Encryptions.Compiler
             get
             {
                 if (_value2_long == 0)
-                    _value2_long = (byte)Value2.IntValue();
+                    _value2_long = (byte)Value2.LongValue();
                 return _value2_long;
             }
         }
@@ -170,7 +170,7 @@ namespace SecureSocketProtocol3.Security.Encryptions.Compiler
             get
             {
                 if (_value3_long == 0)
-                    _value3_long = (byte)Value3.IntValue();
+                    _value3_long = (byte)Value3.LongValue();
                 return _value3_long;
             }
         }

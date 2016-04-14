@@ -51,6 +51,7 @@ namespace SecureSocketProtocol3.Network
         internal ushort ConnectionId { get; set; }
         public MessageHandler MessageHandler { get; private set; }
         public HeaderList Headers { get; private set; }
+        internal TaskQueue<SystemPacket> PacketQueue { get; private set; }
 
         /// <summary>
         /// The name of the Operation Socket, must be unique
@@ -73,6 +74,7 @@ namespace SecureSocketProtocol3.Network
             this.Client = Client;
             this.MessageHandler = new MessageHandler(Client.Connection.messageHandler.Seed, Client.Connection);
             this.Headers = new HeaderList(Client.Connection);
+            this.PacketQueue = new TaskQueue<SystemPacket>(PacketQueue_Process);
         }
 
         /// <summary>
@@ -188,6 +190,18 @@ namespace SecureSocketProtocol3.Network
             Array.Copy(version, 0, temp, 4, 4);
 
             return BitConverter.ToUInt64(temp, 0);
+        }
+
+        private void PacketQueue_Process(SystemPacket Packet)
+        {
+            ConnectionHeader ConHeader = Packet.Header as ConnectionHeader;
+            Header header = ConHeader.DeserializeHeader(this);
+            if (header == null)
+            {
+                return;
+            }
+
+            onReceiveMessage(Packet.Message, header);
         }
 
         public void Dispose()

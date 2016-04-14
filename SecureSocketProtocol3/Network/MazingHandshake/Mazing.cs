@@ -209,8 +209,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             {
                 Maze maze = new Maze();
                 maze.GenerateMaze(MazeSize.Width, MazeSize.Height, (int)((Username.data[j % (Username.dataLength - 1)] + 
-                                                                            Password.data[k % (Password.dataLength - 1)]) ^ 
-                                                                            PrivateSalt.data[i % (PrivateSalt.dataLength - 1)]), 0);
+                                                                          Password.data[k % (Password.dataLength - 1)]) ^ 
+                                                                          PrivateSalt.data[i % (PrivateSalt.dataLength - 1)]), 0);
 
                 beginPosX = Math.Abs(beginPosX);
                 beginPosY = Math.Abs(beginPosY);
@@ -219,8 +219,8 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
 
                 ArrayList list = maze.Solve(beginPosX, beginPosY, endPosX, endPosY, MazeSteps * 2);
 
-                if (list.Count < 10)
-                    throw new Exception("The Maze is too small");
+                //if (list.Count < 10)
+                //    throw new Exception("The Maze is too small");
 
                 BigInteger tempCalc = new BigInteger();
                 for (int s = 0; s < MazeSteps; s++)
@@ -241,8 +241,6 @@ namespace SecureSocketProtocol3.Network.MazingHandshake
             PatchKey(ref this._mazeKey);
             SW_Timer.Stop();
             return this.MazeKey;
-
-
         }
 
         /// <summary>

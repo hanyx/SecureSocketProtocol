@@ -22,7 +22,7 @@ namespace SecureSocketProtocol3.Security.Handshakes
         */
 
 
-        public delegate bool FingerPrintCheckCallback(byte[] PublicKey, string FingerPrint);
+        public delegate bool FingerPrintCheckCallback(byte[] PublicKey, string Md5FingerPrint, string Sha512FingerPrint);
         public event FingerPrintCheckCallback onVerifyFingerPrint;
 
         private RSACryptoServiceProvider RsaCrypto = new RSACryptoServiceProvider();
@@ -91,11 +91,15 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
                 if(onVerifyFingerPrint != null)
                 {
-                    string fingerPrint = Convert.ToBase64String(publicMessage.Modulus);
-                    fingerPrint = BitConverter.ToString(MD5.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
-                    fingerPrint = fingerPrint.Replace('-', ':');
+                    string md5fingerPrint = Convert.ToBase64String(publicMessage.Modulus);
+                    md5fingerPrint = BitConverter.ToString(MD5.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(md5fingerPrint)));
+                    md5fingerPrint = md5fingerPrint.Replace('-', ':');
 
-                    if (!onVerifyFingerPrint(publicMessage.Modulus, fingerPrint))
+                    string shafingerPrint = Convert.ToBase64String(publicMessage.Modulus);
+                    shafingerPrint = BitConverter.ToString(SHA512.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(shafingerPrint)));
+                    shafingerPrint = shafingerPrint.Replace('-', ':');
+
+                    if (!onVerifyFingerPrint(publicMessage.Modulus, md5fingerPrint, shafingerPrint))
                     {
                         base.Client.Dispose();
                         return;

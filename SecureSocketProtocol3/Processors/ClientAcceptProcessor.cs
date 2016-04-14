@@ -56,14 +56,14 @@ namespace SecureSocketProtocol3.Processors
 
                 client.Server = Server;
                 client.Connection = new Network.Connection(client);
-                client.ClientId = Server.randomDecimal.NextDecimal();
+                client.ClientId = client.randomDecimal.NextDecimal();
 
                 SysLogger.Log("Accepted peer " + client.RemoteIp, SysLogType.Debug);
 
                 lock (Server.Clients)
                 {
                     while (Server.Clients.ContainsKey(client.ClientId))
-                        client.ClientId = Server.randomDecimal.NextDecimal();
+                        client.ClientId = client.randomDecimal.NextDecimal();
                     Server.Clients.Add(client.ClientId, client);
                 }
 
@@ -83,23 +83,28 @@ namespace SecureSocketProtocol3.Processors
                 client.StartKeepAliveTimer();
                 client.Connection.StartReceiver();
 
-                while (!client.handshakeSystem.CompletedAllHandshakes)
+
+                //there are no handshakes
+                if (client.handshakeSystem.CompletedAllHandshakes)
+                {
+                    client.Connection.CreateNewThread(new System.Threading.ThreadStart(() =>
+                    {
+                        try
+                        {
+                            client.onConnect();
+                        }
+                        catch (Exception exx)
+                        {
+                            SysLogger.Log(exx.Message, SysLogType.Error, exx);
+                        }
+                    })).Start();
+                }
+
+                if (!client.handshakeSystem.CompletedAllHandshakes)
                 {
                     Handshake curHandshake = client.handshakeSystem.GetCurrentHandshake();
-
-                    if (curHandshake != null)
-                    {
-                        curHandshake.onStartHandshake();
-
-                        curHandshake.FinishedInitialization = true;
-
-                        if (!curHandshake.HandshakeSync.Wait<bool>(false, 30000))
-                        {
-                            //handshake failed or took too long
-                            client.Disconnect();
-
-                        }
-                    }
+                    curHandshake.CallStartHandshake();
+                    curHandshake.FinishedInitialization = true;
                 }
 
                 return client;

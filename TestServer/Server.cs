@@ -27,7 +27,7 @@ namespace TestServer
                 List<Stream> keys = new List<Stream>();
                 keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
                 keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
-                User user = MazeHandshake.RegisterUser(new Size(128, 128), 5, 5, "UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat")));
+                User user = MazeHandshake.RegisterUser(new Size(128, 128), 1, 5, "UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat")));
 
                 Program.Users.Add(user.EncryptedHash, user.GetUserDbInfo());
             }

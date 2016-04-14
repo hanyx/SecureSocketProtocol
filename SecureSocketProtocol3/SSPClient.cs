@@ -14,6 +14,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography;
 using System.Text;
 
 /*
@@ -60,6 +61,7 @@ namespace SecureSocketProtocol3
         public Connection Connection { get; internal set; }
         public string RemoteIp { get; internal set; }
 
+        internal RandomDecimal randomDecimal { get; private set; }
 
         public decimal ClientId
         {
@@ -99,7 +101,7 @@ namespace SecureSocketProtocol3
         public TimingConfig TimingConfiguration { get; private set; }
 
         private System.Timers.Timer KeepAliveTimer;
-        private FastRandom KeepAliveRandom = new FastRandom();
+        private SecureRandom KeepAliveRandom = new SecureRandom();
 
         public bool IsDisposed { get; private set; }
         internal LayerSystem layerSystem { get; private set; }
@@ -121,6 +123,7 @@ namespace SecureSocketProtocol3
             this.TimingConfiguration = new TimingConfig();
             this.layerSystem = new LayerSystem(this);
             this.handshakeSystem = new HandshakeSystem();
+            this.randomDecimal = new RandomDecimal();
         }
 
         /// <summary>
@@ -211,7 +214,7 @@ namespace SecureSocketProtocol3
 
                 if (curHandshake != null)
                 {
-                    curHandshake.onStartHandshake();
+                    curHandshake.CallStartHandshake();
 
                     curHandshake.FinishedInitialization = true;
 
@@ -241,7 +244,9 @@ namespace SecureSocketProtocol3
         void KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
             if (!Connected)
+            {
                 return;
+            }
 
             try
             {
@@ -257,6 +262,16 @@ namespace SecureSocketProtocol3
                     //hardware disconnection
                     Disconnect();
                 }
+
+                if (IsServerSided && !handshakeSystem.CompletedAllHandshakes)
+                {
+                    Handshake curHandshake = handshakeSystem.GetCurrentHandshake();
+                    if (curHandshake.TimeTaken != null && curHandshake.TimeTaken.Elapsed.TotalSeconds > 30)
+                    {
+                        Disconnect();
+                    }
+                }
+
             }
             catch (Exception ex)
             {
@@ -287,10 +302,6 @@ namespace SecureSocketProtocol3
             }
         }
 
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
         public long GetNextRandomLong()
         {
             decimal number = GetNextRandomDecimal();
@@ -298,10 +309,6 @@ namespace SecureSocketProtocol3
             return (int)number;
         }
 
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
         public int GetNextRandomInteger()
         {
             decimal number = GetNextRandomDecimal();
@@ -309,30 +316,11 @@ namespace SecureSocketProtocol3
             return (int)number;
         }
 
-        /// <summary>
-        /// This will request a random id from the server to use, a better way of getting a random number
-        /// </summary>
-        /// <returns>A random decimal number</returns>
         public decimal GetNextRandomDecimal()
         {
             lock (Connection.NextRandomIdLock)
             {
-                if (IsServerSided)
-                {
-                    return Server.randomDecimal.NextDecimal();
-                }
-
-                int ReqId = 0;
-                SyncObject SyncNextRandomId = Connection.RegisterRequest(ref ReqId);
-
-                Connection.SendMessage(new MsgGetNextId(), new RequestHeader(ReqId, false));
-
-                decimal? response = SyncNextRandomId.Wait<decimal?>(null, 30000);
-
-                if (!response.HasValue)
-                    throw new Exception("A time out occured");
-
-                return response.Value;
+                return randomDecimal.NextDecimal();
             }
         }
 

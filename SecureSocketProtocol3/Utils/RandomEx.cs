@@ -43,7 +43,7 @@ namespace SecureSocketProtocol3.Utils
 
         public RandomEx()
         {
-            Random rnd = new Random();
+            SecureRandom rnd = new SecureRandom();
 
             // test/generate the random algorithm
             while (true)

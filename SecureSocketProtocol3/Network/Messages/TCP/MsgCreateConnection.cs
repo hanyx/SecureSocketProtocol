@@ -72,14 +72,13 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
 
                         lock (client.Connection.OperationalSockets)
                         {
-                            FastRandom rnd = new FastRandom();
+                            SecureRandom rnd = new SecureRandom();
                             OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);
                             while(client.Connection.OperationalSockets.ContainsKey(OpSocket.ConnectionId))
                                 OpSocket.ConnectionId = (ushort)rnd.Next(1, 65535);
 
                             client.Connection.OperationalSockets.Add(OpSocket.ConnectionId, OpSocket);
                         }
-
 
                         try
                         {

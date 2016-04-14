@@ -187,9 +187,7 @@
     <Compile Include="Network\Messages\IMessage.cs" />
     <Compile Include="Network\Messages\MessageHandler.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnection.cs" />
-    <Compile Include="Network\Messages\TCP\MsgGetNextId.cs" />
     <Compile Include="Network\Messages\TCP\MsgCreateConnectionResponse.cs" />
-    <Compile Include="Network\Messages\TCP\MsgGetNextIdResponse.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshake.cs" />
     <Compile Include="Network\OperationalSocket.cs" />
     <Compile Include="Network\User.cs" />
@@ -214,9 +212,11 @@
     <Compile Include="Security\Serialization\ISerialization.cs" />
     <Compile Include="Security\Serialization\ProtobufSerialization.cs" />
     <Compile Include="Utils\Benchmark.cs" />
+    <Compile Include="Utils\BigInteger.cs" />
     <Compile Include="Utils\FastRandom.cs" />
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
+    <Compile Include="Utils\SecureRandom.cs" />
     <Compile Include="Utils\SyncObject.cs" />
     <Compile Include="Utils\SysLogger.cs" />
     <Compile Include="Utils\TaskQueue.cs" />
@@ -224,7 +224,6 @@
     <Compile Include="ServerProperties.cs" />
     <Compile Include="SSPClient.cs" />
     <Compile Include="SSPServer.cs" />
-    <Compile Include="Utils\BigInteger.cs" />
     <Compile Include="Utils\PayloadReader.cs" />
     <Compile Include="Utils\PayloadWriter.cs" />
     <Compile Include="Utils\SmartSerializer.cs" />

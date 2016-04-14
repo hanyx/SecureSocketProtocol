@@ -46,7 +46,6 @@ namespace SecureSocketProtocol3
         internal Socket TcpServer6 { get; private set; }
         public ServerProperties serverProperties { get; private set; }
         internal SortedList<decimal, SSPClient> Clients { get; private set; }
-        internal RandomDecimal randomDecimal { get; private set; }
 
         private ClientAcceptProcessor ClientAcceptProcessor4; //IPv4
         private ClientAcceptProcessor ClientAcceptProcessor6; //IPv6
@@ -62,7 +61,6 @@ namespace SecureSocketProtocol3
 
             this.serverProperties = serverProperties;
             this.Clients = new SortedList<decimal, SSPClient>();
-            this.randomDecimal = new RandomDecimal(DateTime.Now.Millisecond);
 
             SysLogger.Log("Starting server", SysLogType.Debug);
 

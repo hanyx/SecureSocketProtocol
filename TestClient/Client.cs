@@ -27,7 +27,7 @@ namespace TestClient
         public override void onConnect()
         {
             Console.WriteLine("Client successfully connected");
-
+            return;
             while (false)
             {
                 using (TestSocket testSock2 = new TestSocket(this))
@@ -151,14 +151,14 @@ namespace TestClient
         {
             for (int i = 0; i < 1; i++)
             {
-                layerSystem.AddLayer(new Lz4Layer());
+                //layerSystem.AddLayer(new Lz4Layer());
                 //layerSystem.AddLayer(new LzmaLayer());
                 //layerSystem.AddLayer(new QuickLzLayer());
                 layerSystem.AddLayer(new AesLayer(base.Connection));
                 //layerSystem.AddLayer(new WopExLayer(5, 1, false, this));
                 //layerSystem.AddLayer(new TwoFishLayer(base.Connection));
                 //layerSystem.AddLayer(new RC4Layer());
-                layerSystem.AddLayer(new XmlHidingLayer());
+                ///layerSystem.AddLayer(new XmlHidingLayer());
             }
         }
 
@@ -181,22 +181,23 @@ namespace TestClient
             handshakeSystem.AddLayer(simpleRsaHandshake);
 
 
+
             List<MemoryStream> keys = new List<MemoryStream>();
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
             keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
             Stream PublicKeyFile = new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat"));
 
-            handshakeSystem.AddLayer(new MazeHandshake(this, new System.Drawing.Size(128, 128), 5, 5, "UserTest", "PassTest",
-                                     keys.ToArray(), PublicKeyFile));
+            //handshakeSystem.AddLayer(new MazeHandshake(this, new System.Drawing.Size(128, 128), 5, 1, "UserTest", "PassTest",
+            //                         keys.ToArray(), PublicKeyFile));
 
             //handshakeSystem.AddLayer(new SslHandshake(this));
         }
 
-        bool simpleRsaHandshake_onVerifyFingerPrint(byte[] PublicKey, string FingerPrint)
+        bool simpleRsaHandshake_onVerifyFingerPrint(byte[] PublicKey, string FingerPrint, string Sha512FingerPrint)
         {
-            Console.WriteLine("Host FingerPrint: " + FingerPrint);
+            Console.WriteLine("Host MD5 FingerPrint: " + FingerPrint + "\r\n     SHA512: " + Sha512FingerPrint + "\r\n");
 
-            if (FingerPrint != "49:17:B6:AD:D9:FA:C4:09:B3:C7:4E:9E:02:D6:97:74")
+            if (FingerPrint != "49:17:B6:AD:D9:FA:C4:09:B3:C7:4E:9E:02:D6:97:74" || Sha512FingerPrint != "BD:7C:94:E5:90:B2:04:E9:06:7A:95:8E:9C:EC:75:9E:CD:39:69:E4:A9:FC:9A:E4:1A:E2:1A:7B:4C:23:C4:19:43:13:64:E2:5C:C4:49:4B:45:AF:C4:85:81:29:F1:B7:3B:57:FD:D5:50:67:43:30:C9:26:D0:CE:8C:6C:BA:9B")
             {
                 Console.Write("FingerPrint changed!! still want to continue (no) ?");
 
