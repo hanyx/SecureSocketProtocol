@@ -78,6 +78,8 @@ namespace SecureSocketProtocol3.Network
         public ulong DataOut { get; private set; }
         public ulong DataCompressedIn { get; private set; }
 
+        internal List<Thread> ConnectionThreads { get; private set; }
+
         /// <summary>
         /// Get the time when the last packet was received
         /// </summary>
@@ -196,6 +198,7 @@ namespace SecureSocketProtocol3.Network
             this.RegisteredOperationalSockets = new SortedList<ulong, Type>();
             this.Requests = new SortedList<int, SyncObject>();
             this.OperationalSockets = new SortedList<ushort, OperationalSocket>();
+            this.ConnectionThreads = new List<Thread>();
 
             //generate the header encryption
             PrivateSeed = PreNetworkKey.Length >= 4 ? BitConverter.ToInt32(PreNetworkKey, 0) : 0xBEEF;
@@ -222,9 +225,6 @@ namespace SecureSocketProtocol3.Network
 
             this.messageHandler.AddMessage(typeof(MsgCreateConnection), "CREATE_CONNECTION");
             this.messageHandler.AddMessage(typeof(MsgCreateConnectionResponse), "CREATE_CONNECTION_RESPONSE");
-
-            this.messageHandler.AddMessage(typeof(MsgGetNextId), "GET_NEXT_NUMBER");
-            this.messageHandler.AddMessage(typeof(MsgGetNextIdResponse), "GET_NEXT_NUMBER_RESPONSE");
 
             this.messageHandler.AddMessage(typeof(MsgOpDisconnect), "OP_DISCONNECT");
             this.messageHandler.AddMessage(typeof(MsgOpDisconnectResponse), "OP_DISCONNECT_RESPONSE");
@@ -377,17 +377,11 @@ namespace SecureSocketProtocol3.Network
                 {
                     if (systemPacket.OpSocket != null)
                     {
-                        Header header = ConHeader.DeserializeHeader(systemPacket.OpSocket);
-                        if (header == null)
-                        {
-                            return;
-                        }
-
-                        systemPacket.OpSocket.onReceiveMessage(systemPacket.Message, header);
+                        systemPacket.OpSocket.PacketQueue.Enqueue(systemPacket);
                     }
                     else
                     {
-
+                        //Disconnect ?
                     }
                 }
             }
@@ -425,12 +419,23 @@ namespace SecureSocketProtocol3.Network
             Client.layerSystem.ApplyKeyToLayers(MixedKey, MixedSalt);
         }
 
+        internal Thread CreateNewThread(ThreadStart threadStart)
+        {
+            Thread thread = new Thread(threadStart);
+            
+            lock (ConnectionThreads)
+            {
+                ConnectionThreads.Add(thread);
+            }
+            return thread;
+        }
+
         internal SyncObject RegisterRequest(ref int RequestId)
         {
             lock (Requests)
             {
                 SyncObject syncObj = new SyncObject(this);
-                FastRandom rnd = new FastRandom();
+                SecureRandom rnd = new SecureRandom();
 
                 do
                 {
