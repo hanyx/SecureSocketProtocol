@@ -16,6 +16,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 
 /*
     The MIT License (MIT)
@@ -190,7 +191,16 @@ namespace SecureSocketProtocol3
                 ConTimeout -= (int)sw.ElapsedMilliseconds;
 
                 if (!this.Handle.Connected)
+                {
                     this.Handle.Close();
+
+                    //A Firewall blocked the connection ?
+                    if (ConTimeout > 0 && sw.ElapsedMilliseconds <= 10)
+                    {
+                        Thread.Sleep(1000);
+                        ConTimeout -= 1000;
+                    }
+                }
 
             } while (ConTimeout > 0 && !this.Handle.Connected);
 
@@ -243,13 +253,13 @@ namespace SecureSocketProtocol3
 
         void KeepAliveTimer_Elapsed(object sender, System.Timers.ElapsedEventArgs e)
         {
-            if (!Connected)
-            {
-                return;
-            }
-
             try
             {
+                if (!Connected)
+                {
+                    return;
+                }
+
                 if (Connection.LastPacketSendElapsed.TotalSeconds > 5)
                 {
                     //Make the Keep-Alive go a bit random to confuse time attacks with real traffic
