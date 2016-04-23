@@ -55,6 +55,10 @@ namespace SecureSocketProtocol3.Processors
                     client.RemoteIp = AcceptSocket.RemoteEndPoint.ToString().Split(':')[0];
 
                 client.Server = Server;
+
+                Server.PreComputes.SetPreNetworkKey(client);
+                Server.PreComputes.ComputeNetworkKey(client);
+
                 client.Connection = new Network.Connection(client);
                 client.ClientId = client.randomDecimal.NextDecimal();
 

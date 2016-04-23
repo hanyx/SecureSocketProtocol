@@ -50,6 +50,8 @@ namespace SecureSocketProtocol3
         private ClientAcceptProcessor ClientAcceptProcessor4; //IPv4
         private ClientAcceptProcessor ClientAcceptProcessor6; //IPv6
 
+        internal ClientPrecomputes PreComputes { get; private set; }
+
         /// <summary>
         /// Initialize a new SSPServer
         /// </summary>
@@ -67,7 +69,7 @@ namespace SecureSocketProtocol3
             this.ClientAcceptProcessor4 = new ClientAcceptProcessor();
             this.ClientAcceptProcessor6 = new ClientAcceptProcessor();
 
-
+            this.PreComputes = new ClientPrecomputes();
 
             //start the server for IPv4
             this.TcpServer = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);

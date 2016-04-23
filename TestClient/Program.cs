@@ -41,15 +41,19 @@ namespace TestClient
             Console.Title = "SSP Client";
                     Random rnd = new Random();
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 1; i++)
             {
                 new Thread(new ThreadStart(() =>
                 {
                     int Id = rnd.Next(0, 100);
                     while (true)
                     {
+                        Console.WriteLine("===========================================================");
                         Console.WriteLine("[" + Id + "]Connecting..");
                         Client client = new Client();
+                        Console.WriteLine("[" + Id + "]Connected..");
+                        //Thread.Sleep(5000);
+
                     }
                 })).Start();
             }

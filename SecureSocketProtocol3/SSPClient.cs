@@ -108,6 +108,21 @@ namespace SecureSocketProtocol3
         internal LayerSystem layerSystem { get; private set; }
         internal HandshakeSystem handshakeSystem { get; private set; }
 
+        private ClientPrecomputes _preComputes;
+        internal ClientPrecomputes PreComputes
+        {
+            get
+            {
+                if (IsServerSided)
+                    return Server.PreComputes;
+                return _preComputes;
+            }
+            private set
+            {
+                _preComputes = value;
+            }
+        }
+
         public MessageHandler MessageHandler
         {
             get
@@ -125,6 +140,7 @@ namespace SecureSocketProtocol3
             this.layerSystem = new LayerSystem(this);
             this.handshakeSystem = new HandshakeSystem();
             this.randomDecimal = new RandomDecimal();
+            this.PreComputes = new ClientPrecomputes();
         }
 
         /// <summary>
@@ -206,6 +222,9 @@ namespace SecureSocketProtocol3
 
             if (!Handle.Connected)
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
+
+            PreComputes.SetPreNetworkKey(this);
+            PreComputes.ComputeNetworkKey(this);
 
             Connection = new Connection(this);
 
