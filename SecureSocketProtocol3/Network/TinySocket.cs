@@ -75,6 +75,7 @@ namespace SecureSocketProtocol3.Network
         private Socket socket;
 
         private ReceiveType ReceiveState = ReceiveType.Header;
+        private SocketAsyncEventArgs asyncEventArgs;
 
         public TinySocket(Socket socket)
         {
@@ -83,15 +84,21 @@ namespace SecureSocketProtocol3.Network
 
         internal void StartReceiver()
         {
-            socket.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
+            //socket.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
+
+            this.asyncEventArgs = new SocketAsyncEventArgs();
+            this.asyncEventArgs.SocketFlags = SocketFlags.None;
+            this.asyncEventArgs.SetBuffer(this.Buffer, 0, this.Buffer.Length);
+            this.asyncEventArgs.Completed += AsyncEventArgs_Completed;
+            socket.ReceiveAsync(asyncEventArgs);
+
         }
 
-        private void AynsReceive(IAsyncResult result)
+        private void AsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
         {
-            int BytesTransferred = -1;
-            try
+            if (e.LastOperation == SocketAsyncOperation.Receive && e.SocketError == SocketError.Success && e.BytesTransferred > 0)
             {
-                BytesTransferred = socket.EndReceive(result);
+                int BytesTransferred = e.BytesTransferred;
 
                 SysLogger.Log("Received " + BytesTransferred, SysLogType.Network);
 
@@ -183,21 +190,35 @@ namespace SecureSocketProtocol3.Network
                 {
                     int readLen = Buffer.Length - WriteOffset;
 
-                    //poor attempt at setting a max bandwidth for a user 
-                    /*if (readLen > 8192)
-                    {
-                        readLen = 8192;
-                        System.Threading.Thread.Sleep(1000);
-                    }
-                    socket.BeginReceive(this.Buffer, WriteOffset, readLen, SocketFlags.None, AynsReceive, null);*/
 
-                    socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
+                    this.asyncEventArgs.SetBuffer(this.Buffer, WriteOffset, Buffer.Length - WriteOffset);
+                    if (!socket.ReceiveAsync(asyncEventArgs))
+                    {
+                        AsyncEventArgs_Completed(sender, asyncEventArgs);
+                    }
+
+                    //socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
                 }
                 else
                 {
                     //Shoudln't be even possible... very strange
                     onDisconnect();
                 }
+            }
+            else if (e.LastOperation == SocketAsyncOperation.Receive && e.SocketError != SocketError.Success)
+            {
+                onDisconnect();
+            }
+        }
+
+        private void AynsReceive(IAsyncResult result)
+        {
+            int BytesTransferred = -1;
+            try
+            {
+                BytesTransferred = socket.EndReceive(result);
+
+                
             }
             catch (Exception ex)
             {

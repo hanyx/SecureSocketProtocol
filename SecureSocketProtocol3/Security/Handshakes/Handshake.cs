@@ -40,6 +40,7 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
         public abstract void onStartHandshake();
         public abstract void onReceiveMessage(IMessage Message);
+        public abstract void onRegisterMessages(MessageHandler messageHandler);
         public abstract void onFinish();
 
         internal bool FinishedInitialization = false;
@@ -90,6 +91,7 @@ namespace SecureSocketProtocol3.Security.Handshakes
         {
             this.TimeTaken = Stopwatch.StartNew();
             onStartHandshake();
+            FinishedInitialization = true;
         }
 
         /// <summary>

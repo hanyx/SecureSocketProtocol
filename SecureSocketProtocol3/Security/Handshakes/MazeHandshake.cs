@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using SecureSocketProtocol3.Network.Messages;
 
 /*
     The MIT License (MIT)
@@ -209,6 +210,11 @@ namespace SecureSocketProtocol3.Security.Handshakes
                 //send our encrypted public key
                 Client.Connection.SendMessage(new MsgHandshake(encryptedPublicKey), new SystemHeader());
             }
+        }
+
+        public override void onRegisterMessages(MessageHandler messageHandler)
+        {
+
         }
 
         public override void onFinish()

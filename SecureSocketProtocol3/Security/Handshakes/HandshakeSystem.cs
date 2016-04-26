@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SecureSocketProtocol3.Network.Messages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -59,6 +60,12 @@ namespace SecureSocketProtocol3.Security.Handshakes
                     return false;
                 return true;
             }
+        }
+
+        public void RegisterMessages(MessageHandler messageHandler)
+        {
+            foreach (Handshake handshake in _handshakes)
+                handshake.onRegisterMessages(messageHandler);
         }
 
         /// <summary>

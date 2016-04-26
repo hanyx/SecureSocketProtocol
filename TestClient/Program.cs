@@ -21,48 +21,70 @@ namespace TestClient
 {
     class Program
     {
+        static List<ClientStatus> ConnectionCount = new List<ClientStatus>();
+
         static void Main(string[] args)
         {
-            /*RandomDecimal rndDecimal = new RandomDecimal();
-            SecureRandom rnd = new SecureRandom();
-
-            while (true)
-            {
-                var num = rnd.NextLong(5, 100);
-
-                if (num < 5)
-                {
-
-                }
-
-                Console.WriteLine(num);
-            }*/
             //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
-                    Random rnd = new Random();
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 50; i++)
             {
-                new Thread(new ThreadStart(() =>
-                {
-                    int Id = rnd.Next(0, 100);
-                    while (true)
-                    {
-                        Console.WriteLine("===========================================================");
-                        Console.WriteLine("[" + Id + "]Connecting..");
-                        Client client = new Client();
-                        Console.WriteLine("[" + Id + "]Connected..");
-                        //Thread.Sleep(5000);
-
-                    }
-                })).Start();
+                ClientStatus status = new ClientStatus(i);
+                ConnectionCount.Add(status);
+                new Thread(new ParameterizedThreadStart(ClientThread)).Start(status);
             }
+
+            /*while (true)
+            {
+                Console.Clear();
+                foreach(ClientStatus status in ConnectionCount)
+                {
+                    Console.WriteLine(String.Format("[{0}][{1}] Connection Count: {2}, Status: {3}", status.Id, status.TimeToConnect.Elapsed, status.ConnectionCount, status.Status));
+                }
+
+                Thread.Sleep(250);
+            }*/
+
             Process.GetCurrentProcess().WaitForExit();
         }
 
         static void SysLogger_onSysLog(string Message, SysLogType Type)
         {
             Console.WriteLine("[SysLogger][" + Type + "] " + Message);
+        }
+
+        static void ClientThread(object o)
+        {
+            ClientStatus status = (ClientStatus)o;
+            
+            //while (true)
+            {
+                status.Status = "Connecting...";
+                status.TimeToConnect.Reset();
+                status.TimeToConnect.Start();
+
+                Client client = new Client();
+
+                status.TimeToConnect.Stop();
+
+                status.ConnectionCount++;
+                status.Status = "Connected";
+            }
+        }
+
+        class ClientStatus
+        {
+            public int Id { get; private set; }
+            public string Status { get; set; }
+            public int ConnectionCount { get; set; }
+            public Stopwatch TimeToConnect { get; set; }
+
+            public ClientStatus(int Id)
+            {
+                this.Id = Id;
+                this.TimeToConnect = new Stopwatch();
+            }
         }
     }
 }

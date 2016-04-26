@@ -61,9 +61,6 @@ namespace SecureSocketProtocol3.Security.Handshakes
 
         public override void onStartHandshake()
         {
-            base.Client.MessageHandler.AddMessage(typeof(PublicKeyMessage), "RSA_PUBLIC_KEY_MESSAGE");
-            base.Client.MessageHandler.AddMessage(typeof(KeyReplyMessage), "RSA_REPLY_KEY_MESSAGE");
-
             if (base.Client.IsServerSided)
             {
                 base.SendMessage(new PublicKeyMessage(RsaCrypto, RsaCrypto.ExportParameters(false)), new NullHeader());
@@ -121,6 +118,12 @@ namespace SecureSocketProtocol3.Security.Handshakes
                 base.Client.Connection.ApplyNewKey(NewKey, base.Client.Connection.NetworkKeySalt);
                 base.Finish();
             }
+        }
+
+        public override void onRegisterMessages(MessageHandler messageHandler)
+        {
+            base.Client.MessageHandler.AddMessage(typeof(PublicKeyMessage), "RSA_PUBLIC_KEY_MESSAGE");
+            base.Client.MessageHandler.AddMessage(typeof(KeyReplyMessage), "RSA_REPLY_KEY_MESSAGE");
         }
 
         public override void onFinish()

@@ -225,16 +225,14 @@ namespace SecureSocketProtocol3
 
             PreComputes.SetPreNetworkKey(this);
             PreComputes.ComputeNetworkKey(this);
-
+            
             Connection = new Connection(this);
-
             onApplyLayers(layerSystem);
             onApplyHandshakes(handshakeSystem);
-
+            handshakeSystem.RegisterMessages(MessageHandler);
+            
             Connection.StartReceiver();
-
             onBeforeConnect();
-
             StartKeepAliveTimer();
 
             while (!handshakeSystem.CompletedAllHandshakes)
@@ -244,8 +242,6 @@ namespace SecureSocketProtocol3
                 if (curHandshake != null)
                 {
                     curHandshake.CallStartHandshake();
-
-                    curHandshake.FinishedInitialization = true;
 
                     if (!curHandshake.HandshakeSync.Wait<bool>(false, 30000))
                     {
@@ -300,7 +296,6 @@ namespace SecureSocketProtocol3
                         Disconnect();
                     }
                 }
-
             }
             catch (Exception ex)
             {

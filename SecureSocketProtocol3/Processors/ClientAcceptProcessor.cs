@@ -73,6 +73,7 @@ namespace SecureSocketProtocol3.Processors
 
                 client.onApplyLayers(client.layerSystem);
                 client.onApplyHandshakes(client.handshakeSystem);
+                client.handshakeSystem.RegisterMessages(client.MessageHandler);
 
                 try
                 {
