@@ -20,24 +20,7 @@ namespace SSPTests.ServerSrc
 
         public override SSPClient GetNewClient()
         {
-            ///register users if there aren't any, please use a datbase and not this way
-            if (Users.Count == 0)
-            {
-                List<Stream> keys = new List<Stream>();
-                keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey1.dat")));
-                keys.Add(new MemoryStream(File.ReadAllBytes(@".\Data\PrivateKey2.dat")));
-                User user = base.RegisterUser("UserTest", "PassTest", keys, new MemoryStream(File.ReadAllBytes(@".\Data\PublicKey1.dat")));
-
-                Users.Add(user.EncryptedHash, user.GetUserDbInfo());
-            }
             return new BasicPeer();
-        }
-
-        public override User.UserDbInfo onFindUser(string EncryptedPublicKeyHash)
-        {
-            if (Users.ContainsKey(EncryptedPublicKeyHash))
-                return Users[EncryptedPublicKeyHash];
-            return null;
         }
     }
 }

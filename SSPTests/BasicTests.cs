@@ -4,6 +4,8 @@ using SecureSocketProtocol3.Network;
 using System.IO;
 using SecureSocketProtocol3;
 using SSPTests.ServerSrc;
+using SecureSocketProtocol3.Security.Serialization;
+using System.Collections.Generic;
 
 namespace SSPTests
 {
@@ -49,39 +51,25 @@ namespace SSPTests
                 get { return "0.0.0.0"; }
             }
 
+            public override string ListenIp6
+            {
+                get { return "::"; }
+            }
+
+            public override bool UseIPv4AndIPv6
+            {
+                get { return true; }
+            }
+
             public override Stream[] KeyFiles
             {
-                get { return new Stream[0]; }
-            }
-
-            public override uint Cipher_Rounds
-            {
-                get { return 1; }
-            }
-
-            public override CompressionAlgorithm CompressionAlgorithm
-            {
-                get { return SecureSocketProtocol3.CompressionAlgorithm.QuickLZ; }
-            }
-
-            public override EncAlgorithm EncryptionAlgorithm
-            {
-                get { return EncAlgorithm.HwAES; }
-            }
-
-            public override System.Drawing.Size Handshake_Maze_Size
-            {
-                get { return new System.Drawing.Size(128, 128); }
-            }
-
-            public override ushort Handshake_StepSize
-            {
-                get { return 5; }
-            }
-
-            public override ushort Handshake_MazeCount
-            {
-                get { return 1; }
+                get
+                {
+                    List<MemoryStream> _keyFiles = new List<MemoryStream>();
+                    _keyFiles.Add(new MemoryStream(new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 }));
+                    _keyFiles.Add(new MemoryStream(new byte[] { 8, 7, 6, 5, 4, 3, 2, 1 }));
+                    return _keyFiles.ToArray();
+                }
             }
 
             public override byte[] NetworkKey
@@ -101,6 +89,11 @@ namespace SSPTests
             public override TimeSpan ClientTimeConnected
             {
                 get { return new TimeSpan(1, 0, 0, 0); }
+            }
+
+            public override SecureSocketProtocol3.Security.Serialization.ISerialization DefaultSerializer
+            {
+                get { return new ProtobufSerialization(); }
             }
         }
     }
