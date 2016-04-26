@@ -218,6 +218,7 @@
     <Compile Include="Utils\RandomDecimal.cs" />
     <Compile Include="Utils\RandomEx.cs" />
     <Compile Include="Utils\SecureRandom.cs" />
+    <Compile Include="Utils\SecurityUtils.cs" />
     <Compile Include="Utils\SyncObject.cs" />
     <Compile Include="Utils\SysLogger.cs" />
     <Compile Include="Utils\TaskQueue.cs" />

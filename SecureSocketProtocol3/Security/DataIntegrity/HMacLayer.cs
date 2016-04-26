@@ -35,16 +35,18 @@ namespace SecureSocketProtocol3.Security.DataIntegrity
     {
         private HMAC hMac;
         private SSPClient Client;
+        private SecurityUtils utils;
 
         public HMacLayer(SSPClient Client, HMAC hMac)
         {
             this.hMac = hMac;
             this.Client = Client;
+            this.utils = new SecurityUtils();
         }
 
         public HMacLayer(SSPClient Client)
+            : this(Client, new HMACSHA1(Client.Connection.NetworkKey))
         {
-            hMac = new HMACSHA1(Client.Connection.NetworkKey);
             this.Client = Client;
         }
 
@@ -65,12 +67,7 @@ namespace SecureSocketProtocol3.Security.DataIntegrity
 
                 byte[] ComputedHash = hMac.ComputeHash(Data, Offset, Length);
 
-                for (int i = 0; i < ComputedHash.Length; i++)
-                {
-                    if (ComputedHash[i] != DataIntegrityLayerData[i])
-                        return false;
-                }
-                return true;
+                return utils.SlowEquals(ComputedHash, DataIntegrityLayerData);
             }
         }
 
