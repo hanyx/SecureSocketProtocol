@@ -7,19 +7,15 @@ using System.Text;
 
 /*
     The MIT License (MIT)
-
     Copyright (c) 2016 AnguisCaptor
-
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -84,150 +80,135 @@ namespace SecureSocketProtocol3.Network
 
         internal void StartReceiver()
         {
-            //socket.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, AynsReceive, null);
-
-            this.asyncEventArgs = new SocketAsyncEventArgs();
-            this.asyncEventArgs.SocketFlags = SocketFlags.None;
-            this.asyncEventArgs.SetBuffer(this.Buffer, 0, this.Buffer.Length);
-            this.asyncEventArgs.Completed += AsyncEventArgs_Completed;
-            socket.ReceiveAsync(asyncEventArgs);
-
+            socket.BeginReceive(this.Buffer, 0, this.Buffer.Length, SocketFlags.None, socket_BeginRecieve, null);
         }
 
-        private void AsyncEventArgs_Completed(object sender, SocketAsyncEventArgs e)
+        private void socket_BeginRecieve(IAsyncResult ar)
         {
-            if (e.LastOperation == SocketAsyncOperation.Receive && e.SocketError == SocketError.Success && e.BytesTransferred > 0)
-            {
-                int BytesTransferred = e.BytesTransferred;
-
-                SysLogger.Log("Received " + BytesTransferred, SysLogType.Network);
-
-                if (BytesTransferred <= 0)
-                {
-                    onDisconnect();
-                    return;
-                }
-
-                bool Process = true;
-                ReadableDataLen += BytesTransferred;
-
-                while (Process)
-                {
-                    if (ReceiveState == ReceiveType.Header)
-                    {
-                        if ((Process = ReadableDataLen >= Connection.HEADER_SIZE))
-                        {
-                            onReceiveHeader(Buffer, ReadOffset);
-
-                            using (PayloadReader pr = new PayloadReader(Buffer))
-                            {
-                                pr.Position = ReadOffset;
-                                PayloadLen = pr.ReadThreeByteInteger();
-                                CurPacketId = pr.ReadByte();
-                                ConnectionId = pr.ReadUShort();
-                                HeaderId = pr.ReadUShort();
-                                HeaderChecksum = pr.ReadByte();
-                            }
-
-                            byte ReChecksum = 0; //re-calculate the checksum
-                            ReChecksum += (byte)PayloadLen;
-                            ReChecksum += CurPacketId;
-                            ReChecksum += (byte)ConnectionId;
-                            ReChecksum += (byte)HeaderId;
-
-                            if (ReChecksum != HeaderChecksum ||
-                                PayloadLen >= MAX_PACKET_SIZE ||
-                                PayloadLen < 0)
-                            {
-                                onDisconnect();
-                                return;
-                            }
-
-                            if (PayloadLen > Buffer.Length)
-                            {
-                                ResizeBuffer(PayloadLen);
-                            }
-
-                            TotalReceived = HEADER_SIZE;
-                            ReadableDataLen -= HEADER_SIZE;
-                            ReadOffset += HEADER_SIZE;
-                            ReceiveState = ReceiveType.Payload;
-                        }
-                    }
-                    else if (ReceiveState == ReceiveType.Payload)
-                    {
-                        if ((Process = ReadableDataLen >= PayloadLen))
-                        {
-                            onReceivePayload(Buffer, ReadOffset, PayloadLen);
-
-                            TotalReceived = 0;
-                            ReadOffset += PayloadLen;
-                            ReadableDataLen -= PayloadLen;
-                            ReceiveState = ReceiveType.Header;
-                        }
-                    }
-                }
-
-                int len = ReceiveState == ReceiveType.Header ? HEADER_SIZE : PayloadLen;
-                if (ReadOffset + len >= this.Buffer.Length)
-                {
-                    //no more room for this data size, at the end of the buffer ?
-                    //copy the buffer to the beginning
-                    Array.Copy(this.Buffer, ReadOffset, this.Buffer, 0, ReadableDataLen);
-
-                    WriteOffset = ReadableDataLen;
-                    ReadOffset = 0;
-                }
-                else
-                {
-                    //payload fits in the buffer from the current offset
-                    //use BytesTransferred to write at the end of the payload
-                    //so that the data is not split
-                    WriteOffset += BytesTransferred;
-                }
-
-                if (Buffer.Length - WriteOffset > 0)
-                {
-                    int readLen = Buffer.Length - WriteOffset;
+            int BytesTransferred = 0;
 
 
-                    this.asyncEventArgs.SetBuffer(this.Buffer, WriteOffset, Buffer.Length - WriteOffset);
-                    if (!socket.ReceiveAsync(asyncEventArgs))
-                    {
-                        AsyncEventArgs_Completed(sender, asyncEventArgs);
-                    }
-
-                    //socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, AynsReceive, null);
-                }
-                else
-                {
-                    //Shoudln't be even possible... very strange
-                    onDisconnect();
-                }
-            }
-            else if (e.LastOperation == SocketAsyncOperation.Receive && e.SocketError != SocketError.Success)
-            {
-                onDisconnect();
-            }
-        }
-
-        private void AynsReceive(IAsyncResult result)
-        {
-            int BytesTransferred = -1;
             try
             {
-                BytesTransferred = socket.EndReceive(result);
-
-                
+                BytesTransferred = socket.EndReceive(ar);
             }
             catch (Exception ex)
             {
-                SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                //client disconnected etc
+            }
+
+            SysLogger.Log("Received " + BytesTransferred, SysLogType.Network);
+
+            if (BytesTransferred <= 0)
+            {
                 onDisconnect();
                 return;
             }
-        }
 
+            bool Process = true;
+            ReadableDataLen += BytesTransferred;
+
+            while (Process)
+            {
+                if (ReceiveState == ReceiveType.Header)
+                {
+                    if ((Process = ReadableDataLen >= Connection.HEADER_SIZE))
+                    {
+                        onReceiveHeader(Buffer, ReadOffset);
+
+                        using (PayloadReader pr = new PayloadReader(Buffer))
+                        {
+                            pr.Position = ReadOffset;
+                            PayloadLen = pr.ReadThreeByteInteger();
+                            CurPacketId = pr.ReadByte();
+                            ConnectionId = pr.ReadUShort();
+                            HeaderId = pr.ReadUShort();
+                            HeaderChecksum = pr.ReadByte();
+                        }
+
+                        byte ReChecksum = 0; //re-calculate the checksum
+                        ReChecksum += (byte)PayloadLen;
+                        ReChecksum += CurPacketId;
+                        ReChecksum += (byte)ConnectionId;
+                        ReChecksum += (byte)HeaderId;
+
+                        if (ReChecksum != HeaderChecksum ||
+                            PayloadLen >= MAX_PACKET_SIZE ||
+                            PayloadLen < 0)
+                        {
+                            onDisconnect();
+                            return;
+                        }
+
+                        if (PayloadLen > Buffer.Length)
+                        {
+                            ResizeBuffer(PayloadLen);
+                        }
+
+                        TotalReceived = HEADER_SIZE;
+                        ReadableDataLen -= HEADER_SIZE;
+                        ReadOffset += HEADER_SIZE;
+                        ReceiveState = ReceiveType.Payload;
+                    }
+                }
+                else if (ReceiveState == ReceiveType.Payload)
+                {
+                    if ((Process = ReadableDataLen >= PayloadLen))
+                    {
+                        onReceivePayload(Buffer, ReadOffset, PayloadLen);
+
+                        TotalReceived = 0;
+                        ReadOffset += PayloadLen;
+                        ReadableDataLen -= PayloadLen;
+                        ReceiveState = ReceiveType.Header;
+                    }
+                }
+            }
+
+            int len = ReceiveState == ReceiveType.Header ? HEADER_SIZE : PayloadLen;
+            if (ReadOffset + len >= this.Buffer.Length)
+            {
+                //no more room for this data size, at the end of the buffer ?
+                //copy the buffer to the beginning
+                Array.Copy(this.Buffer, ReadOffset, this.Buffer, 0, ReadableDataLen);
+
+                WriteOffset = ReadableDataLen;
+                ReadOffset = 0;
+            }
+            else
+            {
+                //payload fits in the buffer from the current offset
+                //use BytesTransferred to write at the end of the payload
+                //so that the data is not split
+                WriteOffset += BytesTransferred;
+            }
+
+            if (Buffer.Length - WriteOffset > 0)
+            {
+                int readLen = Buffer.Length - WriteOffset;
+
+                try
+                {
+                    /*this.asyncEventArgs.SetBuffer(this.Buffer, WriteOffset, Buffer.Length - WriteOffset);
+                    if (!socket.ReceiveAsync(asyncEventArgs))
+                    {
+                        AsyncEventArgs_Completed(sender, asyncEventArgs);
+                    }*/
+
+                    socket.BeginReceive(this.Buffer, WriteOffset, Buffer.Length - WriteOffset, SocketFlags.None, socket_BeginRecieve, null);
+                }
+                catch (Exception ex)
+                {
+                    onDisconnect();
+                }
+            }
+            else
+            {
+                //Shoudln't be even possible... very strange
+                onDisconnect();
+            }
+        }
+        
         private void ResizeBuffer(int NewLength)
         {
             if (NewLength > MAX_PACKET_SIZE)
