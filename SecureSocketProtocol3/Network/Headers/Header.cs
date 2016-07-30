@@ -77,10 +77,12 @@ namespace SecureSocketProtocol3.Network.Headers
                 return null;
 
             //byte[] data = pr.ReadBytes(size);
-            Header header = (Header)Serializer.Deserialize(new MemoryStream(pr.Buffer, pr.Position, size), HeaderType);
-            pr.Position += size;
-            return header;
-
+            using (MemoryStream ms = new MemoryStream(pr.Buffer, pr.Position, size))
+            {
+                Header header = (Header)Serializer.Deserialize(ms, HeaderType);
+                pr.Position += size;
+                return header;
+            }
             /*FieldInfo[] fields = header.GetType().GetFields();
             for (int i = 0; i < fields.Length; i++)
             {

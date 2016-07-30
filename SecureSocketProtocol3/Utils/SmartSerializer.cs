@@ -146,12 +146,13 @@ namespace SecureSocketProtocol3.Utils
             }
             else
             {
-                MemoryStream ms = new MemoryStream();
-                BinaryFormatter bf = new BinaryFormatter();
-                bf.Serialize(ms, obj);
-                pw.WriteByte((byte)ObjectTypes.Other);
-                pw.WriteBytes(ms.GetBuffer(), 0, (int)ms.Length);
-                ms.Close();
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    BinaryFormatter bf = new BinaryFormatter();
+                    bf.Serialize(ms, obj);
+                    pw.WriteByte((byte)ObjectTypes.Other);
+                    pw.WriteBytes(ms.GetBuffer(), 0, (int)ms.Length);
+                }
             }
             return pw.ToByteArray();
         }
