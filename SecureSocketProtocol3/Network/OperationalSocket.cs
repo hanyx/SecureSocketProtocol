@@ -74,7 +74,7 @@ namespace SecureSocketProtocol3.Network
             this.Client = Client;
             this.MessageHandler = new MessageHandler(Client.Connection.messageHandler.Seed, Client.Connection);
             this.Headers = new HeaderList(Client.Connection);
-            this.PacketQueue = new TaskQueue<SystemPacket>(PacketQueue_Process);
+            this.PacketQueue = new TaskQueue<SystemPacket>(PacketQueue_Process, Client.Connection);
         }
 
         /// <summary>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SecureSocketProtocol3.Network;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -36,11 +37,17 @@ namespace SecureSocketProtocol3.Utils
         private bool ThreadRunning = false;
         public uint MaxItems = 100;
 
-        public TaskQueue(Action<T> Callback, uint MaxItems = 100)
+        private TimeSpan MinThreadAlive = TimeSpan.FromSeconds(10);
+        private SyncObject syncObj;
+        private Connection connection;
+
+        public TaskQueue(Action<T> Callback, Connection connection, uint MaxItems = 100)
         {
             this.tasks = new Queue<T>();
             this.callback = Callback;
             this.MaxItems = MaxItems;
+            this.syncObj = new SyncObject(connection);
+            this.connection = connection;
         }
 
         public void Enqueue(T value)
@@ -49,6 +56,9 @@ namespace SecureSocketProtocol3.Utils
             {
                 while (tasks.Count > MaxItems && !ThreadRunning)
                     ExecuteTasks();
+
+                syncObj.Value = true;
+                syncObj.Pulse();
 
                 tasks.Enqueue(value);
                 if (!ThreadRunning)
@@ -61,7 +71,17 @@ namespace SecureSocketProtocol3.Utils
 
         private void WorkerThread()
         {
-            ExecuteTasks();
+            while (syncObj.IsPulsed)
+            {
+                ExecuteTasks();
+
+                this.syncObj.Reset();
+
+                bool isPulsed = syncObj.Wait<bool>(false, (uint)MinThreadAlive.TotalMilliseconds);
+                if (!isPulsed)
+                    break;
+            }
+
             ThreadRunning = false;
         }
 
@@ -91,7 +111,6 @@ namespace SecureSocketProtocol3.Utils
                     catch (Exception ex)
                     {
                         SysLogger.Log(ex.Message, SysLogType.Error, ex);
-
                     }
                 }
             }

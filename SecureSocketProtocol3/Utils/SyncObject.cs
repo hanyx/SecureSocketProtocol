@@ -34,9 +34,29 @@ namespace SecureSocketProtocol3.Utils
     {
         public bool IsPulsed { get; internal set; }
         private Object LockedObject = new Object();
+        private Object ValueLock = new Object();
+
+        private Object _value = null; 
 
         /// <summary> The main object </summary>
-        public Object Value = null;
+        public Object Value
+        {
+            get
+            {
+                lock (ValueLock)
+                {
+                    return _value;
+                }
+            }
+            set
+            {
+                lock (ValueLock)
+                {
+                    _value = value;
+                }
+            }
+        }
+
         public bool TimedOut = false;
         private Connection connection;
 
@@ -95,6 +115,13 @@ namespace SecureSocketProtocol3.Utils
                     return TimeOutValue;
             }
             return (T)Value;
+        }
+
+        public void Reset()
+        {
+            IsPulsed = false;
+            Value = null;
+            TimedOut = false;
         }
 
         public void Pulse()
