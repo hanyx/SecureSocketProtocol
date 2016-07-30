@@ -39,7 +39,7 @@ namespace SecureSocketProtocol3.Security.Encryptions
         public string PublicKey { get; internal set; }
         public int EncChunkSize { get; private set; }
         public int DecChunkSize { get; private set; }
-        public bool PkcsPadding { get { return false; } set { } }
+        public bool PkcsPadding { get; set; }
         public int KeySize { get; private set; }
 
         public RSAParameters? PrivateParameters
@@ -63,6 +63,25 @@ namespace SecureSocketProtocol3.Security.Encryptions
                     return rsa.ExportParameters(false);
                 }
                 catch { return null; }
+            }
+        }
+
+        public string PublicParamsXml
+        {
+            get
+            {
+                if (!PublicParameters.HasValue)
+                    return "";
+
+                RSAParameters param = PublicParameters.Value;
+                StringBuilder sb = new StringBuilder();
+
+                sb.AppendLine("<RSAKeyValue>");
+                sb.AppendLine("<Modulus>" + Convert.ToBase64String(param.Modulus) + "</Modulus>");
+                sb.AppendLine("<Exponent>" + Convert.ToBase64String(param.Exponent) + "</Exponent>");
+                sb.AppendLine("</RSAKeyValue>");
+
+                return sb.ToString();
             }
         }
 
