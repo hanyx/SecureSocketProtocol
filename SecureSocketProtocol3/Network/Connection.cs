@@ -67,9 +67,8 @@ namespace SecureSocketProtocol3.Network
 
 
         //Security
-        internal WopEx HeaderEncryption { get; private set; }
         public int PrivateSeed { get; private set; }
-        private DataConfuser headerConfuser { get; set; }
+        internal AesCtrLayer HeaderEncryption { get; private set; }
 
         //connection info
         public ulong PacketsIn { get; private set; }
@@ -120,13 +119,8 @@ namespace SecureSocketProtocol3.Network
             this.ConnectionThreads = new List<Thread>();
 
             this.PrivateSeed = Client.PreComputes.PrivateSeed;
-            
-            byte[] encCode = new byte[0];
-            byte[] decCode = new byte[0];
-            WopEx.GenerateCryptoCode(PrivateSeed, 5, ref encCode, ref decCode);
-            this.HeaderEncryption = new WopEx(Client.PreComputes.NetworkKey, Client.PreComputes.SaltKey, PrivateSeed, encCode, decCode, WopEncMode.GenerateNewAlgorithm, 5, false);
 
-            this.headerConfuser = new DataConfuser(PrivateSeed, Connection.HEADER_SIZE);
+            this.HeaderEncryption = new AesCtrLayer(this);
 
             this.messageHandler = new MessageHandler((uint)PrivateSeed + 0x0FA453FB, this);
             this.messageHandler.AddMessage(typeof(MsgHandshake), "MAZE_HAND_SHAKE");
@@ -240,13 +234,13 @@ namespace SecureSocketProtocol3.Network
                     lock (HeaderEncryption)
                     {
                         outStream.Position = 0;
-                        HeaderEncryption.Encrypt(pw.GetBuffer(), 0, HEADER_SIZE, outStream);
 
-                        /*byte[] temp = outStream.GetBuffer();
-                        headerConfuser.Obfuscate(ref temp, 0);
+                        byte[] encryptedHeader = pw.GetBuffer();
+                        int encOffset = 0;
+                        int encLen = 0;
+                        HeaderEncryption.ApplyLayer(pw.GetBuffer(), 0, HEADER_SIZE, ref encryptedHeader, ref encOffset, ref encLen);
 
-                        outStream.Position = 0;
-                        outStream.Write(temp, 0, temp.Length);*/
+                        outStream.Write(encryptedHeader, 0, encLen);
                     }
 
                     int SendNum = 0;
@@ -320,9 +314,7 @@ namespace SecureSocketProtocol3.Network
                 }
             }
 
-            this.HeaderEncryption = new WopEx(MixedKey, MixedSalt, HeaderEncryption.InitialVectorSeed, HeaderEncryption.EncryptionCode,
-                                              HeaderEncryption.DecryptionCode, HeaderEncryption.EncMode, HeaderEncryption.Rounds,
-                                              HeaderEncryption.UseDynamicCompiler);
+            this.HeaderEncryption.ApplyKey(MixedKey, MixedSalt);
 
             Client.DataIntegrityLayer.ApplyKey(MixedKey, MixedSalt);
             Client.layerSystem.ApplyKeyToLayers(MixedKey, MixedSalt);
@@ -388,8 +380,12 @@ namespace SecureSocketProtocol3.Network
 
             lock (HeaderEncryption)
             {
-                //headerConfuser.Deobfuscate(ref Data, Offset);
-                HeaderEncryption.Decrypt(Data, Offset, HEADER_SIZE, new MemoryStream(Data) { Position = Offset });
+                byte[] decryptedHeader = new byte[0];
+                int decOffset = 0;
+                int decLen = 0;
+                HeaderEncryption.RemoveLayer(Data, Offset, HEADER_SIZE, ref decryptedHeader, ref decOffset, ref decLen);
+
+                Array.Copy(decryptedHeader, 0, Data, Offset, decLen);
             }
         }
 
