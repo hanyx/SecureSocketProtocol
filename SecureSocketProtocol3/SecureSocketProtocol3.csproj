@@ -162,6 +162,7 @@
     <Compile Include="Security\DataIntegrity\HMacLayer.cs" />
     <Compile Include="Security\DataIntegrity\Sha1Layer.cs" />
     <Compile Include="Security\DataIntegrity\CRC32Layer.cs" />
+    <Compile Include="Security\Encryptions\Aes128CounterMode.cs" />
     <Compile Include="Security\Encryptions\Compiler\IAlgorithm.cs" />
     <Compile Include="Security\Encryptions\Compiler\InstructionInfo.cs" />
     <Compile Include="Security\Encryptions\HwAes.cs" />
@@ -197,6 +198,7 @@
     <Compile Include="Security\Handshakes\HandshakeSystem.cs" />
     <Compile Include="Security\Handshakes\MazeHandshake.cs" />
     <Compile Include="Security\Handshakes\SimpleRsaHandshake.cs" />
+    <Compile Include="Security\Layers\AesCtrLayer.cs" />
     <Compile Include="Security\Layers\AesLayer.cs" />
     <Compile Include="Security\DataIntegrity\IDataIntegrityLayer.cs" />
     <Compile Include="Security\Layers\ILayer.cs" />
