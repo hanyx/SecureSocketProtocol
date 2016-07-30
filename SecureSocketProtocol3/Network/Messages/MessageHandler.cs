@@ -80,7 +80,7 @@ namespace SecureSocketProtocol3.Network.Messages
             }
         }
 
-        private uint GetMessageId(string IdentifyKey)
+        public uint GetMessageId(string IdentifyKey)
         {
             hasher.Initialize();
             return BitConverter.ToUInt32(hasher.ComputeHash(ASCIIEncoding.Unicode.GetBytes(IdentifyKey)), 0);
@@ -105,6 +105,13 @@ namespace SecureSocketProtocol3.Network.Messages
             }
         }
 
+        public Type GetMessageTypeById(uint MessageId)
+        {
+            Type type = null;
+            Messages.TryGetValue(MessageId, out type);
+            return type;
+        }
+
         /// <summary>
         /// This method should only be called when handshake is successful
         /// </summary>
@@ -113,7 +120,7 @@ namespace SecureSocketProtocol3.Network.Messages
             Messages.Clear();
         }
 
-        internal IMessage DeSerialize(PayloadReader pr, uint MessageId, int MessageLength)
+        public IMessage DeSerialize(PayloadReader pr, uint MessageId, int MessageLength)
         {
             Type type = null;
             if (!Messages.TryGetValue(MessageId, out type))
@@ -127,7 +134,7 @@ namespace SecureSocketProtocol3.Network.Messages
             return null;
         }
 
-        internal ISerialization GetSerializer(IMessage Message)
+        public ISerialization GetSerializer(IMessage Message)
         {
             object[] attributes = Message.GetType().GetCustomAttributes(typeof(SerializationAttribute), false);
 
@@ -143,7 +150,7 @@ namespace SecureSocketProtocol3.Network.Messages
             return serializer;
         }
 
-        internal ISerialization GetSerializer(Type MessageType)
+        public ISerialization GetSerializer(Type MessageType)
         {
             object[] attributes = MessageType.GetCustomAttributes(typeof(SerializationAttribute), false);
 
