@@ -86,8 +86,14 @@ namespace SecureSocketProtocol3.Utils
         /// <param name="TimeOut">The time to wait for the object being pulsed</param>
         public T Wait<T>(T TimeOutValue, uint TimeOut = 0)
         {
-            if (IsPulsed)
-                return (T)Value;
+            lock (ValueLock)
+            {
+                if (IsPulsed)
+                {
+                    object tempVal = Value;
+                    return (T)tempVal;
+                }
+            }
 
             int waitTime = 0;
 
@@ -119,18 +125,24 @@ namespace SecureSocketProtocol3.Utils
 
         public void Reset()
         {
-            IsPulsed = false;
-            Value = null;
-            TimedOut = false;
+            lock (ValueLock)
+            {
+                IsPulsed = false;
+                Value = null;
+                TimedOut = false;
+            }
         }
 
         public void Pulse()
         {
-            lock (LockedObject)
+            lock (ValueLock)
             {
-                Monitor.Pulse(LockedObject);
+                lock (LockedObject)
+                {
+                    Monitor.Pulse(LockedObject);
+                }
+                IsPulsed = true;
             }
-            IsPulsed = true;
         }
     }
 }
