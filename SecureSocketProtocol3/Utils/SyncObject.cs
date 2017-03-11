@@ -90,8 +90,7 @@ namespace SecureSocketProtocol3.Utils
             {
                 if (IsPulsed)
                 {
-                    object tempVal = Value;
-                    return (T)tempVal;
+                    return getValue<T>();
                 }
             }
 
@@ -120,7 +119,16 @@ namespace SecureSocketProtocol3.Utils
                 if (!IsPulsed)
                     return TimeOutValue;
             }
-            return (T)Value;
+            
+            return getValue<T>();
+        }
+
+        private T getValue<T>()
+        {
+            object tempVal = Value;
+            if (tempVal != null)
+                return (T)tempVal;
+            return default(T);
         }
 
         public void Reset()
