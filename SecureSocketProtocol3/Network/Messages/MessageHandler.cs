@@ -129,7 +129,7 @@ namespace SecureSocketProtocol3.Network.Messages
             ISerialization serializer = GetSerializer(type);
             if (serializer != null)
             {
-                return serializer.Deserialize(pr.Buffer, pr.Position, MessageLength - pr.Position, type);
+                return serializer.Deserialize(pr.Buffer, pr.Position, MessageLength, type);
             }
             return null;
         }

@@ -425,6 +425,7 @@ namespace SecureSocketProtocol3.Network
 
             using (PayloadReader pr = new PayloadReader(DecryptedBuffer) { Position = DecryptedOffset })
             {
+                int oldOffset = pr.Position;
                 OperationalSocket OpSocket = null;
                 if (ConnectionId > 0)
                 {
@@ -452,7 +453,8 @@ namespace SecureSocketProtocol3.Network
                     }
 
                     uint MessageId = pr.ReadUInteger();
-                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen) : messageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen);
+                    int readLen = pr.Position - oldOffset;
+                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen - readLen) : messageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen - readLen);
 
                     if (message != null)
                     {

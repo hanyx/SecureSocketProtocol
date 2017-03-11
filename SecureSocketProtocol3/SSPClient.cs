@@ -189,7 +189,7 @@ namespace SecureSocketProtocol3
                     catch (Exception ex)
                     {
                         /* Will throw a error if connection couldn't be made */
-                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                        //SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     }
                 }, null);
 
@@ -222,17 +222,19 @@ namespace SecureSocketProtocol3
 
             if (!Handle.Connected)
                 throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
-
+            
             PreComputes.SetPreNetworkKey(this);
             PreComputes.ComputeNetworkKey(this);
-            
+
             Connection = new Connection(this);
             onApplyLayers(layerSystem);
             onApplyHandshakes(handshakeSystem);
             handshakeSystem.RegisterMessages(MessageHandler);
-            
+
             Connection.StartReceiver();
             onBeforeConnect();
+
+
             StartKeepAliveTimer();
 
             while (!handshakeSystem.CompletedAllHandshakes)
@@ -282,6 +284,7 @@ namespace SecureSocketProtocol3
                     Connection.SendMessage(new MsgKeepAlive(), new SystemHeader());
                 }
 
+#if !DEBUG
                 if (Connection.LastPacketReceivedElapsed.TotalSeconds >= 30)
                 {
                     //hardware disconnection
@@ -296,6 +299,7 @@ namespace SecureSocketProtocol3
                         Disconnect();
                     }
                 }
+#endif
             }
             catch (Exception ex)
             {

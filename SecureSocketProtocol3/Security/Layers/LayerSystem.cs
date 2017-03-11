@@ -77,9 +77,8 @@ namespace SecureSocketProtocol3.Security.Layers
 
             if (_layers.Count == 0)
             {
-                OutData = new byte[InLen];
-                Array.Copy(InData, InOffset, OutData, OutOffset, InLen);
-                OutOffset = 0;
+                OutData = InData;
+                OutOffset = InOffset;
                 OutLen = InLen;
             }
         }

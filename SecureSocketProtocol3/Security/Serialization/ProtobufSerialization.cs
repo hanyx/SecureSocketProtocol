@@ -45,7 +45,11 @@ namespace SecureSocketProtocol3.Security.Serialization
 
         public Network.Messages.IMessage Deserialize(byte[] MessageData, int Offset, int Length, Type MessageType)
         {
-            return (IMessage)Serializer.Deserialize(new MemoryStream(MessageData, Offset, Length), MessageType);
+            using (MemoryStream ms = new MemoryStream(MessageData, Offset, Length))
+            {
+                //ms.Position = Offset;
+                return (IMessage)Serializer.Deserialize(MessageType, ms);
+            }
         }
     }
 }
