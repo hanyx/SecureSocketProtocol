@@ -173,7 +173,7 @@ namespace SecureSocketProtocol3
 
             if (DnsIp == "")
             {
-                throw new Exception("Unable to resolve \"" + Properties.HostIp + "\" by using DNS");
+                throw new Exception($"Unable to resolve \"{Properties.HostIp}\" by using DNS");
             }
 
             int ConTimeout = Properties.ConnectionTimeout;
@@ -221,7 +221,7 @@ namespace SecureSocketProtocol3
             } while (ConTimeout > 0 && !this.Handle.Connected);
 
             if (!Handle.Connected)
-                throw new Exception("Unable to establish a connection with " + Properties.HostIp + ":" + Properties.Port);
+                throw new Exception($"Unable to establish a connection with {Properties.HostIp}:{Properties.Port }");
             
             PreComputes.SetPreNetworkKey(this);
             PreComputes.ComputeNetworkKey(this);
@@ -233,10 +233,7 @@ namespace SecureSocketProtocol3
 
             Connection.StartReceiver();
             onBeforeConnect();
-
-
-            StartKeepAliveTimer();
-
+            
             while (!handshakeSystem.CompletedAllHandshakes)
             {
                 Handshake curHandshake = handshakeSystem.GetCurrentHandshake();
@@ -249,11 +246,12 @@ namespace SecureSocketProtocol3
                     {
                         //handshake failed or took too long
                         Disconnect();
-                        throw new Exception("Handshake \"" + curHandshake.GetType().Name + "\" failed");
+                        throw new Exception($"Handshake \"{curHandshake.GetType().Name}\" failed");
                     }
                 }
             }
 
+            StartKeepAliveTimer(); //start keep-alive when handshakes are done
             onConnect();
         }
 
@@ -284,7 +282,7 @@ namespace SecureSocketProtocol3
                     Connection.SendMessage(new MsgKeepAlive(), new SystemHeader());
                 }
 
-#if !DEBUG
+#if !DEBUG //Disable in debug mode so you're actually able to debug
                 if (Connection.LastPacketReceivedElapsed.TotalSeconds >= 30)
                 {
                     //hardware disconnection
@@ -369,10 +367,13 @@ namespace SecureSocketProtocol3
                 Server.RemoveClient(this);
             }
 
-            this.Connection = null;
+            //keep the information non-null
+            //race conditions can occur while still receiving data/disconnecting at near the same time
+
+            /*this.Connection = null;
             this.Properties = null;
             this.Handle = null;
-            this.Server = null;
+            this.Server = null;*/
 
             if (this.KeepAliveTimer != null)
                 this.KeepAliveTimer.Enabled = false;

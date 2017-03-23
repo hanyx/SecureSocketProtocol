@@ -84,10 +84,8 @@ namespace SecureSocketProtocol3.Processors
                     SysLogger.Log(ex.Message, SysLogType.Error, ex);
                     client.onException(ex, ErrorType.UserLand);
                 }
-
-                client.StartKeepAliveTimer();
+                
                 client.Connection.StartReceiver();
-
 
                 //there are no handshakes
                 if (client.handshakeSystem.CompletedAllHandshakes)
