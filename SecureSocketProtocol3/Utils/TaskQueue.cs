@@ -34,11 +34,11 @@ namespace SecureSocketProtocol3.Utils
     {
         private Action<T> callback;
         private Queue<T> tasks;
-        private bool ThreadRunning = false;
+        private Thread taskThread;
+        public bool ThreadRunning { get; private set; }
         public uint MaxItems = 100;
+        private bool _stop = false;
 
-        private TimeSpan MinThreadAlive = TimeSpan.FromSeconds(10);
-        private SyncObject syncObj;
         private Connection connection;
 
         public TaskQueue(Action<T> Callback, Connection connection, uint MaxItems = 100)
@@ -46,42 +46,46 @@ namespace SecureSocketProtocol3.Utils
             this.tasks = new Queue<T>();
             this.callback = Callback;
             this.MaxItems = MaxItems;
-            this.syncObj = new SyncObject(connection);
             this.connection = connection;
+            this.taskThread = new Thread(new ThreadStart(WorkerThread));
+            this.taskThread.Start();
         }
 
         public void Enqueue(T value)
         {
             lock (tasks)
             {
-                while (tasks.Count > MaxItems && !ThreadRunning)
-                    ExecuteTasks();
-
-                syncObj.Value = true;
-                syncObj.Pulse();
-
-                tasks.Enqueue(value);
-                if (!ThreadRunning)
+                if (connection.Connected && !_stop)
                 {
-                    ThreadRunning = true;
-                    ThreadPool.QueueUserWorkItem((object obj) => WorkerThread());
+                    tasks.Enqueue(value);
                 }
             }
         }
 
         private void WorkerThread()
         {
-            while (syncObj.IsPulsed)
+            ThreadRunning = true;
+
+            while (connection.Connected && !_stop)
             {
-                ExecuteTasks();
-
-                this.syncObj.Reset();
-
-                bool isPulsed = syncObj.Wait<bool>(false, (uint)MinThreadAlive.TotalMilliseconds);
-                if (!isPulsed)
-                    break;
+                lock (tasks)
+                {
+                    while (tasks.Count > 0)
+                    {
+                        try
+                        {
+                            T obj = tasks.Dequeue();
+                            callback(obj);
+                        }
+                        catch (Exception ex)
+                        {
+                            SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                        }
+                    }
+                }
+                Thread.Sleep(1000);
             }
-
+            ClearTasks();
             ThreadRunning = false;
         }
 
@@ -93,27 +97,9 @@ namespace SecureSocketProtocol3.Utils
             }
         }
 
-        private void ExecuteTasks()
+        public void Stop()
         {
-            lock (tasks)
-            {
-                while (tasks.Count > 0)
-                {
-                    try
-                    {
-                        T obj;
-                        lock (tasks)
-                        {
-                            obj = tasks.Dequeue();
-                        }
-                        callback(obj);
-                    }
-                    catch (Exception ex)
-                    {
-                        SysLogger.Log(ex.Message, SysLogType.Error, ex);
-                    }
-                }
-            }
+            _stop = true;
         }
     }
 }

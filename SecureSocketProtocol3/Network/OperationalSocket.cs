@@ -206,6 +206,7 @@ namespace SecureSocketProtocol3.Network
 
         public void Dispose()
         {
+            PacketQueue.Stop();
             Disconnect();
         }
     }
