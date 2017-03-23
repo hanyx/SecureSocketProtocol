@@ -3,6 +3,7 @@ using SecureSocketProtocol3.Network.MazingHandshake;
 using SecureSocketProtocol3.Processors;
 using SecureSocketProtocol3.Utils;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -115,9 +116,7 @@ namespace SecureSocketProtocol3
         {
             lock (Clients)
             {
-                SSPClient[] clients = new SSPClient[Clients.Count];
-                Clients.Values.CopyTo(clients, 0);
-                return clients;
+                return Clients.Values.Where(o => o.handshakeSystem.CompletedAllHandshakes).ToArray();
             }
         }
 
