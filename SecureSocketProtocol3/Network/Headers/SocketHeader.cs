@@ -1,7 +1,6 @@
-﻿using SecureSocketProtocol3.Network.Messages;
+﻿using ProtoBuf;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -29,12 +28,45 @@ using System.Text;
     SOFTWARE.
 */
 
-namespace SecureSocketProtocol3.Security.Serialization
+namespace SecureSocketProtocol3.Network.Headers
 {
-    public interface ISerialization
+    /// <summary>
+    /// This header is used for the actual socket connection
+    /// Using a serializer for the actual header which starts at every packet/message
+    /// Will make it less prone to cause connection errors because we added a new variable
+    /// </summary>
+    [ProtoContract]
+    internal sealed class SocketHeader : Header
     {
-        byte[] Serialize(IMessage Message);
-        void Serialize(IMessage Message, MemoryStream stream);
-        IMessage Deserialize(byte[] MessageData, int Offset, int Length, Type MessageType);
+        [ProtoMember(1)]
+        public byte CurPacketId;
+
+        [ProtoMember(2)]
+        public ushort ConnectionId;
+
+        [ProtoMember(3)]
+        public ushort HeaderId;
+
+        [ProtoMember(4)]
+        public uint MessageId;
+
+        [ProtoMember(5)]
+        public byte[] SerializedHeader;
+
+        public override string HeaderName
+        {
+            get
+            {
+                return "Socket Header";
+            }
+        }
+
+        public override Version Version
+        {
+            get
+            {
+                return new Version(0, 1, 0);
+            }
+        }
     }
 }

@@ -104,12 +104,11 @@ namespace SecureSocketProtocol3.Network
 
         public byte[] NetworkKey { get { return Client.PreComputes.NetworkKey; } }
         public byte[] NetworkKeySalt { get { return Client.PreComputes.NetworkKeySalt; } }
-
+        
         public Connection(SSPClient client)
             : base(client.Handle)
         {
             this.Client = client;
-
             this.Connected = true;
             this.Headers = new HeaderList(this);
             this.InitSync = new SyncObject(this);
@@ -138,6 +137,8 @@ namespace SecureSocketProtocol3.Network
             Headers.RegisterHeader(typeof(ConnectionHeader));
             Headers.RegisterHeader(typeof(RequestHeader));
             Headers.RegisterHeader(typeof(NullHeader));
+
+            base._connection = this;
         }
 
         /// <summary>
@@ -145,7 +146,6 @@ namespace SecureSocketProtocol3.Network
         /// </summary>
         /// <param name="Message">The data to send</param>
         /// <param name="Header">The Header to use for adding additional information</param>
-        /// <param name="feature">The Feature that has been used for this Message</param>
         /// <param name="OpSocket">The OperationalSocket that has been used for this Message</param>
         internal int SendMessage(IMessage Message, Header Header, OperationalSocket OpSocket = null)
         {
@@ -159,14 +159,6 @@ namespace SecureSocketProtocol3.Network
                 if (Header == null)
                     throw new ArgumentException("Header cannot be null");
 
-                ushort HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
-                byte[] SerializedHeader = Header.Serialize(Header);
-
-                uint messageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
-
-                if (SerializedHeader.Length >= MAX_PACKET_SIZE)
-                    throw new ArgumentException("Header length cannot be greater then " + MAX_PAYLOAD);
-
                 ISerialization serializer = messageHandler.GetSerializer(Message);
 
                 if (serializer == null)
@@ -174,100 +166,75 @@ namespace SecureSocketProtocol3.Network
                     throw new Exception("No serializer is specified for message type " + Message.GetType().FullName);
                 }
 
-                using (MemoryStream outStream = new MemoryStream())
-                using (PayloadWriter pw = new PayloadWriter(outStream))
+                SocketHeader socketHeader = new SocketHeader();
+                socketHeader.ConnectionId = OpSocket != null ? OpSocket.ConnectionId : (ushort)0;
+                socketHeader.CurPacketId = (byte)PacketsOut;
+                socketHeader.HeaderId = OpSocket != null ? OpSocket.Headers.GetHeaderId(Header) : Headers.GetHeaderId(Header);
+                socketHeader.MessageId = OpSocket != null ? OpSocket.MessageHandler.GetMessageId(Message.GetType()) : messageHandler.GetMessageId(Message.GetType());
+                socketHeader.SerializedHeader = Header.Serialize(Header);
+
+
+                //prepare payload
+                byte[] EncryptedPayload = new byte[0];
+                int outOffset = 0;
+                int outLength = 0;
+                using (MemoryStream stream = new MemoryStream())
                 {
-                    pw.WriteBytes(new byte[HEADER_SIZE], 0, HEADER_SIZE); //reserve space
-
-                    using (MemoryStream TempStream = new MemoryStream())
-                    using (PayloadWriter TempPw = new PayloadWriter(TempStream))
-                    {
-                        byte[] outEncrypted = null;
-                        int outOffset = 0;
-                        int outLength = 0;
-
-                        TempPw.WriteBytes(SerializedHeader);
-                        TempPw.WriteUInteger(messageId);
-
-                        byte[] Serialized = serializer.Serialize(Message);
-                        TempStream.Write(Serialized, 0, Serialized.Length);
-
-                        Client.layerSystem.ApplyLayers(TempStream.GetBuffer(), 0, (int)TempStream.Length, ref outEncrypted, ref outOffset, ref outLength);
-                        pw.WriteBytes(outEncrypted, outOffset, outLength);
-
-                        if (Client.DataIntegrityLayer != null)
-                        {
-                            byte[] DataHash = Client.DataIntegrityLayer.ComputeHash(Client, outEncrypted, outOffset, outLength);
-
-                            if (DataHash == null || (DataHash != null && DataHash.Length != Client.DataIntegrityLayer.FixedLength))
-                                throw new Exception("DataIntegrityLayer FixedLength does not match GetHash");
-
-                            pw.WriteBytes(DataHash);
-                        }
-                        else
-                        {
-                            //no Data Integrity Layer
-                        }
-                    }
-
-                    if (pw.Length > MAX_PACKET_SIZE)
-                        throw new OverflowException("Message size cannot be greater then " + MAX_PACKET_SIZE);
-
-                    int PayloadLength = (int)pw.Length - Connection.HEADER_SIZE;
-                    byte CurPacketId = 0;
-                    ushort ConnectionId = OpSocket != null ? OpSocket.ConnectionId : (ushort)0;
-
-                    byte checksum = 0;
-                    checksum += (byte)PayloadLength;
-                    checksum += CurPacketId;
-                    checksum += (byte)ConnectionId;
-                    checksum += (byte)HeaderId;
-
-                    pw.Position = 0;
-                    pw.WriteThreeByteInteger(PayloadLength); //length
-                    pw.WriteByte(CurPacketId); //cur packet id
-                    pw.WriteUShort(ConnectionId); //Connection Id
-                    pw.WriteUShort(HeaderId); //Header Id
-                    pw.WriteByte(checksum);
-
-                    //encrypt the header
-                    lock (HeaderEncryption)
-                    {
-                        outStream.Position = 0;
-
-                        byte[] encryptedHeader = pw.GetBuffer();
-                        int encOffset = 0;
-                        int encLen = 0;
-                        HeaderEncryption.ApplyLayer(pw.GetBuffer(), 0, HEADER_SIZE, ref encryptedHeader, ref encOffset, ref encLen);
-
-                        outStream.Write(encryptedHeader, 0, encLen);
-                    }
-
-                    int SendNum = 0;
-
-                    try
-                    {
-                        for (int i = 0; i < outStream.Length; )
-                        {
-                            int len = i + 65535 < outStream.Length ? 65535 : (int)outStream.Length - i;
-                            Handle.Send(outStream.GetBuffer(), i, len, SocketFlags.None);
-                            i += len;
-                            SendNum += len;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Disconnect();
-                        return -1;
-                    }
-
-                    SysLogger.Log("Send " + outStream.Length, SysLogType.Network);
-
-                    PacketsOut++;
-                    DataOut += (ulong)outStream.Length;
-                    this.LastPacketSendSW = Stopwatch.StartNew();
-                    return SendNum;
+                    //serialize header+payload
+                    Header.Serialize(socketHeader, stream);
+                    serializer.Serialize(Message, stream);
+                        
+                    //Encrypt Payload
+                    Client.layerSystem.ApplyLayers(stream.GetBuffer(), 0, (int)stream.Length, ref EncryptedPayload, ref outOffset, ref outLength);
                 }
+
+                //prepare HMAC if any used
+                byte[] HMAC = new byte[0];
+
+                if (Client.DataIntegrityLayer != null)
+                {
+                    HMAC = Client.DataIntegrityLayer.ComputeHash(Client, EncryptedPayload, 0, EncryptedPayload.Length);
+
+                    if (HMAC == null || (HMAC != null && HMAC.Length != Client.DataIntegrityLayer.FixedLength))
+                        throw new Exception("DataIntegrityLayer FixedLength does not match GetHash");
+                }
+
+                //prepare start - Payload Length header
+                byte[] EncryptedHeader = null;
+                using (PayloadWriter outStream = new PayloadWriter())
+                {
+                    outStream.WriteThreeByteInteger(EncryptedPayload.Length);
+                    outStream.WriteBytes(HMAC);
+                    EncryptedHeader = outStream.ToByteArray();
+
+                    outOffset = 0;
+                    outLength = 0;
+                    HeaderEncryption.ApplyLayer(EncryptedHeader, 0, EncryptedHeader.Length, ref EncryptedHeader, ref outOffset, ref outLength);
+                }
+
+                byte[] FinalOutMessage = new byte[EncryptedHeader.Length + EncryptedPayload.Length];
+                Array.Copy(EncryptedHeader, 0, FinalOutMessage, 0, EncryptedHeader.Length);
+                Array.Copy(EncryptedPayload, 0, FinalOutMessage, EncryptedHeader.Length, EncryptedPayload.Length);
+                
+                try
+                {
+                    for (int i = 0; i < FinalOutMessage.Length;)
+                    {
+                        int len = i + 65535 < FinalOutMessage.Length ? 65535 : FinalOutMessage.Length - i;
+                        Handle.Send(FinalOutMessage, i, len, SocketFlags.None);
+                        i += len;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Disconnect();
+                    return -1;
+                }
+
+                SysLogger.Log("Send " + FinalOutMessage.Length, SysLogType.Network);
+                PacketsOut++;
+
+                return FinalOutMessage.Length;
             }
         }
 
@@ -393,16 +360,10 @@ namespace SecureSocketProtocol3.Network
         {
             this.LastPacketRecvSW = Stopwatch.StartNew();
             PacketsIn++;
-            int PayloadLength = Length;
 
             if (Client.DataIntegrityLayer != null)
             {
-                PayloadLength -= Client.DataIntegrityLayer.FixedLength;
-
-                //let's check the Data Integrity Layer
-                byte[] IntegrityData = new byte[Client.DataIntegrityLayer.FixedLength];
-                Buffer.BlockCopy(Data, (Offset + PayloadLen) - IntegrityData.Length, IntegrityData, 0, IntegrityData.Length);
-                if (!Client.DataIntegrityLayer.Verify(Client, IntegrityData, Data, Offset, PayloadLength))
+                if (!Client.DataIntegrityLayer.Verify(Client, base.PayloadHMAC, Data, Offset, Length))
                 {
                     //Hash missmatch
                     Disconnect();
@@ -410,11 +371,11 @@ namespace SecureSocketProtocol3.Network
                 }
             }
 
+
             byte[] DecryptedBuffer = null;
             int DecryptedOffset = 0;
             int DecryptedBuffLen = 0;
-
-            Client.layerSystem.RemoveLayers(Data, Offset, PayloadLength, ref DecryptedBuffer, ref DecryptedOffset, ref DecryptedBuffLen);
+            Client.layerSystem.RemoveLayers(Data, Offset, Length, ref DecryptedBuffer, ref DecryptedOffset, ref DecryptedBuffLen);
 
             if (DecryptedBuffer == null)
             {
@@ -426,36 +387,42 @@ namespace SecureSocketProtocol3.Network
             using (PayloadReader pr = new PayloadReader(DecryptedBuffer) { Position = DecryptedOffset })
             {
                 int oldOffset = pr.Position;
+                SocketHeader socketHeader = Header.DeSerialize(typeof(SocketHeader), pr) as SocketHeader;
+                
                 OperationalSocket OpSocket = null;
-                if (ConnectionId > 0)
+                if (socketHeader.ConnectionId > 0)
                 {
                     lock (OperationalSockets)
                     {
-                        if (!OperationalSockets.TryGetValue(ConnectionId, out OpSocket))
+                        if (!OperationalSockets.TryGetValue(socketHeader.ConnectionId, out OpSocket))
                         {
                             //strange...
-                            Disconnect();
+                            //Disconnect();
                             return;
                         }
                     }
                 }
 
-                Type type = Headers.GetHeaderType(HeaderId);
+                Type type = Headers.GetHeaderType(socketHeader.HeaderId);
 
                 if (type != null)
                 {
-                    Header header = Header.DeSerialize(type, pr);
+                    Header header = null;
+
+                    using (PayloadReader headerPr = new PayloadReader(socketHeader.SerializedHeader))
+                    {
+                        header = Header.DeSerialize(type, headerPr);
+                    }
 
                     if (header == null)
                     {
                         Disconnect();
                         return;
                     }
-
-                    uint MessageId = pr.ReadUInteger();
+                    
                     int readLen = pr.Position - oldOffset;
-                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen - readLen) : messageHandler.DeSerialize(pr, MessageId, DecryptedBuffLen - readLen);
-
+                    IMessage message = OpSocket != null ? OpSocket.MessageHandler.DeSerialize(pr, socketHeader.MessageId, DecryptedBuffLen - readLen) : messageHandler.DeSerialize(pr, socketHeader.MessageId, DecryptedBuffLen - readLen);
+                    
                     if (message != null)
                     {
                         message.RawSize = Length;
@@ -489,7 +456,7 @@ namespace SecureSocketProtocol3.Network
                         }
                         else
                         {
-                            ProcessMessage(new SystemPacket(header, message, ConnectionId, OpSocket));
+                            ProcessMessage(new SystemPacket(header, message, socketHeader.ConnectionId, OpSocket));
                         }
                     }
                 }

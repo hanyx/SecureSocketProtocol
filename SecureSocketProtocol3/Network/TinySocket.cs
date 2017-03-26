@@ -1,4 +1,5 @@
-﻿using SecureSocketProtocol3.Utils;
+﻿using SecureSocketProtocol3.Network.Headers;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -43,10 +44,7 @@ namespace SecureSocketProtocol3.Network
         /// The checksum is all the information combined to a small hash of 1Byte
         /// 
         /// </summary>
-
-        public const int HEADER_SIZE = 12; //Headersize contains, length(USHORT) + CurPacketId(BYTE) + Connection Id(USHORT) + Header Id(USHORT) + Checksum(BYTE)
-        public const int MAX_PAYLOAD = ushort.MaxValue - HEADER_SIZE; //maximum size to receive at once, U_SHORT - HEADER_SIZE = 65529
-
+        
         public const int MAX_PACKET_SIZE = (1024 * 1024) * 1; //1MB
         public const int START_BUFFER_SIZE = 1024; //1KB
 
@@ -57,10 +55,7 @@ namespace SecureSocketProtocol3.Network
 
         //header info
         protected int PayloadLen = 0;
-        protected byte CurPacketId = 0;
-        protected ushort ConnectionId = 0;
-        protected ushort HeaderId = 0;
-        protected byte HeaderChecksum = 0;
+        protected byte[] PayloadHMAC = null;
 
         //receive info
         private int ReadOffset = 0;
@@ -72,6 +67,21 @@ namespace SecureSocketProtocol3.Network
 
         private ReceiveType ReceiveState = ReceiveType.Header;
         private SocketAsyncEventArgs asyncEventArgs;
+
+        protected Connection _connection;
+
+        public int HEADER_SIZE //Headersize contains, length + hmac
+        {
+            get
+            {
+                int length = 3;
+                if (_connection.Client.DataIntegrityLayer != null)
+                {
+                    length += _connection.Client.DataIntegrityLayer.FixedLength;
+                }
+                return length;
+            }
+        }
 
         public TinySocket(Socket socket)
         {
@@ -86,8 +96,7 @@ namespace SecureSocketProtocol3.Network
         private void socket_BeginRecieve(IAsyncResult ar)
         {
             int BytesTransferred = 0;
-
-
+            
             try
             {
                 BytesTransferred = socket.EndReceive(ar);
@@ -112,7 +121,7 @@ namespace SecureSocketProtocol3.Network
             {
                 if (ReceiveState == ReceiveType.Header)
                 {
-                    if ((Process = ReadableDataLen >= Connection.HEADER_SIZE))
+                    if ((Process = ReadableDataLen >= HEADER_SIZE))
                     {
                         onReceiveHeader(Buffer, ReadOffset);
 
@@ -120,20 +129,14 @@ namespace SecureSocketProtocol3.Network
                         {
                             pr.Position = ReadOffset;
                             PayloadLen = pr.ReadThreeByteInteger();
-                            CurPacketId = pr.ReadByte();
-                            ConnectionId = pr.ReadUShort();
-                            HeaderId = pr.ReadUShort();
-                            HeaderChecksum = pr.ReadByte();
+
+                            if (_connection.Client.DataIntegrityLayer != null)
+                            {
+                                PayloadHMAC = pr.ReadBytes(_connection.Client.DataIntegrityLayer.FixedLength);
+                            }
                         }
-
-                        byte ReChecksum = 0; //re-calculate the checksum
-                        ReChecksum += (byte)PayloadLen;
-                        ReChecksum += CurPacketId;
-                        ReChecksum += (byte)ConnectionId;
-                        ReChecksum += (byte)HeaderId;
-
-                        if (ReChecksum != HeaderChecksum ||
-                            PayloadLen >= MAX_PACKET_SIZE ||
+                        
+                        if (PayloadLen >= MAX_PACKET_SIZE ||
                             PayloadLen < 0)
                         {
                             onDisconnect();

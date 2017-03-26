@@ -40,11 +40,16 @@ namespace SecureSocketProtocol3.Security.Serialization
         {
             using (MemoryStream stream = new MemoryStream())
             {
-                BinaryFormatter bf = new BinaryFormatter();
-                bf.Binder = new DeserializationBinder();
-                bf.Serialize(stream, Message);
+                Serialize(Message, stream);
                 return stream.ToArray();
             }
+        }
+
+        public void Serialize(IMessage Message, MemoryStream stream)
+        {
+            BinaryFormatter bf = new BinaryFormatter();
+            bf.Binder = new DeserializationBinder();
+            bf.Serialize(stream, Message);
         }
 
         public IMessage Deserialize(byte[] MessageData, int Offset, int Length, Type MessageType)
@@ -56,7 +61,6 @@ namespace SecureSocketProtocol3.Security.Serialization
                 return bf.Deserialize(stream) as IMessage;
             }
         }
-
 
         sealed class DeserializationBinder : SerializationBinder
         {

@@ -63,6 +63,7 @@
     </Compile>
     <Compile Include="Network\ClientPrecomputes.cs" />
     <Compile Include="Network\Headers\NullHeader.cs" />
+    <Compile Include="Network\Headers\SocketHeader.cs" />
     <Compile Include="Network\Messages\TCP\MsgHandshakeFinish.cs" />
     <Compile Include="Network\Messages\TCP\MsgKeepAlive.cs" />
     <Compile Include="Network\Messages\TCP\MsgOpDisconnectResponse.cs" />

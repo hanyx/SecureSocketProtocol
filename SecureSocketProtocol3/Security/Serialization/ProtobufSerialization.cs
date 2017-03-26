@@ -36,11 +36,16 @@ namespace SecureSocketProtocol3.Security.Serialization
     {
         public byte[] Serialize(Network.Messages.IMessage Message)
         {
-            using (MemoryStream TempStream = new MemoryStream())
+            using (MemoryStream stream = new MemoryStream())
             {
-                Serializer.Serialize(TempStream, Message);
-                return TempStream.ToArray();
+                Serialize(Message, stream);
+                return stream.ToArray();
             }
+        }
+
+        public void Serialize(IMessage Message, MemoryStream stream)
+        {
+            Serializer.Serialize(stream, Message);
         }
 
         public Network.Messages.IMessage Deserialize(byte[] MessageData, int Offset, int Length, Type MessageType)

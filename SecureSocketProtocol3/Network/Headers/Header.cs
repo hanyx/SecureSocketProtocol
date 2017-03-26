@@ -54,6 +54,17 @@ namespace SecureSocketProtocol3.Network.Headers
             return (ushort)(name * version);
         }
 
+        public static void Serialize(Header header, MemoryStream TargetStream)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                PayloadWriter pw = new PayloadWriter(TargetStream);
+                Serializer.Serialize(ms, header);
+                pw.WriteUShort((ushort)ms.Length);
+                pw.WriteBytes(ms.GetBuffer(), 0, (int)ms.Length);
+            }
+        }
+
         public static byte[] Serialize(Header header)
         {
             using(MemoryStream ms = new MemoryStream())
@@ -61,7 +72,7 @@ namespace SecureSocketProtocol3.Network.Headers
             {
                 Serializer.Serialize(ms, header);
                 pw.WriteUShort((ushort)ms.Length);
-                pw.WriteBytes(ms.ToArray());
+                pw.WriteBytes(ms.GetBuffer(), 0, (int)ms.Length);
                 return pw.ToByteArray();
             }
         }
