@@ -38,6 +38,7 @@ namespace SecureSocketProtocol3.Utils
         public bool ThreadRunning { get; private set; }
         public uint MaxItems = 100;
         private bool _stop = false;
+        private SyncObject syncObj;
 
         private Connection connection;
 
@@ -47,6 +48,7 @@ namespace SecureSocketProtocol3.Utils
             this.callback = Callback;
             this.MaxItems = MaxItems;
             this.connection = connection;
+            this.syncObj = new SyncObject(connection);
             this.taskThread = new Thread(new ThreadStart(WorkerThread));
             this.taskThread.Start();
         }
@@ -58,6 +60,9 @@ namespace SecureSocketProtocol3.Utils
                 if (connection.Connected && !_stop)
                 {
                     tasks.Enqueue(value);
+
+                    syncObj.Value = true;
+                    syncObj.Pulse();
                 }
             }
         }
@@ -82,8 +87,9 @@ namespace SecureSocketProtocol3.Utils
                             SysLogger.Log(ex.Message, SysLogType.Error, ex);
                         }
                     }
+                    this.syncObj.Reset();
                 }
-                Thread.Sleep(1000);
+                syncObj.Wait<bool>(false, 1000);
             }
             ClearTasks();
             ThreadRunning = false;
