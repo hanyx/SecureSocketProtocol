@@ -1,5 +1,7 @@
 ﻿using SecureSocketProtocol3;
 using SecureSocketProtocol3.Security.Encryptions;
+using SecureSocketProtocol3.Security.Layers;
+using SecureSocketProtocol3.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -14,6 +16,7 @@ namespace EncryptionTests
         private static WopEx wop_dec;
         static void Main(string[] args)
         {
+            TestAesCtr();
             RSA_Test();
 
             //while(true)
@@ -84,6 +87,41 @@ namespace EncryptionTests
                 sw.WriteLine(message);
                 sw.Flush();
                 Console.WriteLine(message);
+            }
+        }
+
+        private static void TestAesCtr()
+        {
+            byte[] OrgData = new byte[100];
+
+            for (byte i = 0; i < OrgData.Length; i++)
+                OrgData[i] = i;
+
+            SecureRandom rand = new SecureRandom();
+            byte[] key = new byte[16];// rand.NextBytes(16);
+            byte[] counter = new byte[16];//rand.NextBytes(16);
+
+            AesCtrLayer layer = new AesCtrLayer(key, counter);
+
+            while (true)
+            {
+                byte[] encrypted = new byte[0];
+                int encOffset = 0;
+                int encLen = 0;
+                layer.ApplyLayer(OrgData, 0, OrgData.Length, ref encrypted, ref encOffset, ref encLen);
+
+                byte[] decrypted = new byte[0];
+                int decOffset = 0;
+                int decLen = 0;
+                layer.RemoveLayer(encrypted, encOffset, encLen, ref decrypted, ref decOffset, ref decLen);
+
+                for (int i = 0; i < OrgData.Length; i++)
+                {
+                    if (OrgData[i] != decrypted[i])
+                    {
+                        throw new Exception("Decryption failed");
+                    }
+                }
             }
         }
 

@@ -77,6 +77,7 @@ namespace SecureSocketProtocol3
             this.TcpServer.Bind(new IPEndPoint(IPAddress.Parse(serverProperties.ListenIp), serverProperties.ListenPort));
             this.TcpServer.Listen(100);
             this.TcpServer.BeginAccept(AcceptClientCallback, null);
+            
 
             if (serverProperties.UseIPv4AndIPv6)
             {

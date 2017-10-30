@@ -34,6 +34,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
+    [Attributes.Serialization(typeof(ProtobufSerialization))]
     internal class MsgCreateConnectionResponse : IMessage
     {
         [ProtoMember(1)]

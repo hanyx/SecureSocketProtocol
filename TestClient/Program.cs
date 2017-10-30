@@ -28,7 +28,7 @@ namespace TestClient
             //SysLogger.onSysLog += SysLogger_onSysLog;
             Console.Title = "SSP Client";
 
-            for (int i = 0; i < 50; i++)
+            for (int i = 0; i < 1; i++)
             {
                 ClientStatus status = new ClientStatus(i);
                 ConnectionCount.Add(status);
@@ -57,20 +57,34 @@ namespace TestClient
         static void ClientThread(object o)
         {
             ClientStatus status = (ClientStatus)o;
-            
-            //while (true)
+            ClientProps props = new ClientProps();
+
+            while (true)
             {
                 status.Status = "Connecting...";
                 status.TimeToConnect.Reset();
                 status.TimeToConnect.Start();
 
-                Client client = new Client();
+                using (Client client = new Client(props))
+                {
+                    /**/byte[] test = new byte[65535];
+                    using (TestSocket sock = new TestSocket(client))
+                    {
+                        sock.Connect();
+                        for (int i = 0; i < 999999999; i++)
+                        {
+                            sock.Send_Protobuf_Message(test);
+                        }
+                    }
 
-                status.TimeToConnect.Stop();
+                    status.TimeToConnect.Stop();
 
-                status.ConnectionCount++;
-                status.Status = "Connected";
+                    status.ConnectionCount++;
+                    status.Status = "Connected";
+                    //Thread.Sleep(5000);
+                }
             }
+            Console.WriteLine("Thread closed");
         }
 
         class ClientStatus

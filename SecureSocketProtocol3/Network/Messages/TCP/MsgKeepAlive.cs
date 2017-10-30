@@ -34,6 +34,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
+    [Attributes.Serialization(typeof(ProtobufSerialization))]
     internal class MsgKeepAlive : IMessage
     {
         [ProtoMember(1)]
@@ -43,7 +44,10 @@ namespace SecureSocketProtocol3.Network.Messages.TCP
             : base()
         {
             SecureRandom rnd = new SecureRandom();
-            this.Payload = rnd.NextBytes(rnd.Next(32, 256));
+            this.Payload = rnd.NextBytes(rnd.Next(16, 32));
+
+            for (int i = 0; i < Payload.Length; i++)
+                Payload[i] = 0xFF;
         }
 
         public override void ProcessPayload(SSPClient client, OperationalSocket OpSocket)

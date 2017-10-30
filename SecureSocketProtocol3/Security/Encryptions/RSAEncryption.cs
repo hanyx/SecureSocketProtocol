@@ -85,9 +85,83 @@ namespace SecureSocketProtocol3.Security.Encryptions
             }
         }
 
+        public string PublicFingerprintSha1
+        {
+            get
+            {
+                if (!PublicParameters.HasValue)
+                    return "";
+
+                string fingerPrint = Convert.ToBase64String(PublicParameters.Value.Modulus);
+                fingerPrint = BitConverter.ToString(SHA1.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
+                return fingerPrint.Replace('-', ':');
+            }
+        }
+
+        public string PublicFingerprintSha256
+        {
+            get
+            {
+                if (!PublicParameters.HasValue)
+                    return "";
+
+                string fingerPrint = Convert.ToBase64String(PublicParameters.Value.Modulus);
+                fingerPrint = BitConverter.ToString(SHA256.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
+                return fingerPrint.Replace('-', ':');
+            }
+        }
+
+        public string PublicFingerprintSha512
+        {
+            get
+            {
+                if (!PublicParameters.HasValue)
+                    return "";
+
+                string fingerPrint = Convert.ToBase64String(PublicParameters.Value.Modulus);
+                fingerPrint = BitConverter.ToString(SHA512.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
+                return fingerPrint.Replace('-', ':');
+            }
+        }
+
+        public string PublicFingerprintMd5
+        {
+            get
+            {
+                if (!PublicParameters.HasValue)
+                    return "";
+
+                string fingerPrint = Convert.ToBase64String(PublicParameters.Value.Modulus);
+                fingerPrint = BitConverter.ToString(MD5.Create().ComputeHash(ASCIIEncoding.ASCII.GetBytes(fingerPrint)));
+                return fingerPrint.Replace('-', ':');
+            }
+        }
+
+        public string RsaXml
+        {
+            get { return rsa.ToXmlString(true); }
+            set { rsa.FromXmlString(value); }
+        }
+
+        public string PublicRsaXml
+        {
+            get { return rsa.ToXmlString(false); }
+            set { rsa.FromXmlString(value); }
+        }
+
         public RSAEncryption(int KeySize, bool PkcsPadding = true)
         {
             this.rsa = new System.Security.Cryptography.RSACryptoServiceProvider(KeySize);
+            this.PkcsPadding = PkcsPadding;
+            this.KeySize = KeySize;
+            this.DecChunkSize = (KeySize / 8);
+            this.EncChunkSize = DecChunkSize / 2;
+        }
+
+        public RSAEncryption(int KeySize, string RsaXml, bool PkcsPadding = true)
+        {
+            this.rsa = new System.Security.Cryptography.RSACryptoServiceProvider(KeySize);
+            this.RsaXml = RsaXml;
             this.PkcsPadding = PkcsPadding;
             this.KeySize = KeySize;
             this.DecChunkSize = (KeySize / 8);

@@ -34,6 +34,8 @@ namespace SecureSocketProtocol3
 {
     public abstract class ClientProperties
     {
+        public string ResolvedIp { get; set; }
+
         public abstract string HostIp { get; }
         public abstract ushort Port { get; }
         public abstract int ConnectionTimeout { get; }

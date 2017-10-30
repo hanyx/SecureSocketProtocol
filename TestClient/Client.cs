@@ -12,21 +12,22 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using TestClient.Sockets;
 
 namespace TestClient
 {
     public class Client : SSPClient
     {
-        public Client()
-            : base(new ClientProps())
+        public Client(ClientProps properties)
+            : base(properties)
         {
 
         }
 
         public override void onConnect()
         {
-            //return;
+            return;
             while (false)
             {
                 using (TestSocket testSock2 = new TestSocket(this))
@@ -47,29 +48,31 @@ namespace TestClient
             //rnd.NextBytes(Data);
             int PacketsSend = 0;
             int RealSend = 0;
+            Data = new byte[65535];// new byte[rnd.Next(1, 65535)];
 
             //endless test
-            /**/while (true)
+            /**/
+            while (true)
             {
-                Data = new byte[rnd.Next(1, 65535)];
+                
                 bench.Bench(new BenchCallback(() => RealSend += testSock.Send_Protobuf_Message(Data)));
                 PacketsSend++;
 
                 if (bench.PastASecond)
                 {
-                    ulong Speed = bench.SpeedPerSec * (ulong)Data.Length;
-                    double MegaByteSpeed = Math.Round(((double)Speed / 1000F) / 1000F, 2);
-                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000F) * 8, 2);
+                    double MegaByteSpeed = Math.Round(((double)RealSend / 1000D) / 1000D, 2);
+                    double GigabitSpeed = Math.Round((MegaByteSpeed / 1000D) * 8D, 2);
 
-                    double SendMegaByteSpeed = Math.Round(((double)RealSend / 1000F) / 1000F, 2);
+                    double SendMegaByteSpeed = Math.Round(((double)RealSend / 1000D) / 1000D, 2);
                     RealSend = 0;
 
                     Console.WriteLine("Messages Send: " + PacketsSend + "\t\tThroughput:" + SendMegaByteSpeed + "MBps\t\t" + GigabitSpeed + "Gbps");
                     Console.Title = "SSP Client - Running for " + RuntimeSW.Elapsed.Hours + ":" + RuntimeSW.Elapsed.Minutes + ":" + RuntimeSW.Elapsed.Seconds;
+                    //Thread.Sleep(10000);
                 }
             }
 
-
+            
             Console.WriteLine("============= Protobuf Performance =============");
             PacketsSend = 0;
             RuntimeSW = Stopwatch.StartNew();
@@ -195,16 +198,17 @@ namespace TestClient
 
         bool simpleRsaHandshake_onVerifyFingerPrint(byte[] PublicKey, string FingerPrint, string Sha512FingerPrint)
         {
-            //Console.WriteLine("Host MD5 FingerPrint: " + FingerPrint + "\r\n     SHA512: " + Sha512FingerPrint + "\r\n");
+            Console.WriteLine("Host MD5 FingerPrint: " + FingerPrint + "\r\n     SHA512: " + Sha512FingerPrint + "\r\n");
 
-            if (FingerPrint != "49:17:B6:AD:D9:FA:C4:09:B3:C7:4E:9E:02:D6:97:74" || Sha512FingerPrint != "BD:7C:94:E5:90:B2:04:E9:06:7A:95:8E:9C:EC:75:9E:CD:39:69:E4:A9:FC:9A:E4:1A:E2:1A:7B:4C:23:C4:19:43:13:64:E2:5C:C4:49:4B:45:AF:C4:85:81:29:F1:B7:3B:57:FD:D5:50:67:43:30:C9:26:D0:CE:8C:6C:BA:9B")
+            /**/if (FingerPrint != "49:17:B6:AD:D9:FA:C4:09:B3:C7:4E:9E:02:D6:97:74" ||
+                Sha512FingerPrint != "BD:7C:94:E5:90:B2:04:E9:06:7A:95:8E:9C:EC:75:9E:CD:39:69:E4:A9:FC:9A:E4:1A:E2:1A:7B:4C:23:C4:19:43:13:64:E2:5C:C4:49:4B:45:AF:C4:85:81:29:F1:B7:3B:57:FD:D5:50:67:43:30:C9:26:D0:CE:8C:6C:BA:9B")
             {
                 Console.Write("FingerPrint changed!! still want to continue (no) ?");
 
                 if (Console.ReadLine() == "no")
                     return false;
             }
-
+            
             return true;
         }
     }

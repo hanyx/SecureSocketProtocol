@@ -45,7 +45,7 @@ namespace TestClient.Sockets
 
         public override void onConnect()
         {
-            //Console.WriteLine("Operational Socket is connected");
+            Console.WriteLine("Operational Socket is connected");
         }
 
         public override void onDisconnect(DisconnectReason Reason)

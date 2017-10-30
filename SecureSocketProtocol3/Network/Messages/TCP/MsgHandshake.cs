@@ -36,6 +36,7 @@ using System.Threading;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
+    [Attributes.Serialization(typeof(ProtobufSerialization))]
     internal class MsgHandshake : IMessage
     {
         [ProtoMember(1)]

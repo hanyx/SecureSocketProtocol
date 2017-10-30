@@ -64,11 +64,14 @@ namespace SecureSocketProtocol3.Network
         private int TotalReceived = 0;
         private byte[] Buffer = new byte[START_BUFFER_SIZE];
         private Socket socket;
+        private ulong PacketsProcessed = 0;
 
         private ReceiveType ReceiveState = ReceiveType.Header;
         private SocketAsyncEventArgs asyncEventArgs;
 
         protected Connection _connection;
+
+        private bool squidRemoveEnter = true;
 
         public int HEADER_SIZE //Headersize contains, length + hmac
         {
@@ -123,6 +126,16 @@ namespace SecureSocketProtocol3.Network
                 {
                     if ((Process = ReadableDataLen >= HEADER_SIZE))
                     {
+                        //squid proxy enter skip, it only happens once in the first packet
+                        //why does squid even send a enter...
+                        if (PacketsProcessed == 0 && squidRemoveEnter && Buffer[ReadOffset] == 0x0D && Buffer[ReadOffset + 1] == 0x0A)
+                        {
+                            ReadableDataLen -= 2;
+                            ReadOffset += 2;
+                            squidRemoveEnter = false;
+                            continue;
+                        }
+
                         onReceiveHeader(Buffer, ReadOffset);
 
                         using (PayloadReader pr = new PayloadReader(Buffer))
@@ -163,6 +176,7 @@ namespace SecureSocketProtocol3.Network
                         TotalReceived = 0;
                         ReadOffset += PayloadLen;
                         ReadableDataLen -= PayloadLen;
+                        PacketsProcessed++;
                         ReceiveState = ReceiveType.Header;
                     }
                 }

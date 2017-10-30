@@ -34,6 +34,7 @@ using System.Text;
 namespace SecureSocketProtocol3.Network.Messages.TCP
 {
     [ProtoContract]
+    [Attributes.Serialization(typeof(ProtobufSerialization))]
     internal class MsgOpDisconnectResponse : IMessage
     {
         [ProtoMember(1)]

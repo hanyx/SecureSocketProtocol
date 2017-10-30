@@ -80,7 +80,9 @@ namespace SecureSocketProtocol3
             }
         }
 
-        public ClientProperties Properties { get; private set; }
+        public ClientProperties[] Properties { get; private set; }
+        public ClientProperties ConnectedProperty { get; private set; }
+        
         internal Socket Handle { get; set; }
         internal SSPServer Server;
 
@@ -147,7 +149,7 @@ namespace SecureSocketProtocol3
         /// Create a connection
         /// </summary>
         /// <param name="Properties">The Properties</param>
-        public SSPClient(ClientProperties Properties)
+        public SSPClient(params ClientProperties[] Properties)
             : this()
         {
             this.Properties = Properties;
@@ -156,73 +158,95 @@ namespace SecureSocketProtocol3
 
         internal void Connect(ConnectionState State)
         {
-            IPAddress[] resolved = Dns.GetHostAddresses(Properties.HostIp);
-            string DnsIp = "";
-            bool IsIPv6 = false;
+            StringBuilder FailedConnections = new StringBuilder();
 
-            for (int i = 0; i < resolved.Length; i++)
+            foreach (ClientProperties prop in this.Properties)
             {
-                if (resolved[i].AddressFamily == AddressFamily.InterNetwork ||
-                    resolved[i].AddressFamily == AddressFamily.InterNetworkV6)
+                IPAddress[] resolved = Dns.GetHostAddresses(prop.HostIp);
+                string DnsIp = "";
+                bool IsIPv6 = false;
+
+                for (int i = 0; i < resolved.Length; i++)
                 {
-                    IsIPv6 = resolved[i].AddressFamily == AddressFamily.InterNetworkV6;
-                    DnsIp = resolved[i].ToString();
+                    if (resolved[i].AddressFamily == AddressFamily.InterNetwork ||
+                        resolved[i].AddressFamily == AddressFamily.InterNetworkV6)
+                    {
+                        IsIPv6 = resolved[i].AddressFamily == AddressFamily.InterNetworkV6;
+                        DnsIp = resolved[i].ToString();
+                        prop.ResolvedIp = DnsIp;
+                        break;
+                    }
+                }
+
+                if (DnsIp == "")
+                {
+                    FailedConnections.AppendLine($"Unable to resolve \"{prop.HostIp}\"");
+                    continue;
+                }
+
+                int ConTimeout = prop.ConnectionTimeout;
+                do
+                {
+                    this.Handle = new Socket(IsIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    IAsyncResult result = this.Handle.BeginConnect(new IPEndPoint(resolved[0], prop.Port), (IAsyncResult ar) =>
+                    {
+                        try
+                        {
+                            this.Handle.EndConnect(ar);
+                        }
+                        catch (Exception ex)
+                        {
+                            /* Will throw a error if connection couldn't be made */
+                            //SysLogger.Log(ex.Message, SysLogType.Error, ex);
+                        }
+                    }, null);
+
+                    Stopwatch sw = Stopwatch.StartNew();
+                    if (ConTimeout > 0)
+                    {
+                        result.AsyncWaitHandle.WaitOne(ConTimeout);
+                    }
+                    else
+                    {
+                        result.AsyncWaitHandle.WaitOne();
+                    }
+
+                    sw.Stop();
+                    ConTimeout -= (int)sw.ElapsedMilliseconds;
+
+                    if (!this.Handle.Connected)
+                    {
+                        this.Handle.Close();
+
+                        //A Firewall blocked the connection ?
+                        if (ConTimeout > 0 && sw.ElapsedMilliseconds <= 10)
+                        {
+                            Thread.Sleep(1000);
+                            ConTimeout -= 1000;
+                        }
+                    }
+                    else
+                    {
+                        this.ConnectedProperty = prop;
+                    }
+                } while (ConTimeout > 0 && !this.Handle.Connected);
+
+                if (this.ConnectedProperty != null)
+                {
                     break;
                 }
             }
 
-            if (DnsIp == "")
+            if (!Handle.Connected)
             {
-                throw new Exception($"Unable to resolve \"{Properties.HostIp}\" by using DNS");
+                foreach (ClientProperties prop in this.Properties)
+                {
+                    FailedConnections.AppendLine($"Failed to connect: {prop.HostIp}:{prop.Port}");
+                }
+
+                throw new Exception($"Unable to establish a connection {FailedConnections}");
             }
 
-            int ConTimeout = Properties.ConnectionTimeout;
-            do
-            {
-                this.Handle = new Socket(IsIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                IAsyncResult result = this.Handle.BeginConnect(new IPEndPoint(resolved[0], Properties.Port), (IAsyncResult ar) =>
-                {
-                    try
-                    {
-                        this.Handle.EndConnect(ar);
-                    }
-                    catch (Exception ex)
-                    {
-                        /* Will throw a error if connection couldn't be made */
-                        //SysLogger.Log(ex.Message, SysLogType.Error, ex);
-                    }
-                }, null);
-
-                Stopwatch sw = Stopwatch.StartNew();
-                if (ConTimeout > 0)
-                {
-                    result.AsyncWaitHandle.WaitOne(ConTimeout);
-                }
-                else
-                {
-                    result.AsyncWaitHandle.WaitOne();
-                }
-
-                sw.Stop();
-                ConTimeout -= (int)sw.ElapsedMilliseconds;
-
-                if (!this.Handle.Connected)
-                {
-                    this.Handle.Close();
-
-                    //A Firewall blocked the connection ?
-                    if (ConTimeout > 0 && sw.ElapsedMilliseconds <= 10)
-                    {
-                        Thread.Sleep(1000);
-                        ConTimeout -= 1000;
-                    }
-                }
-
-            } while (ConTimeout > 0 && !this.Handle.Connected);
-
-            if (!Handle.Connected)
-                throw new Exception($"Unable to establish a connection with {Properties.HostIp}:{Properties.Port }");
-            
             PreComputes.SetPreNetworkKey(this);
             PreComputes.ComputeNetworkKey(this);
 
@@ -233,7 +257,7 @@ namespace SecureSocketProtocol3
 
             Connection.StartReceiver();
             onBeforeConnect();
-            
+
             while (!handshakeSystem.CompletedAllHandshakes)
             {
                 Handshake curHandshake = handshakeSystem.GetCurrentHandshake();
@@ -261,7 +285,7 @@ namespace SecureSocketProtocol3
                 this.KeepAliveTimer.Stop();
 
             this.KeepAliveTimer = new System.Timers.Timer();
-            this.KeepAliveTimer.Interval = 5000;
+            this.KeepAliveTimer.Interval = 10;
             this.KeepAliveTimer.Elapsed += KeepAliveTimer_Elapsed;
             this.KeepAliveTimer.Enabled = true;
         }
@@ -283,7 +307,7 @@ namespace SecureSocketProtocol3
                 }
 
 #if !DEBUG //Disable in debug mode so you're actually able to debug
-                if (Connection.LastPacketReceivedElapsed.TotalSeconds >= 30)
+                /*if (Connection.LastPacketReceivedElapsed.TotalSeconds >= 30)
                 {
                     //hardware disconnection
                     Disconnect();
@@ -296,7 +320,7 @@ namespace SecureSocketProtocol3
                     {
                         Disconnect();
                     }
-                }
+                }*/
 #endif
             }
             catch (Exception ex)

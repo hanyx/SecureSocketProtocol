@@ -146,7 +146,7 @@ namespace SecureSocketProtocol3.Network.Messages
             ISerialization serializer = Message.onGetSerializer();
 
             if (serializer == null)
-                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.Properties.DefaultSerializer;
+                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.ConnectedProperty.DefaultSerializer;
             return serializer;
         }
 
@@ -162,7 +162,7 @@ namespace SecureSocketProtocol3.Network.Messages
             ISerialization serializer = (Activator.CreateInstance(MessageType) as IMessage).onGetSerializer();
 
             if (serializer == null)
-                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.Properties.DefaultSerializer;
+                return connection.Client.IsServerSided ? connection.Client.Server.serverProperties.DefaultSerializer : connection.Client.ConnectedProperty.DefaultSerializer;
             return serializer;
         }
     }

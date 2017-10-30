@@ -105,8 +105,8 @@ namespace SecureSocketProtocol3.Network
 
                 if (Client.Server != null && Client.Server.serverProperties.KeyFiles != null)
                     keyFiles = Client.Server.serverProperties.KeyFiles;
-                else if (Client.Properties.KeyFiles != null)
-                    keyFiles = Client.Properties.KeyFiles;
+                else if (Client.ConnectedProperty.KeyFiles != null)
+                    keyFiles = Client.ConnectedProperty.KeyFiles;
 
                 if (keyFiles != null)
                 {
@@ -172,7 +172,7 @@ namespace SecureSocketProtocol3.Network
                 if (this._preNetworkKey != null)
                     return;
 
-                _preNetworkKey = Client.Server != null ? Client.Server.serverProperties.NetworkKey : Client.Properties.NetworkKey;
+                _preNetworkKey = Client.Server != null ? Client.Server.serverProperties.NetworkKey : Client.ConnectedProperty.NetworkKey;
                 PrivateSeed = _preNetworkKey.Length >= 4 ? BitConverter.ToInt32(_preNetworkKey, 0) : 0xBEEF;
 
                 for (int i = 0; i < _preNetworkKey.Length; i++)
